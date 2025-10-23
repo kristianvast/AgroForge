@@ -1,16 +1,22 @@
-import { createSignal, Show, onMount, createEffect } from "solid-js"
+import { createSignal, Show, onMount, createEffect, For } from "solid-js"
 import AgentSelector from "./agent-selector"
 import ModelSelector from "./model-selector"
+import FilePicker from "./file-picker"
+import AttachmentChip from "./attachment-chip"
 import { addToHistory, getHistory } from "../stores/message-history"
+import { getAttachments, addAttachment, removeAttachment, clearAttachments } from "../stores/attachments"
+import { createFileAttachment } from "../types/attachment"
+import type { Attachment } from "../types/attachment"
 import Kbd from "./kbd"
 import HintRow from "./hint-row"
 import { isMac } from "../lib/keyboard-utils"
+import { getActiveInstance } from "../stores/instances"
 
 interface PromptInputProps {
   instanceId: string
   instanceFolder: string
   sessionId: string
-  onSend: (prompt: string) => Promise<void>
+  onSend: (prompt: string, attachments: Attachment[]) => Promise<void>
   disabled?: boolean
   agent: string
   model: { providerId: string; modelId: string }
@@ -24,7 +30,14 @@ export default function PromptInput(props: PromptInputProps) {
   const [history, setHistory] = createSignal<string[]>([])
   const [historyIndex, setHistoryIndex] = createSignal(-1)
   const [isFocused, setIsFocused] = createSignal(false)
+  const [showFilePicker, setShowFilePicker] = createSignal(false)
+  const [fileSearchQuery, setFileSearchQuery] = createSignal("")
+  const [atPosition, setAtPosition] = createSignal<number | null>(null)
+  const [isDragging, setIsDragging] = createSignal(false)
   let textareaRef: HTMLTextAreaElement | undefined
+  let containerRef: HTMLDivElement | undefined
+
+  const attachments = () => getAttachments(props.instanceId, props.sessionId)
 
   onMount(async () => {
     const loaded = await getHistory(props.instanceFolder)
@@ -32,6 +45,10 @@ export default function PromptInput(props: PromptInputProps) {
   })
 
   function handleKeyDown(e: KeyboardEvent) {
+    if (showFilePicker()) {
+      return
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSend()
@@ -76,6 +93,7 @@ export default function PromptInput(props: PromptInputProps) {
 
   async function handleSend() {
     const text = prompt().trim()
+    const currentAttachments = attachments()
     if (!text || sending() || props.disabled) return
 
     setSending(true)
@@ -86,8 +104,9 @@ export default function PromptInput(props: PromptInputProps) {
       setHistory(updated)
       setHistoryIndex(-1)
 
-      await props.onSend(text)
+      await props.onSend(text, currentAttachments)
       setPrompt("")
+      clearAttachments(props.instanceId, props.sessionId)
 
       if (textareaRef) {
         textareaRef.style.height = "auto"
@@ -103,22 +122,116 @@ export default function PromptInput(props: PromptInputProps) {
 
   function handleInput(e: Event) {
     const target = e.target as HTMLTextAreaElement
-    setPrompt(target.value)
+    const value = target.value
+    setPrompt(value)
     setHistoryIndex(-1)
 
     target.style.height = "auto"
     target.style.height = Math.min(target.scrollHeight, 200) + "px"
+
+    const cursorPos = target.selectionStart
+    const lastAtIndex = value.lastIndexOf("@", cursorPos)
+
+    if (lastAtIndex !== -1 && lastAtIndex < cursorPos) {
+      const textAfterAt = value.substring(lastAtIndex + 1, cursorPos)
+      const hasSpace = textAfterAt.includes(" ") || textAfterAt.includes("\n")
+
+      if (!hasSpace) {
+        setAtPosition(lastAtIndex)
+        setFileSearchQuery(textAfterAt)
+        setShowFilePicker(true)
+      } else {
+        setShowFilePicker(false)
+      }
+    } else {
+      setShowFilePicker(false)
+    }
   }
 
-  const canSend = () => prompt().trim().length > 0 && !sending() && !props.disabled
+  function handleFileSelect(path: string) {
+    const instance = getActiveInstance()
+    if (!instance) return
+
+    const filename = path.split("/").pop() || path
+    const attachment = createFileAttachment(path, filename)
+    addAttachment(props.instanceId, props.sessionId, attachment)
+
+    const currentPrompt = prompt()
+    const pos = atPosition()
+    if (pos !== null) {
+      const before = currentPrompt.substring(0, pos)
+      const after = currentPrompt.substring(textareaRef?.selectionStart || pos)
+      setPrompt(before + after)
+    }
+
+    setShowFilePicker(false)
+    setAtPosition(null)
+    setFileSearchQuery("")
+
+    setTimeout(() => textareaRef?.focus(), 50)
+  }
+
+  function handleRemoveAttachment(attachmentId: string) {
+    removeAttachment(props.instanceId, props.sessionId, attachmentId)
+  }
+
+  function handleDragOver(e: DragEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  function handleDragLeave(e: DragEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  function handleDrop(e: DragEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = e.dataTransfer?.files
+    if (!files || files.length === 0) return
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      const path = (file as any).path || file.name
+      const filename = file.name
+      const mime = file.type || "text/plain"
+
+      const attachment = createFileAttachment(path, filename, mime)
+      addAttachment(props.instanceId, props.sessionId, attachment)
+    }
+
+    textareaRef?.focus()
+  }
+
+  const canSend = () => (prompt().trim().length > 0 || attachments().length > 0) && !sending() && !props.disabled
+
+  const instance = () => getActiveInstance()
 
   return (
     <div class="prompt-input-container">
-      <div class="prompt-input-wrapper">
+      <Show when={attachments().length > 0}>
+        <div class="flex flex-wrap gap-2 border-b border-gray-200 p-2 dark:border-gray-700">
+          <For each={attachments()}>
+            {(att) => <AttachmentChip attachment={att} onRemove={() => handleRemoveAttachment(att.id)} />}
+          </For>
+        </div>
+      </Show>
+      <div
+        ref={containerRef}
+        class={`prompt-input-wrapper ${isDragging() ? "border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/10" : ""}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         <textarea
           ref={textareaRef}
           class="prompt-input"
-          placeholder="Type your message or /command..."
+          placeholder="Type your message, @file, or /command..."
           value={prompt()}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
@@ -135,8 +248,8 @@ export default function PromptInput(props: PromptInputProps) {
       </div>
       <div class="prompt-input-hints">
         <HintRow>
-          <Kbd>Enter</Kbd> to send • <Kbd>Shift+Enter</Kbd> for new line • <Kbd>↑↓</Kbd> for history •{" "}
-          <Kbd shortcut="cmd+p" /> to focus
+          <Kbd>Enter</Kbd> to send • <Kbd>Shift+Enter</Kbd> for new line • <Kbd>@</Kbd> for files • <Kbd>↑↓</Kbd> for
+          history
         </HintRow>
         <div class="flex items-center gap-2">
           <AgentSelector
@@ -153,6 +266,21 @@ export default function PromptInput(props: PromptInputProps) {
           />
         </div>
       </div>
+
+      <Show when={showFilePicker() && instance()}>
+        <FilePicker
+          open={showFilePicker()}
+          onClose={() => {
+            setShowFilePicker(false)
+            setAtPosition(null)
+            setFileSearchQuery("")
+          }}
+          onSelect={handleFileSelect}
+          instanceId={props.instanceId}
+          instanceClient={instance()!.client}
+          searchQuery={fileSearchQuery()}
+        />
+      </Show>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { Component, onMount, onCleanup, Show, createMemo, createEffect } from "solid-js"
 import type { Session } from "./types/session"
+import type { Attachment } from "./types/attachment"
 import EmptyState from "./components/empty-state"
 import SessionPicker from "./components/session-picker"
 import CommandPalette from "./components/command-palette"
@@ -70,8 +71,8 @@ const SessionView: Component<{
     }
   })
 
-  async function handleSendMessage(prompt: string) {
-    await sendMessage(props.instanceId, props.sessionId, prompt)
+  async function handleSendMessage(prompt: string, attachments: Attachment[]) {
+    await sendMessage(props.instanceId, props.sessionId, prompt, attachments)
   }
 
   async function handleAgentChange(agent: string) {

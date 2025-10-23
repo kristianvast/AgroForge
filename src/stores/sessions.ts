@@ -626,7 +626,7 @@ async function sendMessage(
   instanceId: string,
   sessionId: string,
   prompt: string,
-  attachments: string[] = [],
+  attachments: any[] = [],
 ): Promise<void> {
   const instance = instances().get(instanceId)
   if (!instance || !instance.client) {
@@ -639,13 +639,33 @@ async function sendMessage(
     throw new Error("Session not found")
   }
 
+  const parts: any[] = [
+    {
+      type: "text" as const,
+      text: prompt,
+    },
+  ]
+
+  if (attachments.length > 0) {
+    for (const att of attachments) {
+      const source = att.source
+      if (source.type === "file") {
+        parts.push({
+          type: "file" as const,
+          path: source.path,
+          mime: source.mime,
+        })
+      } else if (source.type === "text") {
+        parts.push({
+          type: "text" as const,
+          text: source.value,
+        })
+      }
+    }
+  }
+
   const requestBody = {
-    parts: [
-      {
-        type: "text" as const,
-        text: prompt,
-      },
-    ],
+    parts,
     ...(session.agent && { agent: session.agent }),
     ...(session.model.providerId &&
       session.model.modelId && {
