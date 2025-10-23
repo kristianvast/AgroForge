@@ -2,6 +2,7 @@ import { createSignal } from "solid-js"
 import type { Session, Agent, Provider } from "../types/session"
 import type { Message } from "../types/message"
 import { instances } from "./instances"
+import { sseManager } from "../lib/sse-manager"
 
 const [sessions, setSessions] = createSignal<Map<string, Map<string, Session>>>(new Map())
 const [activeSessionId, setActiveSessionId] = createSignal<Map<string, string>>(new Map())
@@ -394,6 +395,209 @@ async function loadMessages(instanceId: string, sessionId: string): Promise<void
   }
 }
 
+function handleMessageUpdate(instanceId: string, event: any): void {
+  const instanceSessions = sessions().get(instanceId)
+  if (!instanceSessions) return
+
+  if (event.type === "message.part.updated") {
+    const part = event.properties?.part
+    if (!part) return
+
+    const session = instanceSessions.get(part.sessionID)
+    if (!session) return
+
+    let message = session.messages.find((m) => m.id === part.messageID)
+
+    if (!message) {
+      message = {
+        id: part.messageID,
+        sessionId: part.sessionID,
+        type: "assistant",
+        parts: [part],
+        timestamp: Date.now(),
+        status: "streaming",
+      }
+      session.messages.push(message)
+    } else {
+      const partIndex = message.parts.findIndex((p: any) => p.id === part.id)
+      if (partIndex === -1) {
+        message.parts.push(part)
+      } else {
+        message.parts[partIndex] = part
+      }
+    }
+
+    setSessions((prev) => {
+      const next = new Map(prev)
+      const instanceSessions = new Map(prev.get(instanceId))
+      instanceSessions.set(part.sessionID, { ...session })
+      next.set(instanceId, instanceSessions)
+      return next
+    })
+  } else if (event.type === "message.updated") {
+    const info = event.properties?.info
+    if (!info) return
+
+    const session = instanceSessions.get(info.sessionID)
+    if (!session) return
+
+    let message = session.messages.find((m) => m.id === info.id)
+
+    if (!message) {
+      message = {
+        id: info.id,
+        sessionId: info.sessionID,
+        type: info.role === "user" ? "user" : "assistant",
+        parts: [],
+        timestamp: info.time?.created || Date.now(),
+        status: "complete",
+      }
+      session.messages.push(message)
+    } else {
+      // Update existing message - replace temp message with real one
+      message.id = info.id
+      message.status = "complete"
+    }
+
+    setSessions((prev) => {
+      const next = new Map(prev)
+      const instanceSessions = new Map(prev.get(instanceId))
+      const updatedSession = instanceSessions.get(info.sessionID)
+      if (updatedSession) {
+        const messagesInfo = new Map(updatedSession.messagesInfo)
+        messagesInfo.set(info.id, info)
+        instanceSessions.set(info.sessionID, { ...updatedSession, messagesInfo })
+      }
+      next.set(instanceId, instanceSessions)
+      return next
+    })
+  }
+}
+
+function handleSessionUpdate(instanceId: string, event: any): void {
+  const info = event.properties?.info
+  if (!info) return
+
+  const instanceSessions = sessions().get(instanceId)
+  if (!instanceSessions) return
+
+  const existingSession = instanceSessions.get(info.id)
+
+  if (!existingSession) {
+    const newSession: Session = {
+      id: info.id,
+      instanceId,
+      title: info.title || "Untitled",
+      parentId: info.parentID || null,
+      agent: info.agent || "",
+      model: {
+        providerId: info.model?.providerID || "",
+        modelId: info.model?.modelID || "",
+      },
+      time: {
+        created: info.time?.created || Date.now(),
+        updated: info.time?.updated || Date.now(),
+      },
+      messages: [],
+      messagesInfo: new Map(),
+    }
+
+    setSessions((prev) => {
+      const next = new Map(prev)
+      const instanceSessions = new Map(prev.get(instanceId))
+      instanceSessions.set(newSession.id, newSession)
+      next.set(instanceId, instanceSessions)
+      return next
+    })
+
+    console.log(`[SSE] New session created: ${info.id}`, newSession)
+  } else {
+    const updatedSession = {
+      ...existingSession,
+      title: info.title || existingSession.title,
+      agent: info.agent || existingSession.agent,
+      model: info.model
+        ? {
+            providerId: info.model.providerID || existingSession.model.providerId,
+            modelId: info.model.modelID || existingSession.model.modelId,
+          }
+        : existingSession.model,
+      time: {
+        ...existingSession.time,
+        updated: info.time?.updated || Date.now(),
+      },
+    }
+
+    setSessions((prev) => {
+      const next = new Map(prev)
+      const instanceSessions = new Map(prev.get(instanceId))
+      instanceSessions.set(existingSession.id, updatedSession)
+      next.set(instanceId, instanceSessions)
+      return next
+    })
+  }
+}
+
+async function sendMessage(
+  instanceId: string,
+  sessionId: string,
+  prompt: string,
+  attachments: string[] = [],
+): Promise<void> {
+  const instance = instances().get(instanceId)
+  if (!instance || !instance.client) {
+    throw new Error("Instance not ready")
+  }
+
+  const instanceSessions = sessions().get(instanceId)
+  const session = instanceSessions?.get(sessionId)
+  if (!session) {
+    throw new Error("Session not found")
+  }
+
+  const requestBody = {
+    parts: [
+      {
+        type: "text" as const,
+        text: prompt,
+      },
+    ],
+    ...(session.agent && { agent: session.agent }),
+    ...(session.model.providerId &&
+      session.model.modelId && {
+        model: {
+          providerID: session.model.providerId,
+          modelID: session.model.modelId,
+        },
+      }),
+  }
+
+  console.log("[sendMessage] Sending prompt:", {
+    sessionId,
+    requestBody,
+  })
+
+  try {
+    const response = await instance.client.session.prompt({
+      path: { id: sessionId },
+      body: requestBody,
+    })
+
+    console.log("[sendMessage] Response:", response)
+
+    if (response.error) {
+      console.error("[sendMessage] Server returned error:", response.error)
+      throw new Error(JSON.stringify(response.error) || "Failed to send message")
+    }
+  } catch (error) {
+    console.error("[sendMessage] Failed to send prompt:", error)
+    throw error
+  }
+}
+
+sseManager.onMessageUpdate = handleMessageUpdate
+sseManager.onSessionUpdate = handleSessionUpdate
+
 export {
   sessions,
   activeSessionId,
@@ -407,6 +611,7 @@ export {
   fetchAgents,
   fetchProviders,
   loadMessages,
+  sendMessage,
   setActiveSession,
   setActiveParentSession,
   clearActiveParentSession,

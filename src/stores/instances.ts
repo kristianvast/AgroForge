@@ -1,6 +1,7 @@
 import { createSignal } from "solid-js"
 import type { Instance } from "../types/instance"
 import { sdkManager } from "../lib/sdk-manager"
+import { sseManager } from "../lib/sse-manager"
 import { fetchSessions, fetchAgents, fetchProviders } from "./sessions"
 import { showSessionPicker } from "./ui"
 
@@ -66,6 +67,8 @@ async function createInstance(folder: string): Promise<string> {
 
     setActiveInstanceId(tempId)
 
+    sseManager.connect(tempId, port)
+
     try {
       await fetchSessions(tempId)
       await fetchAgents(tempId)
@@ -89,6 +92,8 @@ async function createInstance(folder: string): Promise<string> {
 async function stopInstance(id: string) {
   const instance = instances().get(id)
   if (!instance) return
+
+  sseManager.disconnect(id)
 
   if (instance.port) {
     sdkManager.destroyClient(instance.port)

@@ -1,17 +1,73 @@
-import { createSignal, Show } from "solid-js"
+import { createSignal, Show, For, createEffect } from "solid-js"
+import { isToolCallExpanded, toggleToolCallExpanded } from "../stores/tool-call-state"
 
 interface ToolCallProps {
   toolCall: any
+  toolCallId?: string
+}
+
+function getToolIcon(tool: string): string {
+  switch (tool) {
+    case "bash":
+      return "⚡"
+    case "edit":
+      return "✏️"
+    case "read":
+      return "📖"
+    case "write":
+      return "📝"
+    case "glob":
+      return "🔍"
+    case "grep":
+      return "🔎"
+    case "webfetch":
+      return "🌐"
+    case "task":
+      return "🎯"
+    case "todowrite":
+    case "todoread":
+      return "📋"
+    case "list":
+      return "📁"
+    case "patch":
+      return "🔧"
+    default:
+      return "🔧"
+  }
+}
+
+function getToolName(tool: string): string {
+  switch (tool) {
+    case "bash":
+      return "Shell"
+    case "webfetch":
+      return "Fetch"
+    case "invalid":
+      return "Invalid"
+    case "todowrite":
+    case "todoread":
+      return "Plan"
+    default:
+      const normalized = tool.replace(/^opencode_/, "")
+      return normalized.charAt(0).toUpperCase() + normalized.slice(1)
+  }
+}
+
+function getRelativePath(path: string): string {
+  if (!path) return ""
+  const parts = path.split("/")
+  return parts.slice(-1)[0] || path
 }
 
 export default function ToolCall(props: ToolCallProps) {
-  const [expanded, setExpanded] = createSignal(false)
+  const toolCallId = () => props.toolCallId || props.toolCall?.id || ""
+  const expanded = () => isToolCallExpanded(toolCallId())
 
   const statusIcon = () => {
     const status = props.toolCall?.state?.status || ""
     switch (status) {
       case "pending":
-        return "⏳"
+        return "⏸"
       case "running":
         return "⏳"
       case "completed":
@@ -28,71 +84,128 @@ export default function ToolCall(props: ToolCallProps) {
     return `tool-call-status-${status}`
   }
 
-  function toggleExpanded() {
-    setExpanded(!expanded())
+  function toggle() {
+    toggleToolCallExpanded(toolCallId())
   }
 
-  function formatToolSummary() {
+  const renderToolAction = () => {
+    const toolName = props.toolCall?.tool || ""
+    switch (toolName) {
+      case "task":
+        return "Delegating..."
+      case "bash":
+        return "Writing command..."
+      case "edit":
+        return "Preparing edit..."
+      case "webfetch":
+        return "Fetching from the web..."
+      case "glob":
+        return "Finding files..."
+      case "grep":
+        return "Searching content..."
+      case "list":
+        return "Listing directory..."
+      case "read":
+        return "Reading file..."
+      case "write":
+        return "Preparing write..."
+      case "todowrite":
+      case "todoread":
+        return "Planning..."
+      case "patch":
+        return "Preparing patch..."
+      default:
+        return "Working..."
+    }
+  }
+
+  const getTodoTitle = () => {
+    const state = props.toolCall?.state || {}
+    if (state.status !== "completed") return "Plan"
+
+    const metadata = state.metadata || {}
+    const todos = metadata.todos || []
+
+    if (!Array.isArray(todos) || todos.length === 0) return "Plan"
+
+    const counts = { pending: 0, completed: 0 }
+    for (const todo of todos) {
+      const status = todo.status || "pending"
+      if (status in counts) counts[status as keyof typeof counts]++
+    }
+
+    const total = todos.length
+    if (counts.pending === total) return "Creating plan"
+    if (counts.completed === total) return "Completing plan"
+    return "Updating plan"
+  }
+
+  const renderToolTitle = () => {
     const toolName = props.toolCall?.tool || ""
     const state = props.toolCall?.state || {}
     const input = state.input || {}
+
+    if (state.status === "pending") {
+      return renderToolAction()
+    }
 
     if (state.title) {
       return state.title
     }
 
+    const name = getToolName(toolName)
+
     switch (toolName) {
-      case "bash":
-        return `bash: ${input.command || ""}`
-      case "edit":
-        return `edit ${input.filePath || ""}`
       case "read":
-        return `read ${input.filePath || ""}`
+        if (input.filePath) {
+          return `${name} ${getRelativePath(input.filePath)}`
+        }
+        return name
+
+      case "edit":
       case "write":
-        return `write ${input.filePath || ""}`
-      case "glob":
-        return `glob ${input.pattern || ""}`
-      case "grep":
-        return `grep ${input.pattern || ""}`
+        if (input.filePath) {
+          return `${name} ${getRelativePath(input.filePath)}`
+        }
+        return name
+
+      case "bash":
+        if (input.description) {
+          return `${name} ${input.description}`
+        }
+        return name
+
+      case "task":
+        const description = input.description
+        const subagent = input.subagent_type
+        if (description && subagent) {
+          return `${name}[${subagent}] ${description}`
+        } else if (description) {
+          return `${name} ${description}`
+        }
+        return name
+
+      case "webfetch":
+        if (input.url) {
+          return `${name} ${input.url}`
+        }
+        return name
+
+      case "todowrite":
+        return getTodoTitle()
+
+      case "todoread":
+        return "Plan"
+
+      case "invalid":
+        if (input.tool) {
+          return getToolName(input.tool)
+        }
+        return name
+
       default:
-        return toolName || "Unknown tool"
+        return name
     }
-  }
-
-  function formatToolOutput() {
-    const state = props.toolCall?.state || {}
-
-    if (state.error) {
-      return `Error: ${state.error}`
-    }
-
-    if (state.output) {
-      return state.output
-    }
-
-    return "No output"
-  }
-
-  function formatOutputPreview() {
-    const state = props.toolCall?.state || {}
-
-    if (state.error) {
-      return state.error
-    }
-
-    if (state.output) {
-      const output = state.output
-      const lines = output.split("\n")
-
-      if (lines.length <= 10) {
-        return output
-      }
-
-      const firstTenLines = lines.slice(0, 10).join("\n")
-      return firstTenLines + "\n..."
-    }
-
-    return "No output"
   }
 
   const hasResult = () => {
@@ -100,36 +213,264 @@ export default function ToolCall(props: ToolCallProps) {
     return status === "completed" || status === "error"
   }
 
+  const renderToolBody = () => {
+    const toolName = props.toolCall?.tool || ""
+    const state = props.toolCall?.state || {}
+    const input = state.input || {}
+    const metadata = state.metadata || {}
+
+    if (toolName === "todoread") {
+      return null
+    }
+
+    if (state.status === "pending") {
+      return null
+    }
+
+    switch (toolName) {
+      case "read":
+        return renderReadTool()
+
+      case "edit":
+        return renderEditTool()
+
+      case "write":
+        return renderWriteTool()
+
+      case "bash":
+        return renderBashTool()
+
+      case "webfetch":
+        return renderWebfetchTool()
+
+      case "todowrite":
+        return renderTodowriteTool()
+
+      case "task":
+        return renderTaskTool()
+
+      default:
+        return renderDefaultTool()
+    }
+  }
+
+  const renderReadTool = () => {
+    const state = props.toolCall?.state || {}
+    const metadata = state.metadata || {}
+    const input = state.input || {}
+    const preview = metadata.preview
+
+    if (preview && input.filePath) {
+      const lines = preview.split("\n")
+      const truncated = lines.slice(0, 6).join("\n")
+      return (
+        <pre class="tool-call-content">
+          <code>{truncated}</code>
+        </pre>
+      )
+    }
+
+    return null
+  }
+
+  const renderEditTool = () => {
+    const state = props.toolCall?.state || {}
+    const metadata = state.metadata || {}
+    const diff = metadata.diff
+
+    if (diff) {
+      return (
+        <div class="tool-call-diff">
+          <pre class="tool-call-content">
+            <code>{diff}</code>
+          </pre>
+        </div>
+      )
+    }
+
+    return null
+  }
+
+  const renderWriteTool = () => {
+    const state = props.toolCall?.state || {}
+    const input = state.input || {}
+
+    if (input.content && input.filePath) {
+      const lines = input.content.split("\n")
+      const truncated = lines.slice(0, 10).join("\n")
+      return (
+        <pre class="tool-call-content">
+          <code>{truncated}</code>
+        </pre>
+      )
+    }
+
+    return null
+  }
+
+  const renderBashTool = () => {
+    const state = props.toolCall?.state || {}
+    const input = state.input || {}
+    const metadata = state.metadata || {}
+    const output = metadata.output
+
+    if (input.command) {
+      return (
+        <div class="tool-call-bash">
+          <pre class="tool-call-content">
+            <code>
+              $ {input.command}
+              {output && "\n"}
+              {output}
+            </code>
+          </pre>
+        </div>
+      )
+    }
+
+    return null
+  }
+
+  const renderWebfetchTool = () => {
+    const state = props.toolCall?.state || {}
+    const output = state.output
+
+    if (output) {
+      const lines = output.split("\n")
+      const truncated = lines.slice(0, 10).join("\n")
+      return (
+        <pre class="tool-call-content">
+          <code>{truncated}</code>
+        </pre>
+      )
+    }
+
+    return null
+  }
+
+  const renderTodowriteTool = () => {
+    const state = props.toolCall?.state || {}
+    const metadata = state.metadata || {}
+    const todos = metadata.todos || []
+
+    if (!Array.isArray(todos) || todos.length === 0) {
+      return null
+    }
+
+    return (
+      <div class="tool-call-todos">
+        <For each={todos}>
+          {(todo) => {
+            const content = todo.content
+            if (!content) return null
+
+            return (
+              <div class="tool-call-todo-item">
+                {todo.status === "completed" && "- [x] "}
+                {todo.status !== "completed" && "- [ ] "}
+                {todo.status === "cancelled" && <s>{content}</s>}
+                {todo.status === "in_progress" && <code>{content}</code>}
+                {todo.status !== "cancelled" && todo.status !== "in_progress" && content}
+              </div>
+            )
+          }}
+        </For>
+      </div>
+    )
+  }
+
+  const renderTaskTool = () => {
+    const state = props.toolCall?.state || {}
+    const metadata = state.metadata || {}
+    const summary = metadata.summary || []
+
+    if (!Array.isArray(summary) || summary.length === 0) {
+      return null
+    }
+
+    return (
+      <div class="tool-call-task-summary">
+        <For each={summary}>
+          {(item) => {
+            const tool = item.tool || "unknown"
+            const itemInput = item.state?.input || {}
+            const icon = getToolIcon(tool)
+
+            let description = ""
+            switch (tool) {
+              case "bash":
+                description = itemInput.description || itemInput.command || ""
+                break
+              case "edit":
+              case "read":
+              case "write":
+                description = `${tool} ${getRelativePath(itemInput.filePath || "")}`
+                break
+              default:
+                description = tool
+            }
+
+            return (
+              <div class="tool-call-task-item">
+                {icon} {description}
+              </div>
+            )
+          }}
+        </For>
+      </div>
+    )
+  }
+
+  const renderDefaultTool = () => {
+    const state = props.toolCall?.state || {}
+    const output = state.output
+
+    if (output) {
+      const lines = output.split("\n")
+      const truncated = lines.slice(0, 10).join("\n")
+      return (
+        <pre class="tool-call-content">
+          <code>{truncated}</code>
+        </pre>
+      )
+    }
+
+    return null
+  }
+
+  const renderError = () => {
+    const state = props.toolCall?.state || {}
+    if (state.status === "error" && state.error) {
+      return (
+        <div class="tool-call-error-content">
+          <strong>Error:</strong> {state.error}
+        </div>
+      )
+    }
+    return null
+  }
+
+  const toolName = () => props.toolCall?.tool || ""
+  const status = () => props.toolCall?.state?.status || ""
+
   return (
     <div class={`tool-call ${statusClass()}`}>
-      <button class="tool-call-header" onClick={toggleExpanded} aria-expanded={expanded()}>
+      <button class="tool-call-header" onClick={toggle} aria-expanded={expanded()}>
         <span class="tool-call-icon">{expanded() ? "▼" : "▶"}</span>
-        <span class="tool-call-summary">{formatToolSummary()}</span>
+        <span class="tool-call-emoji">{getToolIcon(toolName())}</span>
+        <span class="tool-call-summary">{renderToolTitle()}</span>
         <span class="tool-call-status">{statusIcon()}</span>
       </button>
 
-      <Show when={!expanded() && hasResult()}>
-        <div class="tool-call-preview">
-          <span class="tool-call-preview-label">Output:</span>
-          <span class="tool-call-preview-text">{formatOutputPreview()}</span>
-        </div>
-      </Show>
-
       <Show when={expanded()}>
         <div class="tool-call-details">
-          <div class="tool-call-section">
-            <h4>Input:</h4>
-            <pre>
-              <code>{JSON.stringify(props.toolCall?.state?.input || {}, null, 2)}</code>
-            </pre>
-          </div>
+          {renderToolBody()}
+          {renderError()}
 
-          <Show when={hasResult()}>
-            <div class="tool-call-section">
-              <h4>Output:</h4>
-              <pre>
-                <code>{formatToolOutput()}</code>
-              </pre>
+          <Show when={status() === "pending"}>
+            <div class="tool-call-pending-message">
+              <span class="spinner-small"></span>
+              <span>Waiting for permission...</span>
             </div>
           </Show>
         </div>

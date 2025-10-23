@@ -5,6 +5,7 @@ import SessionPicker from "./components/session-picker"
 import InstanceTabs from "./components/instance-tabs"
 import SessionTabs from "./components/session-tabs"
 import MessageStream from "./components/message-stream"
+import PromptInput from "./components/prompt-input"
 import {
   hasInstances,
   isSelectingFolder,
@@ -35,10 +36,11 @@ import {
   activeParentSessionId,
   getParentSessions,
   loadMessages,
+  sendMessage,
 } from "./stores/sessions"
 import { setupTabKeyboardShortcuts } from "./lib/keyboard"
 
-const SessionMessages: Component<{
+const SessionView: Component<{
   sessionId: string
   activeSessions: Map<string, Session>
   instanceId: string
@@ -52,6 +54,10 @@ const SessionMessages: Component<{
     }
   })
 
+  async function handleSendMessage(prompt: string) {
+    await sendMessage(props.instanceId, props.sessionId, prompt)
+  }
+
   return (
     <Show
       when={session()}
@@ -61,7 +67,17 @@ const SessionMessages: Component<{
         </div>
       }
     >
-      {(s) => <MessageStream sessionId={s().id} messages={s().messages || []} messagesInfo={s().messagesInfo} />}
+      {(s) => (
+        <div class="session-view">
+          <MessageStream
+            instanceId={props.instanceId}
+            sessionId={s().id}
+            messages={s().messages || []}
+            messagesInfo={s().messagesInfo}
+          />
+          <PromptInput instanceId={props.instanceId} sessionId={s().id} onSend={handleSendMessage} />
+        </div>
+      )}
     </Show>
   )
 }
@@ -213,7 +229,7 @@ const App: Component = () => {
                               </div>
                             }
                           >
-                            <SessionMessages
+                            <SessionView
                               sessionId={activeSessionIdForInstance()!}
                               activeSessions={activeSessions()}
                               instanceId={activeInstance()!.id}

@@ -2,8 +2,10 @@ import { For, Show, createSignal, createEffect, createMemo } from "solid-js"
 import type { Message } from "../types/message"
 import MessageItem from "./message-item"
 import ToolCall from "./tool-call"
+import { sseManager } from "../lib/sse-manager"
 
 interface MessageStreamProps {
+  instanceId: string
   sessionId: string
   messages: Message[]
   messagesInfo?: Map<string, any>
@@ -20,6 +22,8 @@ export default function MessageStream(props: MessageStreamProps) {
   let containerRef: HTMLDivElement | undefined
   const [autoScroll, setAutoScroll] = createSignal(true)
   const [showScrollButton, setShowScrollButton] = createSignal(false)
+
+  const connectionStatus = () => sseManager.getStatus(props.instanceId)
 
   function scrollToBottom() {
     if (containerRef) {
@@ -81,6 +85,26 @@ export default function MessageStream(props: MessageStreamProps) {
 
   return (
     <div class="message-stream-container">
+      <div class="connection-status">
+        <Show when={connectionStatus() === "connected"}>
+          <span class="status-indicator connected">
+            <span class="status-dot" />
+            Connected
+          </span>
+        </Show>
+        <Show when={connectionStatus() === "connecting"}>
+          <span class="status-indicator connecting">
+            <span class="status-dot" />
+            Connecting...
+          </span>
+        </Show>
+        <Show when={connectionStatus() === "error" || connectionStatus() === "disconnected"}>
+          <span class="status-indicator disconnected">
+            <span class="status-dot" />
+            Disconnected
+          </span>
+        </Show>
+      </div>
       <div ref={containerRef} class="message-stream" onScroll={handleScroll}>
         <Show when={!props.loading && displayItems().length === 0}>
           <div class="empty-state">
@@ -107,24 +131,27 @@ export default function MessageStream(props: MessageStreamProps) {
           </div>
         </Show>
 
-        <For each={displayItems()}>
-          {(item) => (
-            <Show
-              when={item.type === "message"}
-              fallback={
-                <div class="tool-call-message">
-                  <div class="tool-call-header-label">
-                    <span class="tool-call-icon">🔧</span>
-                    <span>Tool Call</span>
-                    <span class="tool-name">{item.data?.tool || "unknown"}</span>
+        <For each={displayItems()} fallback={null}>
+          {(item, index) => {
+            const key = item.type === "message" ? `msg-${item.data.id}` : `tool-${item.data.id}`
+            return (
+              <Show
+                when={item.type === "message"}
+                fallback={
+                  <div class="tool-call-message" data-key={key}>
+                    <div class="tool-call-header-label">
+                      <span class="tool-call-icon">🔧</span>
+                      <span>Tool Call</span>
+                      <span class="tool-name">{item.data?.tool || "unknown"}</span>
+                    </div>
+                    <ToolCall toolCall={item.data} toolCallId={item.data.id} />
                   </div>
-                  <ToolCall toolCall={item.data} />
-                </div>
-              }
-            >
-              <MessageItem message={item.data} messageInfo={item.messageInfo} />
-            </Show>
-          )}
+                }
+              >
+                <MessageItem message={item.data} messageInfo={item.messageInfo} />
+              </Show>
+            )
+          }}
         </For>
       </div>
 

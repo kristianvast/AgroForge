@@ -1,5 +1,6 @@
 import { Show, Match, Switch } from "solid-js"
 import ToolCall from "./tool-call"
+import { isItemExpanded, toggleItemExpanded } from "../stores/tool-call-state"
 
 interface MessagePartProps {
   part: any
@@ -7,6 +8,13 @@ interface MessagePartProps {
 
 export default function MessagePart(props: MessagePartProps) {
   const partType = () => props.part?.type || ""
+  const reasoningId = () => `reasoning-${props.part?.id || ""}`
+  const isReasoningExpanded = () => isItemExpanded(reasoningId())
+
+  function handleReasoningClick(e: Event) {
+    e.preventDefault()
+    toggleItemExpanded(reasoningId())
+  }
 
   return (
     <Switch>
@@ -17,7 +25,7 @@ export default function MessagePart(props: MessagePartProps) {
       </Match>
 
       <Match when={partType() === "tool"}>
-        <ToolCall toolCall={props.part} />
+        <ToolCall toolCall={props.part} toolCallId={props.part?.id} />
       </Match>
 
       <Match when={partType() === "error"}>
@@ -26,10 +34,15 @@ export default function MessagePart(props: MessagePartProps) {
 
       <Match when={partType() === "reasoning"}>
         <div class="message-reasoning">
-          <details>
-            <summary class="text-sm text-gray-500 cursor-pointer">Reasoning</summary>
-            <div class="message-text mt-2">{props.part.text || ""}</div>
-          </details>
+          <div class="reasoning-container">
+            <div class="reasoning-header" onClick={handleReasoningClick}>
+              <span class="reasoning-icon">{isReasoningExpanded() ? "▼" : "▶"}</span>
+              <span class="reasoning-label">Reasoning</span>
+            </div>
+            <Show when={isReasoningExpanded()}>
+              <div class="message-text mt-2">{props.part.text || ""}</div>
+            </Show>
+          </div>
         </div>
       </Match>
     </Switch>
