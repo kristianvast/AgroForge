@@ -652,8 +652,9 @@ async function sendMessage(
       if (source.type === "file") {
         parts.push({
           type: "file" as const,
-          path: source.path,
+          url: att.url,
           mime: source.mime,
+          filename: att.filename,
         })
       } else if (source.type === "text") {
         parts.push({

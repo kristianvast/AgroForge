@@ -161,8 +161,14 @@ export default function PromptInput(props: PromptInputProps) {
 
   function handleFileSelect(path: string) {
     const filename = path.split("/").pop() || path
-    const attachment = createFileAttachment(path, filename)
-    addAttachment(props.instanceId, props.sessionId, attachment)
+
+    const existingAttachments = attachments()
+    const alreadyAttached = existingAttachments.some((att) => att.source.type === "file" && att.source.path === path)
+
+    if (!alreadyAttached) {
+      const attachment = createFileAttachment(path, filename)
+      addAttachment(props.instanceId, props.sessionId, attachment)
+    }
 
     const currentPrompt = prompt()
     const pos = atPosition()

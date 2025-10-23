@@ -78,16 +78,10 @@ const FilePicker: Component<FilePickerProps> = (props) => {
       const gitFiles = cachedGitFiles()
       console.log(`[FilePicker] Using ${gitFiles.length} cached git files`)
 
-      if (!searchQuery) {
-        console.log(`[FilePicker] No search query, showing ${gitFiles.length} git files`)
-        setFiles(gitFiles)
-        setSelectedIndex(0)
-        setLoading(false)
-        return
-      }
-
-      console.log(`[FilePicker] Searching files with query: "${searchQuery}"`)
-      const searchResponse = await props.instanceClient.find.files({ query: { query: searchQuery } })
+      console.log(`[FilePicker] Searching files with query: "${searchQuery || "(empty)"}"`)
+      const searchResponse = await props.instanceClient.find.files({
+        query: { query: searchQuery || " " },
+      })
       const elapsed = Date.now() - startTime
 
       console.log(`[FilePicker] Search response received in ${elapsed}ms:`, searchResponse)
@@ -99,7 +93,9 @@ const FilePicker: Component<FilePickerProps> = (props) => {
           isGitFile: false,
         }))
 
-      const filteredGitFiles = gitFiles.filter((f) => f.path.toLowerCase().includes(searchQuery.toLowerCase()))
+      const filteredGitFiles = searchQuery
+        ? gitFiles.filter((f) => f.path.toLowerCase().includes(searchQuery.toLowerCase()))
+        : gitFiles
       const allFiles = [...filteredGitFiles, ...searchFiles]
 
       console.log(
