@@ -131,14 +131,26 @@ export default function PromptInput(props: PromptInputProps) {
     const textBeforeCursor = value.substring(0, cursorPos)
     const lastAtIndex = textBeforeCursor.lastIndexOf("@")
 
-    if (lastAtIndex !== -1 && !ignoredAtPositions().has(lastAtIndex)) {
+    const previousAtPosition = atPosition()
+
+    if (previousAtPosition !== null && lastAtIndex !== previousAtPosition) {
+      setIgnoredAtPositions((prev) => {
+        const next = new Set(prev)
+        next.delete(previousAtPosition)
+        return next
+      })
+    }
+
+    if (lastAtIndex !== -1) {
       const textAfterAt = value.substring(lastAtIndex + 1, cursorPos)
       const hasSpace = textAfterAt.includes(" ") || textAfterAt.includes("\n")
 
       if (!hasSpace && cursorPos === lastAtIndex + textAfterAt.length + 1) {
-        setAtPosition(lastAtIndex)
-        setFileSearchQuery(textAfterAt)
-        setShowFilePicker(true)
+        if (!ignoredAtPositions().has(lastAtIndex)) {
+          setAtPosition(lastAtIndex)
+          setFileSearchQuery(textAfterAt)
+          setShowFilePicker(true)
+        }
         return
       }
     }
