@@ -182,14 +182,17 @@ const FilePicker: Component<FilePickerProps> = (props) => {
 
       if (e.key === "ArrowDown") {
         e.preventDefault()
+        e.stopPropagation()
         handleNavigateDown()
         props.onNavigate("down")
       } else if (e.key === "ArrowUp") {
         e.preventDefault()
+        e.stopPropagation()
         handleNavigateUp()
         props.onNavigate("up")
       } else if (e.key === "Enter") {
         e.preventDefault()
+        e.stopPropagation()
         if (fileList[selectedIndex()]) {
           handleSelect(fileList[selectedIndex()].path)
         }
@@ -209,7 +212,7 @@ const FilePicker: Component<FilePickerProps> = (props) => {
       >
         <div class="max-h-96 overflow-y-auto">
           <Show
-            when={!loading()}
+            when={!loading() && isInitialized()}
             fallback={
               <div class="p-4 text-center text-sm text-gray-500">
                 <div class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
