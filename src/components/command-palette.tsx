@@ -27,6 +27,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
   const [query, setQuery] = createSignal("")
   const [selectedIndex, setSelectedIndex] = createSignal(0)
   let inputRef: HTMLInputElement | undefined
+  let listRef: HTMLDivElement | undefined
 
   const filteredCommands = () => {
     const q = query().toLowerCase()
@@ -81,6 +82,16 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
     const max = Math.max(0, filteredCommands().length - 1)
     if (selectedIndex() > max) {
       setSelectedIndex(max)
+    }
+  })
+
+  createEffect(() => {
+    const index = selectedIndex()
+    if (!listRef) return
+
+    const selectedButton = listRef.querySelector(`[data-command-index="${index}"]`) as HTMLElement
+    if (selectedButton) {
+      selectedButton.scrollIntoView({ block: "nearest", behavior: "smooth" })
     }
   })
 
@@ -147,7 +158,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
               </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto">
+            <div ref={listRef} class="flex-1 overflow-y-auto">
               <Show
                 when={filteredCommands().length > 0}
                 fallback={<div class="p-8 text-center text-gray-500">No commands found for "{query()}"</div>}
@@ -171,6 +182,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
                             return (
                               <button
                                 type="button"
+                                data-command-index={commandIndex}
                                 onClick={() => handleCommandClick(command.id)}
                                 class={`w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer border-none text-left ${
                                   commandIndex === selectedIndex() ? "bg-blue-50 dark:bg-blue-900/20" : ""
