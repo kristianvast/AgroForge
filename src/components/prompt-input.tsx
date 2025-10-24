@@ -117,14 +117,58 @@ export default function PromptInput(props: PromptInputProps) {
   })
 
   function handleKeyDown(e: KeyboardEvent) {
+    const textarea = textareaRef
+    if (!textarea) return
+
+    if (e.key === "Backspace" || e.key === "Delete") {
+      const cursorPos = textarea.selectionStart
+      const text = prompt()
+      const placeholderRegex = /\[pasted #(\d+)\]/g
+      let match
+
+      while ((match = placeholderRegex.exec(text)) !== null) {
+        const placeholderStart = match.index
+        const placeholderEnd = match.index + match[0].length
+        const pasteNumber = match[1]
+
+        const isDeletingFromEnd = e.key === "Backspace" && cursorPos === placeholderEnd
+        const isDeletingFromStart = e.key === "Delete" && cursorPos === placeholderStart
+        const isSelected =
+          textarea.selectionStart <= placeholderStart &&
+          textarea.selectionEnd >= placeholderEnd &&
+          textarea.selectionStart !== textarea.selectionEnd
+
+        if (isDeletingFromEnd || isDeletingFromStart || isSelected) {
+          e.preventDefault()
+
+          const currentAttachments = attachments()
+          const attachment = currentAttachments.find(
+            (a) => a.source.type === "text" && a.display.includes(`pasted #${pasteNumber}`),
+          )
+
+          if (attachment) {
+            removeAttachment(props.instanceId, props.sessionId, attachment.id)
+          }
+
+          const newText = text.substring(0, placeholderStart) + text.substring(placeholderEnd)
+          setPrompt(newText)
+
+          setTimeout(() => {
+            textarea.setSelectionRange(placeholderStart, placeholderStart)
+            textarea.style.height = "auto"
+            textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px"
+          }, 0)
+
+          return
+        }
+      }
+    }
+
     if (e.key === "Enter" && !e.shiftKey && !showFilePicker()) {
       e.preventDefault()
       handleSend()
       return
     }
-
-    const textarea = textareaRef
-    if (!textarea) return
 
     const atStart = textarea.selectionStart === 0 && textarea.selectionEnd === 0
     const currentHistory = history()
