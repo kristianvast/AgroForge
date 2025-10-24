@@ -666,7 +666,7 @@ function handleSessionUpdate(instanceId: string, event: any): void {
             snapshot: info.revert.snapshot,
             diff: info.revert.diff,
           }
-        : existingSession.revert,
+        : undefined,
     }
 
     setSessions((prev) => {
@@ -875,7 +875,25 @@ function handleSessionError(instanceId: string, event: any): void {
   alert(`Error: ${message}`)
 }
 
+function handleMessageRemoved(instanceId: string, event: any): void {
+  const sessionID = event.properties?.sessionID
+  if (!sessionID) return
+
+  console.log(`[SSE] Message removed from session ${sessionID}, reloading messages`)
+  loadMessages(instanceId, sessionID, true).catch(console.error)
+}
+
+function handleMessagePartRemoved(instanceId: string, event: any): void {
+  const sessionID = event.properties?.sessionID
+  if (!sessionID) return
+
+  console.log(`[SSE] Message part removed from session ${sessionID}, reloading messages`)
+  loadMessages(instanceId, sessionID, true).catch(console.error)
+}
+
 sseManager.onMessageUpdate = handleMessageUpdate
+sseManager.onMessageRemoved = handleMessageRemoved
+sseManager.onMessagePartRemoved = handleMessagePartRemoved
 sseManager.onSessionUpdate = handleSessionUpdate
 sseManager.onSessionCompacted = handleSessionCompacted
 sseManager.onSessionError = handleSessionError

@@ -89,6 +89,12 @@ class SSEManager {
       case "message.part.updated":
         this.onMessageUpdate?.(instanceId, event)
         break
+      case "message.removed":
+        this.onMessageRemoved?.(instanceId, event)
+        break
+      case "message.part.removed":
+        this.onMessagePartRemoved?.(instanceId, event)
+        break
       case "session.updated":
         this.onSessionUpdate?.(instanceId, event)
         break
@@ -136,6 +142,8 @@ class SSEManager {
   }
 
   onMessageUpdate?: (instanceId: string, event: MessageUpdateEvent) => void
+  onMessageRemoved?: (instanceId: string, event: any) => void
+  onMessagePartRemoved?: (instanceId: string, event: any) => void
   onSessionUpdate?: (instanceId: string, event: SessionUpdateEvent) => void
   onSessionCompacted?: (instanceId: string, event: any) => void
   onSessionError?: (instanceId: string, event: any) => void
