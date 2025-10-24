@@ -65,10 +65,13 @@ bun run dev
 # Build for production
 bun run build
 
-# Package for distribution
-bun run package:mac    # macOS
-bun run package:win    # Windows
-bun run package:linux  # Linux
+# Build distributable binaries
+bun run build:mac      # macOS (Universal)
+bun run build:win      # Windows (x64)
+bun run build:linux    # Linux (x64)
+bun run build:all      # All platforms
+
+# See BUILD.md for more build options
 ```
 
 ## Development
