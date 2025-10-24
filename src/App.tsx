@@ -399,12 +399,21 @@ const App: Component = () => {
       keywords: ["model", "llm", "ai"],
       shortcut: { key: "M", meta: true, shift: true },
       action: () => {
-        const modelControl = document.querySelector("[data-model-selector]") as HTMLElement
-        modelControl?.click()
-        setTimeout(() => {
-          const modelInput = document.querySelector("[data-model-selector] input") as HTMLInputElement
-          modelInput?.focus()
-        }, 100)
+        const modelInput = document.querySelector("[data-model-selector]") as HTMLInputElement
+        if (modelInput) {
+          modelInput.focus()
+          setTimeout(() => {
+            const event = new KeyboardEvent("keydown", {
+              key: "ArrowDown",
+              code: "ArrowDown",
+              keyCode: 40,
+              which: 40,
+              bubbles: true,
+              cancelable: true,
+            })
+            modelInput.dispatchEvent(event)
+          }, 10)
+        }
       },
     })
 
@@ -570,8 +579,21 @@ const App: Component = () => {
       handleCycleAgent,
       handleCycleAgentReverse,
       () => {
-        const modelInput = document.querySelector("[data-model-selector] input") as HTMLInputElement
-        modelInput?.focus()
+        const modelInput = document.querySelector("[data-model-selector]") as HTMLInputElement
+        if (modelInput) {
+          modelInput.focus()
+          setTimeout(() => {
+            const event = new KeyboardEvent("keydown", {
+              key: "ArrowDown",
+              code: "ArrowDown",
+              keyCode: 40,
+              which: 40,
+              bubbles: true,
+              cancelable: true,
+            })
+            modelInput.dispatchEvent(event)
+          }, 10)
+        }
       },
       () => {
         const agentTrigger = document.querySelector("[data-agent-selector]") as HTMLElement
@@ -617,9 +639,9 @@ const App: Component = () => {
 
       const isInCombobox = target.closest('[role="combobox"]') !== null
       const isInListbox = target.closest('[role="listbox"]') !== null
-      const isInSelect = target.closest('[role="button"][data-agent-selector]') !== null
+      const isInAgentSelect = target.closest('[role="button"][data-agent-selector]') !== null
 
-      if (isInCombobox || isInListbox || isInSelect) {
+      if (isInCombobox || isInListbox || isInAgentSelect) {
         return
       }
 
