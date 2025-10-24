@@ -188,6 +188,12 @@ export default function PromptInput(props: PromptInputProps) {
 
             removeAttachment(props.instanceId, props.sessionId, attachment.id)
 
+            setIgnoredAtPositions((prev) => {
+              const next = new Set(prev)
+              next.delete(mentionStart)
+              return next
+            })
+
             const newText = text.substring(0, mentionStart) + text.substring(mentionEnd)
             setPrompt(newText)
 
@@ -288,7 +294,7 @@ export default function PromptInput(props: PromptInputProps) {
 
     const previousAtPosition = atPosition()
 
-    if (previousAtPosition !== null && lastAtIndex === -1) {
+    if (lastAtIndex === -1) {
       setIgnoredAtPositions(new Set<number>())
     } else if (previousAtPosition !== null && lastAtIndex !== previousAtPosition) {
       setIgnoredAtPositions((prev) => {
