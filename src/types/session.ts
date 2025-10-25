@@ -45,4 +45,11 @@ export interface Model {
   id: string
   name: string
   providerId: string
+  limit?: {
+    context?: number
+  }
+  cost?: {
+    input?: number
+    output?: number
+  }
 }

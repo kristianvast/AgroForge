@@ -290,6 +290,8 @@ async function fetchProviders(instanceId: string): Promise<void> {
         id,
         name: model.name,
         providerId: provider.id,
+        limit: model.limit,
+        cost: model.cost,
       })),
     }))
 

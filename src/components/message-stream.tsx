@@ -5,28 +5,74 @@ import ToolCall from "./tool-call"
 import { sseManager } from "../lib/sse-manager"
 import Kbd from "./kbd"
 import { preferences } from "../stores/preferences"
+import { providers } from "../stores/sessions"
 
-// Calculate session tokens and cost from messagesInfo
-function calculateSessionInfo(messagesInfo?: Map<string, any>) {
-  if (!messagesInfo) return { tokens: 0, cost: 0 }
+// Calculate session tokens and cost from messagesInfo (matches TUI logic)
+function calculateSessionInfo(messagesInfo?: Map<string, any>, instanceId?: string) {
+  if (!messagesInfo || messagesInfo.size === 0)
+    return { tokens: 0, cost: 0, contextWindow: 0, isSubscriptionModel: false }
 
-  let totalTokens = 0
-  let totalCost = 0
+  let tokens = 0
+  let cost = 0
+  let contextWindow = 0
+  let isSubscriptionModel = false
+  let modelID = ""
+  let providerID = ""
 
-  for (const [, info] of messagesInfo) {
+  // Go backwards through messages to find the last relevant assistant message (like TUI)
+  const messageArray = Array.from(messagesInfo.values()).reverse()
+
+  for (const info of messageArray) {
     if (info.role === "assistant" && info.tokens) {
-      const tokens = info.tokens
-      totalTokens +=
-        (tokens.input || 0) +
-        (tokens.cache?.read || 0) +
-        (tokens.cache?.write || 0) +
-        (tokens.output || 0) +
-        (tokens.reasoning || 0)
-      totalCost += info.cost || 0
+      const usage = info.tokens
+
+      if (usage.output > 0) {
+        if (info.summary) {
+          // If summary message, only count output tokens and stop (like TUI)
+          tokens = usage.output || 0
+          cost = info.cost || 0
+        } else {
+          // Regular message - count all token types (like TUI)
+          tokens =
+            (usage.input || 0) +
+            (usage.cache?.read || 0) +
+            (usage.cache?.write || 0) +
+            (usage.output || 0) +
+            (usage.reasoning || 0)
+          cost = info.cost || 0
+        }
+
+        // Get model info for context window and subscription check
+        modelID = info.modelID || ""
+        providerID = info.providerID || ""
+        isSubscriptionModel = cost === 0
+
+        break
+      }
     }
   }
 
-  return { tokens: totalTokens, cost: totalCost }
+  // Try to get context window from providers
+  if (instanceId && modelID && providerID) {
+    const instanceProviders = providers().get(instanceId) || []
+    console.log("[calculateSessionInfo] instanceProviders:", instanceProviders)
+    console.log("[calculateSessionInfo] looking for providerID:", providerID, "modelID:", modelID)
+    const provider = instanceProviders.find((p) => p.id === providerID)
+    console.log("[calculateSessionInfo] found provider:", provider)
+    if (provider) {
+      const model = provider.models.find((m) => m.id === modelID)
+      console.log("[calculateSessionInfo] found model:", model)
+      if (model?.limit?.context) {
+        contextWindow = model.limit.context
+      }
+      // Check if it's a subscription model (cost is 0 for both input and output)
+      if (model?.cost?.input === 0 && model?.cost?.output === 0) {
+        isSubscriptionModel = true
+      }
+    }
+  }
+
+  return { tokens, cost, contextWindow, isSubscriptionModel }
 }
 
 // Format tokens like TUI (e.g., "110K", "1.2M")
@@ -39,11 +85,24 @@ function formatTokens(tokens: number): string {
   return tokens.toString()
 }
 
-// Format session info like TUI (e.g., "110K • $0.42")
-function formatSessionInfo(tokens: number, cost: number): string {
+// Format session info like TUI (e.g., "110K/73% ($0.42)" or "110K/73%")
+function formatSessionInfo(tokens: number, cost: number, contextWindow: number, isSubscriptionModel: boolean): string {
   const tokensStr = formatTokens(tokens)
-  const costStr = cost > 0 ? ` • $${cost.toFixed(2)}` : ""
-  return `${tokensStr}${costStr}`
+
+  // Calculate percentage if we have context window
+  if (contextWindow > 0) {
+    const percentage = Math.round((tokens / contextWindow) * 100)
+    if (isSubscriptionModel) {
+      return `${tokensStr}/${percentage}%`
+    }
+    return `${tokensStr}/${percentage}% ($${cost.toFixed(2)})`
+  }
+
+  // Fallback without context window
+  if (isSubscriptionModel) {
+    return tokensStr
+  }
+  return `${tokensStr} ($${cost.toFixed(2)})`
 }
 
 interface MessageStreamProps {
@@ -155,8 +214,16 @@ export default function MessageStream(props: MessageStreamProps) {
         <div class="flex items-center gap-2 text-sm font-medium text-gray-700">
           <span>
             {(() => {
-              const sessionInfo = calculateSessionInfo(props.messagesInfo)
-              return formatSessionInfo(sessionInfo.tokens, sessionInfo.cost)
+              const sessionInfo = calculateSessionInfo(props.messagesInfo, props.instanceId)
+              console.log("[MessageStream] sessionInfo:", sessionInfo)
+              const result = formatSessionInfo(
+                sessionInfo.tokens,
+                sessionInfo.cost,
+                sessionInfo.contextWindow,
+                sessionInfo.isSubscriptionModel,
+              )
+              console.log("[MessageStream] formatted result:", result)
+              return result
             })()}
           </span>
         </div>
