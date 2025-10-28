@@ -638,12 +638,12 @@ export default function PromptInput(props: PromptInputProps) {
 
         <div class="flex flex-1 flex-col">
           <Show when={attachments().length > 0}>
-            <div class="flex flex-wrap gap-1.5 border-b border-gray-200 pb-2 dark:border-gray-700">
+            <div class="flex flex-wrap gap-1.5 border-b pb-2" style="border-color: var(--border-base);">
               <For each={attachments()}>
                 {(attachment) => {
                   const isImage = attachment.mediaType.startsWith("image/")
                   return (
-                    <div class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20">
+                    <div class="attachment-chip">
                       <Show
                         when={isImage}
                         fallback={
@@ -690,7 +690,7 @@ export default function PromptInput(props: PromptInputProps) {
                       <span>{attachment.source.type === "text" ? attachment.display : attachment.filename}</span>
                       <button
                         onClick={() => handleRemoveAttachment(attachment.id)}
-                        class="ml-0.5 flex h-4 w-4 items-center justify-center rounded hover:bg-blue-100 dark:hover:bg-blue-500/20"
+                        class="attachment-remove"
                         aria-label="Remove attachment"
                       >
                         <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -737,12 +737,12 @@ export default function PromptInput(props: PromptInputProps) {
                 <Kbd>Enter</Kbd> to send • <Kbd>Shift+Enter</Kbd> for new line • <Kbd>@</Kbd> for files/agents •{" "}
                 <Kbd>↑↓</Kbd> for history
                 <Show when={attachments().length > 0}>
-                  <span class="ml-2 text-xs text-gray-500">• {attachments().length} file(s) attached</span>
+                  <span class="ml-2 text-xs" style="color: var(--text-muted);">• {attachments().length} file(s) attached</span>
                 </Show>
               </>
             }
           >
-            <span class="text-orange-600 dark:text-orange-400 font-medium">
+            <span class="font-medium" style="color: var(--status-warning);">
               Press <Kbd>Esc</Kbd> again to abort session
             </span>
           </Show>
