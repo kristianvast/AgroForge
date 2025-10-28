@@ -243,37 +243,28 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
               <p class="panel-subtitle">Select any folder on your computer</p>
             </div>
 
-            <div class="panel-body space-y-3">
+            <div class="panel-body">
               <button
                 onClick={handleBrowse}
                 disabled={props.isLoading}
-                class="button-primary w-full flex items-center justify-between text-sm disabled:cursor-not-allowed"
+                class="button-primary w-full flex items-center justify-center text-sm disabled:cursor-not-allowed"
                 onMouseEnter={() => setFocusMode("new")}
               >
                 <div class="flex items-center gap-2">
                   <FolderPlus class="w-4 h-4" />
                   <span>{props.isLoading ? "Opening..." : "Browse Folders"}</span>
                 </div>
-                <kbd class="kbd">
+                <kbd class="kbd ml-2">
                   Cmd+Enter
                 </kbd>
-              </button>
-
-              <button
-                onClick={handleBrowse}
-                disabled={props.isLoading}
-                class="button-secondary w-full flex items-center justify-center gap-2 text-sm disabled:cursor-not-allowed"
-              >
-                <FolderPlus class="w-4 h-4" />
-                <span>Create New Session</span>
               </button>
             </div>
 
             {/* Advanced settings section */}
-            <div class="panel-section">
+            <div class="panel-section w-full">
               <button
                 onClick={() => setShowAdvanced(!showAdvanced())}
-                class="panel-section-header"
+                class="panel-section-header w-full"
               >
                 <div class="flex items-center gap-2">
                   <Settings class="w-4 h-4 icon-muted" />
