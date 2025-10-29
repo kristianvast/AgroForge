@@ -1,4 +1,4 @@
-import { For, Show, createSignal, createEffect, createMemo } from "solid-js"
+import { For, Show, createSignal, createEffect, createMemo, onCleanup } from "solid-js"
 import type { Message, MessageDisplayParts } from "../types/message"
 import MessageItem from "./message-item"
 import ToolCall from "./tool-call"
@@ -6,6 +6,8 @@ import { sseManager } from "../lib/sse-manager"
 import Kbd from "./kbd"
 import { preferences } from "../stores/preferences"
 import { providers, getSessionInfo, computeDisplayParts } from "../stores/sessions"
+
+const SCROLL_BOTTOM_OFFSET = 64
 
 // Calculate session tokens and cost from messagesInfo (matches TUI logic)
 function calculateSessionInfo(messagesInfo?: Map<string, any>, instanceId?: string) {
@@ -159,6 +161,7 @@ export default function MessageStream(props: MessageStreamProps) {
 
   let messageItemCache = new Map<string, MessageCacheEntry>()
   let toolItemCache = new Map<string, ToolCacheEntry>()
+  let scrollAnimationFrame: number | null = null
 
   const connectionStatus = () => sseManager.getStatus(props.instanceId)
 
@@ -188,32 +191,50 @@ export default function MessageStream(props: MessageStreamProps) {
     )
   })
 
-  function scrollToBottom() {
-    if (containerRef) {
-      containerRef.scrollTop = containerRef.scrollHeight
+  function isNearBottom(element: HTMLDivElement, offset = SCROLL_BOTTOM_OFFSET) {
+    const { scrollTop, scrollHeight, clientHeight } = element
+    const distance = scrollHeight - (scrollTop + clientHeight)
+    return distance <= offset
+  }
+
+  function scrollToBottom(options: { smooth?: boolean } = {}) {
+    if (!containerRef) return
+
+    const behavior = options.smooth ? "smooth" : "auto"
+
+    requestAnimationFrame(() => {
+      if (!containerRef) return
+      containerRef.scrollTo({ top: containerRef.scrollHeight, behavior })
       setAutoScroll(true)
       setShowScrollButton(false)
-    }
+    })
   }
 
   function handleScroll() {
-    // Scroll handling temporarily disabled during testing
-    // if (!containerRef) return
-    //
-    // const { scrollTop, scrollHeight, clientHeight } = containerRef
-    // const isAtBottom = scrollHeight - scrollTop - clientHeight < 50
-    //
-    // setAutoScroll(isAtBottom)
-    // setShowScrollButton(!isAtBottom)
+    if (!containerRef) return
+
+    if (scrollAnimationFrame !== null) {
+      cancelAnimationFrame(scrollAnimationFrame)
+    }
+
+    scrollAnimationFrame = requestAnimationFrame(() => {
+      if (!containerRef) return
+
+      const atBottom = isNearBottom(containerRef)
+      setAutoScroll(atBottom)
+      setShowScrollButton(!atBottom && displayItems().length > 0)
+      scrollAnimationFrame = null
+    })
   }
 
-  const displayItems = createMemo(() => {
+  const messageView = createMemo(() => {
     // Ensure memo reacts to preference changes
     const showThinking = preferences().showThinkingBlocks
 
     const items: DisplayItem[] = []
     const newMessageCache = new Map<string, MessageCacheEntry>()
     const newToolCache = new Map<string, ToolCacheEntry>()
+    const tokenSegments: string[] = []
 
     let lastAssistantIndex = -1
     for (let i = props.messages.length - 1; i >= 0; i--) {
@@ -223,6 +244,10 @@ export default function MessageStream(props: MessageStreamProps) {
       }
     }
 
+    tokenSegments.push(`count:${props.messages.length}`)
+    tokenSegments.push(`revert:${props.revert?.messageID ?? ""}`)
+    tokenSegments.push(`thinking:${showThinking ? 1 : 0}`)
+
     for (let index = 0; index < props.messages.length; index++) {
       const message = props.messages[index]
       const messageInfo = props.messagesInfo?.get(message.id)
@@ -231,6 +256,8 @@ export default function MessageStream(props: MessageStreamProps) {
       if (props.revert?.messageID && message.id === props.revert.messageID) {
         break
       }
+
+      tokenSegments.push(`${message.id}:${message.version ?? 0}:${message.status}:${message.parts.length}`)
 
       const baseDisplayParts = message.displayParts
       const displayParts: MessageDisplayParts =
@@ -308,16 +335,52 @@ export default function MessageStream(props: MessageStreamProps) {
     messageItemCache = newMessageCache
     toolItemCache = newToolCache
 
-    return items
+    tokenSegments.push(`items:${items.length}`)
+
+    if (items.length > 0) {
+      const tail = items[items.length - 1]
+      if (tail.type === "message") {
+        tokenSegments.push(`tail:${tail.message.id}:${tail.message.version ?? 0}`)
+      } else {
+        tokenSegments.push(`tail:${tail.key}`)
+      }
+    }
+
+    return { items, token: tokenSegments.join("|") }
   })
 
-  const itemsLength = () => displayItems().length
+  const displayItems = () => messageView().items
+  const changeToken = () => messageView().token
+
+  let previousToken: string | undefined
   createEffect(() => {
-    // Scroll handling temporarily disabled during testing
-    itemsLength()
-    // if (autoScroll()) {
-    //   setTimeout(scrollToBottom, 0)
-    // }
+    const token = changeToken()
+    const shouldScroll = autoScroll()
+
+    if (!token || token === previousToken) {
+      return
+    }
+
+    previousToken = token
+
+    if (!shouldScroll) {
+      return
+    }
+
+    scrollToBottom()
+  })
+
+  createEffect(() => {
+    if (displayItems().length === 0) {
+      setShowScrollButton(false)
+      setAutoScroll(true)
+    }
+  })
+
+  onCleanup(() => {
+    if (scrollAnimationFrame !== null) {
+      cancelAnimationFrame(scrollAnimationFrame)
+    }
   })
 
   return (
@@ -409,9 +472,17 @@ export default function MessageStream(props: MessageStreamProps) {
       </div>
 
       <Show when={showScrollButton()}>
-        <button class="scroll-to-bottom" onClick={scrollToBottom} aria-label="Scroll to bottom">
-          ↓
-        </button>
+        <div class="message-scroll-button-wrapper">
+          <button
+            type="button"
+            class="message-scroll-button"
+            onClick={() => scrollToBottom({ smooth: true })}
+            aria-label="Scroll to latest message"
+          >
+            <span class="message-scroll-icon">↓</span>
+            <span class="message-scroll-label">Jump to latest</span>
+          </button>
+        </div>
       </Show>
     </div>
   )

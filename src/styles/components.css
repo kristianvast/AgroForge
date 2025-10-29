@@ -532,6 +532,46 @@ button.button-primary {
   color: inherit;
 }
 
+.message-scroll-button-wrapper {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.message-scroll-button {
+  @apply inline-flex items-center gap-2 font-medium;
+  padding: 0.5rem 0.875rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-base);
+  background-color: var(--surface-secondary);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.message-scroll-button:hover {
+  background-color: var(--surface-hover);
+  transform: translateY(-1px);
+}
+
+.message-scroll-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface-base), 0 0 0 4px var(--accent-primary);
+}
+
+.message-scroll-icon {
+  font-size: var(--font-size-base);
+  color: var(--accent-primary);
+}
+
+.message-scroll-label {
+  line-height: var(--line-height-tight);
+  color: var(--text-primary);
+}
+
 /* Tool call message wrapper */
 .tool-call-message {
   @apply flex flex-col gap-2 p-3 rounded-lg w-full;
@@ -842,17 +882,6 @@ button.button-primary {
 
 .tool-call-error-content strong {
   font-weight: var(--font-weight-semibold);
-}
-
-/* Scroll to bottom button */
-.scroll-to-bottom {
-  @apply absolute bottom-4 right-4 w-10 h-10 rounded-full border-none shadow-lg cursor-pointer text-xl flex items-center justify-center transition-transform;
-  background-color: var(--accent-primary);
-  color: white;
-}
-
-.scroll-to-bottom:hover {
-  transform: scale(1.1);
 }
 
 /* Empty state */
