@@ -7,7 +7,9 @@ import Kbd from "./kbd"
 import { preferences } from "../stores/preferences"
 import { providers, getSessionInfo, computeDisplayParts } from "../stores/sessions"
 
-const SCROLL_BOTTOM_OFFSET = 64
+const SCROLL_OFFSET = 64
+
+const messageScrollState = new Map<string, { scrollTop: number; autoScroll: boolean }>()
 
 // Calculate session tokens and cost from messagesInfo (matches TUI logic)
 function calculateSessionInfo(messagesInfo?: Map<string, any>, instanceId?: string) {
@@ -157,13 +159,17 @@ interface ToolCacheEntry {
 export default function MessageStream(props: MessageStreamProps) {
   let containerRef: HTMLDivElement | undefined
   const [autoScroll, setAutoScroll] = createSignal(true)
-  const [showScrollButton, setShowScrollButton] = createSignal(false)
+  const [showScrollBottomButton, setShowScrollBottomButton] = createSignal(false)
+  const [showScrollTopButton, setShowScrollTopButton] = createSignal(false)
 
   let messageItemCache = new Map<string, MessageCacheEntry>()
   let toolItemCache = new Map<string, ToolCacheEntry>()
   let scrollAnimationFrame: number | null = null
 
+  const makeScrollKey = (instanceId: string, sessionId: string) => `${instanceId}:${sessionId}`
+  const scrollStateKey = () => makeScrollKey(props.instanceId, props.sessionId)
   const connectionStatus = () => sseManager.getStatus(props.instanceId)
+
 
   const sessionInfo = createMemo(() => {
     return (
@@ -191,10 +197,14 @@ export default function MessageStream(props: MessageStreamProps) {
     )
   })
 
-  function isNearBottom(element: HTMLDivElement, offset = SCROLL_BOTTOM_OFFSET) {
+  function isNearBottom(element: HTMLDivElement, offset = SCROLL_OFFSET) {
     const { scrollTop, scrollHeight, clientHeight } = element
     const distance = scrollHeight - (scrollTop + clientHeight)
     return distance <= offset
+  }
+
+  function isNearTop(element: HTMLDivElement, offset = SCROLL_OFFSET) {
+    return element.scrollTop <= offset
   }
 
   function scrollToBottom(options: { smooth?: boolean } = {}) {
@@ -206,7 +216,22 @@ export default function MessageStream(props: MessageStreamProps) {
       if (!containerRef) return
       containerRef.scrollTo({ top: containerRef.scrollHeight, behavior })
       setAutoScroll(true)
-      setShowScrollButton(false)
+      updateScrollIndicators(containerRef)
+    })
+  }
+
+
+  function scrollToTop(options: { smooth?: boolean } = {}) {
+    if (!containerRef) return
+
+    const behavior = options.smooth ? "smooth" : "auto"
+    setAutoScroll(false)
+
+    requestAnimationFrame(() => {
+      if (!containerRef) return
+      containerRef.scrollTo({ top: 0, behavior })
+      setShowScrollTopButton(false)
+      updateScrollIndicators(containerRef)
     })
   }
 
@@ -222,7 +247,7 @@ export default function MessageStream(props: MessageStreamProps) {
 
       const atBottom = isNearBottom(containerRef)
       setAutoScroll(atBottom)
-      setShowScrollButton(!atBottom && displayItems().length > 0)
+      updateScrollIndicators(containerRef)
       scrollAnimationFrame = null
     })
   }
@@ -352,6 +377,65 @@ export default function MessageStream(props: MessageStreamProps) {
   const displayItems = () => messageView().items
   const changeToken = () => messageView().token
 
+  function updateScrollIndicators(element: HTMLDivElement) {
+    const itemsLength = displayItems().length
+    setShowScrollBottomButton(!isNearBottom(element) && itemsLength > 0)
+    setShowScrollTopButton(!isNearTop(element) && itemsLength > 0)
+    persistScrollState()
+  }
+
+  function getActiveScrollKey() {
+    return containerRef?.dataset.scrollKey || scrollStateKey()
+  }
+
+  function persistScrollState() {
+    if (!containerRef) return
+    const key = getActiveScrollKey()
+    messageScrollState.set(key, {
+      scrollTop: containerRef.scrollTop,
+      autoScroll: autoScroll(),
+    })
+  }
+
+  createEffect(() => {
+    const key = scrollStateKey()
+    if (containerRef) {
+      containerRef.dataset.scrollKey = key
+    }
+    const savedState = messageScrollState.get(key)
+    const shouldAutoScroll = savedState?.autoScroll ?? true
+
+    setAutoScroll(shouldAutoScroll)
+
+    requestAnimationFrame(() => {
+      if (!containerRef) return
+
+      if (savedState) {
+        if (shouldAutoScroll) {
+          scrollToBottom({ smooth: false })
+        } else {
+          const maxScrollTop = Math.max(containerRef.scrollHeight - containerRef.clientHeight, 0)
+          containerRef.scrollTop = Math.min(savedState.scrollTop, maxScrollTop)
+          updateScrollIndicators(containerRef)
+        }
+      } else {
+        scrollToBottom({ smooth: false })
+      }
+    })
+
+    onCleanup(() => {
+      if (containerRef) {
+        messageScrollState.set(key, {
+          scrollTop: containerRef.scrollTop,
+          autoScroll: autoScroll(),
+        })
+        if (containerRef.dataset.scrollKey === key) {
+          delete containerRef.dataset.scrollKey
+        }
+      }
+    })
+  })
+
   let previousToken: string | undefined
   createEffect(() => {
     const token = changeToken()
@@ -372,8 +456,10 @@ export default function MessageStream(props: MessageStreamProps) {
 
   createEffect(() => {
     if (displayItems().length === 0) {
-      setShowScrollButton(false)
+      setShowScrollBottomButton(false)
+      setShowScrollTopButton(false)
       setAutoScroll(true)
+      persistScrollState()
     }
   })
 
@@ -471,17 +557,28 @@ export default function MessageStream(props: MessageStreamProps) {
         </For>
       </div>
 
-      <Show when={showScrollButton()}>
+      <Show when={showScrollTopButton() || showScrollBottomButton()}>
         <div class="message-scroll-button-wrapper">
-          <button
-            type="button"
-            class="message-scroll-button"
-            onClick={() => scrollToBottom({ smooth: true })}
-            aria-label="Scroll to latest message"
-          >
-            <span class="message-scroll-icon">↓</span>
-            <span class="message-scroll-label">Jump to latest</span>
-          </button>
+          <Show when={showScrollTopButton()}>
+            <button
+              type="button"
+              class="message-scroll-button"
+              onClick={() => scrollToTop({ smooth: true })}
+              aria-label="Scroll to first message"
+            >
+              <span class="message-scroll-icon" aria-hidden="true">↑</span>
+            </button>
+          </Show>
+          <Show when={showScrollBottomButton()}>
+            <button
+              type="button"
+              class="message-scroll-button"
+              onClick={() => scrollToBottom({ smooth: true })}
+              aria-label="Scroll to latest message"
+            >
+              <span class="message-scroll-icon" aria-hidden="true">↓</span>
+            </button>
+          </Show>
         </div>
       </Show>
     </div>

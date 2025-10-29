@@ -537,17 +537,19 @@ button.button-primary {
   right: 1rem;
   bottom: 1rem;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
 }
 
 .message-scroll-button {
-  @apply inline-flex items-center gap-2 font-medium;
-  padding: 0.5rem 0.875rem;
+  @apply inline-flex items-center justify-center;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 9999px;
   border: 1px solid var(--border-base);
   background-color: var(--surface-secondary);
   color: var(--text-primary);
-  font-size: var(--font-size-sm);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -563,13 +565,8 @@ button.button-primary {
 }
 
 .message-scroll-icon {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-lg);
   color: var(--accent-primary);
-}
-
-.message-scroll-label {
-  line-height: var(--line-height-tight);
-  color: var(--text-primary);
 }
 
 /* Tool call message wrapper */
