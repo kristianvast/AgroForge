@@ -167,8 +167,10 @@ export default function MessageStream(props: MessageStreamProps) {
   let messageItemCache = new Map<string, MessageCacheEntry>()
   let toolItemCache = new Map<string, ToolCacheEntry>()
   let scrollAnimationFrame: number | null = null
+  let lastKnownScrollTop = 0
 
   const makeScrollKey = (instanceId: string, sessionId: string) => `${instanceId}:${sessionId}`
+
   const scrollStateKey = () => makeScrollKey(props.instanceId, props.sessionId)
   const connectionStatus = () => sseManager.getStatus(props.instanceId)
 
@@ -180,6 +182,12 @@ export default function MessageStream(props: MessageStreamProps) {
 
   function createToolContentKey(toolPart: any, messageInfo?: any): string {
     const state = toolPart?.state ?? {}
+    const version = typeof toolPart?.__version === "number" ? toolPart.__version : null
+    if (version !== null) {
+      const status = state?.status ?? "unknown"
+      return `${version}:${status}`
+    }
+
     const metadata = state?.metadata ?? {}
     const input = state?.input ?? {}
     const output = state?.output ?? {}
@@ -261,18 +269,32 @@ export default function MessageStream(props: MessageStreamProps) {
     })
   }
 
-  function handleScroll() {
+  function handleScroll(event: Event) {
     if (!containerRef) return
 
     if (scrollAnimationFrame !== null) {
       cancelAnimationFrame(scrollAnimationFrame)
     }
 
+    const isUserScroll = event.isTrusted
+
     scrollAnimationFrame = requestAnimationFrame(() => {
       if (!containerRef) return
 
+      const currentScrollTop = containerRef.scrollTop
+      const movingUp = currentScrollTop < lastKnownScrollTop - 1
+      lastKnownScrollTop = currentScrollTop
+
       const atBottom = isNearBottom(containerRef)
-      setAutoScroll(atBottom)
+
+      if (isUserScroll) {
+        if ((movingUp || !atBottom) && autoScroll()) {
+          setAutoScroll(false)
+        } else if (!movingUp && atBottom && !autoScroll()) {
+          setAutoScroll(true)
+        }
+      }
+
       updateScrollIndicators(containerRef)
       scrollAnimationFrame = null
     })

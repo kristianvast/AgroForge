@@ -21,6 +21,7 @@ export interface Message {
   timestamp: number
   status: "sending" | "sent" | "streaming" | "complete" | "error"
   version: number
+  partVersions?: Map<string, number>
   displayParts?: MessageDisplayParts
 }
 

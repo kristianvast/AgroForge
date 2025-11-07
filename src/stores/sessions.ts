@@ -185,6 +185,35 @@ export function computeDisplayParts(message: Message, showThinking: boolean): Me
   return { text, tool, reasoning, combined, showThinking, version }
 }
 
+function ensurePartVersionsMap(message: Message) {
+  if (!message.partVersions) {
+    message.partVersions = new Map()
+  }
+  return message.partVersions
+}
+
+function initializePartVersion(message: Message, part: any) {
+  const partId = typeof part?.id === "string" ? part.id : null
+  if (!partId) return
+  const versions = ensurePartVersionsMap(message)
+  if (!versions.has(partId)) {
+    versions.set(partId, 0)
+  }
+  const partAny = part as any
+  partAny.__version = versions.get(partId)
+}
+
+function bumpPartVersion(message: Message, part: any): number | undefined {
+  const partId = typeof part?.id === "string" ? part.id : null
+  if (!partId) return undefined
+  const versions = ensurePartVersionsMap(message)
+  const next = (versions.get(partId) ?? 0) + 1
+  versions.set(partId, next)
+  const partAny = part as any
+  partAny.__version = next
+  return next
+}
+
 function withSession(instanceId: string, sessionId: string, updater: (session: Session) => void) {
   const instanceSessions = sessions().get(instanceId)
   if (!instanceSessions) return
@@ -797,7 +826,7 @@ async function loadMessages(instanceId: string, sessionId: string, force = false
       messagesInfo.set(messageId, info)
 
       // Normalize parts to decode entities and clear caches for text segments
-      const parts = (apiMessage.parts || []).map((part: any) => normalizeMessagePart(part))
+      const parts: any[] = (apiMessage.parts || []).map((part: any) => normalizeMessagePart(part))
 
       const message: Message = {
         id: messageId,
@@ -807,7 +836,10 @@ async function loadMessages(instanceId: string, sessionId: string, force = false
         timestamp: info.time?.created || Date.now(),
         status: "complete" as const,
         version: 0,
+        partVersions: new Map(),
       }
+
+      parts.forEach((part: any) => initializePartVersion(message, part))
 
       message.displayParts = computeDisplayParts(message, preferences().showThinkingBlocks)
 
@@ -924,8 +956,10 @@ function handleMessageUpdate(instanceId: string, event: any): void {
         timestamp: Date.now(),
         status: "streaming" as const,
         version: 0,
+        partVersions: new Map(),
       }
 
+      initializePartVersion(newMessage, part)
       newMessage.displayParts = computeDisplayParts(newMessage, preferences().showThinkingBlocks)
 
       let insertIndex = session.messages.length
@@ -987,6 +1021,7 @@ function handleMessageUpdate(instanceId: string, event: any): void {
         if (part.id && typeof part.id === "string") {
           partMap.set(part.id, baseParts.length - 1)
         }
+        initializePartVersion(message, part)
         shouldIncrementVersion = true
         // Clear render cache for new text parts
         if (part.type === "text") {
@@ -1006,6 +1041,7 @@ function handleMessageUpdate(instanceId: string, event: any): void {
         }
 
         baseParts[partIndex] = part
+        bumpPartVersion(message, part)
         if (part.type !== "text" || !previousPart || previousPart.text !== part.text) {
           shouldIncrementVersion = true
           // Clear render cache when text changes
@@ -1311,7 +1347,10 @@ async function sendMessage(
     timestamp: Date.now(),
     status: "sending",
     version: 0,
+    partVersions: new Map(),
   }
+
+  optimisticParts.forEach((part: any) => initializePartVersion(optimisticMessage, part))
 
   optimisticMessage.displayParts = computeDisplayParts(optimisticMessage, preferences().showThinkingBlocks)
 
