@@ -900,7 +900,7 @@ button.button-primary {
 .tool-call-markdown .code-block-header {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: auto;
   box-shadow: 0 1px 0 var(--border-base);
 }
 
