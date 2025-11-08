@@ -64,15 +64,34 @@ function updateInstance(id: string, updates: Partial<Instance>) {
 }
 
 function removeInstance(id: string) {
+  let nextActiveId: string | null = null
+
   setInstances((prev) => {
+    if (!prev.has(id)) {
+      return prev
+    }
+
+    const keys = Array.from(prev.keys())
+    const index = keys.indexOf(id)
     const next = new Map(prev)
     next.delete(id)
+
+    if (activeInstanceId() === id) {
+      if (index > 0) {
+        nextActiveId = keys[index - 1]
+      } else {
+        const remainingKeys = Array.from(next.keys())
+        nextActiveId = remainingKeys.length > 0 ? remainingKeys[0] : null
+      }
+    }
+
     return next
   })
+
   removeLogContainer(id)
 
   if (activeInstanceId() === id) {
-    setActiveInstanceId(null)
+    setActiveInstanceId(nextActiveId)
   }
 
   // Clean up session indexes and drafts for removed instance

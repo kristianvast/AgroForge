@@ -28,9 +28,18 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
    })
  
   function scrollToIndex(index: number) {
-    const element = recentListRef?.querySelector(`[data-folder-index="${index}"]`)
-    if (element) {
-      element.scrollIntoView({ block: "nearest", behavior: "auto" })
+    const container = recentListRef
+    if (!container) return
+    const element = container.querySelector(`[data-folder-index="${index}"]`) as HTMLElement | null
+    if (!element) return
+
+    const containerRect = container.getBoundingClientRect()
+    const elementRect = element.getBoundingClientRect()
+
+    if (elementRect.top < containerRect.top) {
+      container.scrollTop -= containerRect.top - elementRect.top
+    } else if (elementRect.bottom > containerRect.bottom) {
+      container.scrollTop += elementRect.bottom - containerRect.bottom
     }
   }
 
@@ -182,59 +191,55 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
               </div>
             }
           >
-              <div class="panel flex-1 min-h-0 overflow-hidden">
-               <div class="panel-header">
-                 <h2 class="panel-title">Recent Folders</h2>
-                 <p class="panel-subtitle">
-                   {folders().length} {folders().length === 1 ? "folder" : "folders"} available
-                 </p>
-               </div>
-               <div
-                 class="panel-list max-h-[50vh] overflow-y-auto pr-1"
-                 ref={(el) => (recentListRef = el)}
-               >
-                 <For each={folders()}>
-                   {(folder, index) => (
-                     <div
-                       data-folder-index={index()}
-                       class="panel-list-item"
-                       classList={{
-                         "panel-list-item-highlight": focusMode() === "recent" && selectedIndex() === index(),
-                       }}
-                     >
-
-                      <div class="flex items-center w-full">
+            <div class="panel flex flex-col flex-1 min-h-0">
+              <div class="panel-header">
+                <h2 class="panel-title">Recent Folders</h2>
+                <p class="panel-subtitle">
+                  {folders().length} {folders().length === 1 ? "folder" : "folders"} available
+                </p>
+              </div>
+              <div class="panel-list panel-list--fill flex-1 min-h-0 overflow-auto" ref={(el) => (recentListRef = el)}>
+                <For each={folders()}>
+                  {(folder, index) => (
+                    <div
+                      class="panel-list-item"
+                      classList={{
+                        "panel-list-item-highlight": focusMode() === "recent" && selectedIndex() === index(),
+                      }}
+                    >
+                      <div class="flex items-center gap-2 w-full px-1">
                         <button
-                          class="panel-list-item-content w-full"
+                          data-folder-index={index()}
+                          class="panel-list-item-content flex-1"
                           onClick={() => handleFolderSelect(folder.path)}
                           onMouseEnter={() => {
                             setFocusMode("recent")
                             setSelectedIndex(index())
                           }}
                         >
-                          <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
-                              <Folder class="w-4 h-4 flex-shrink-0 icon-muted" />
-                              <span class="text-sm font-medium truncate text-primary">
-                                {folder.path.split("/").pop()}
-                              </span>
+                          <div class="flex items-center justify-between gap-3 w-full">
+                            <div class="flex-1 min-w-0">
+                              <div class="flex items-center gap-2 mb-1">
+                                <Folder class="w-4 h-4 flex-shrink-0 icon-muted" />
+                                <span class="text-sm font-medium truncate text-primary">
+                                  {folder.path.split("/").pop()}
+                                </span>
+                              </div>
+                              <div class="text-xs font-mono truncate pl-6 text-muted">
+                                {getDisplayPath(folder.path)}
+                              </div>
+                              <div class="text-xs mt-1 pl-6 text-muted">
+                                {formatRelativeTime(folder.lastAccessed)}
+                              </div>
                             </div>
-                            <div class="text-xs font-mono truncate pl-6 text-muted">
-                              {getDisplayPath(folder.path)}
-                            </div>
-                            <div class="text-xs mt-1 pl-6 text-muted">
-                              {formatRelativeTime(folder.lastAccessed)}
-                            </div>
+                            <Show when={focusMode() === "recent" && selectedIndex() === index()}>
+                              <kbd class="kbd">↵</kbd>
+                            </Show>
                           </div>
-                          <Show when={focusMode() === "recent" && selectedIndex() === index()}>
-                            <kbd class="kbd">
-                              ↵ 
-                            </kbd>
-                          </Show>
                         </button>
                         <button
                           onClick={(e) => handleRemove(folder.path, e)}
-                          class="p-2.5 transition-all mr-2 hover:bg-red-100 dark:hover:bg-red-900/30 opacity-70 hover:opacity-100"
+                          class="p-2 transition-all hover:bg-red-100 dark:hover:bg-red-900/30 opacity-70 hover:opacity-100 rounded"
                           title="Remove from recent"
                         >
                           <Trash2 class="w-3.5 h-3.5 transition-colors icon-muted hover:text-red-600 dark:hover:text-red-400" />
