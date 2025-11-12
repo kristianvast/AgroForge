@@ -8,6 +8,7 @@ import { sseManager } from "../lib/sse-manager"
 import { decodeHtmlEntities } from "../lib/markdown"
 import { showToastNotification, ToastVariant } from "../lib/notifications"
 import { preferences, addRecentModelPreference, getAgentModelPreference, setAgentModelPreference } from "./preferences"
+import { setSessionCompactionState } from "./session-compaction"
 import type {
   EventSessionUpdated,
   EventSessionCompacted,
@@ -57,6 +58,7 @@ interface SessionForkResponse {
 }
 
 const DEFAULT_MODEL_OUTPUT_LIMIT = 32_000
+
 const ALLOWED_TOAST_VARIANTS = new Set<ToastVariant>(["info", "success", "warning", "error"])
 
 const [sessions, setSessions] = createSignal<Map<string, Map<string, Session>>>(new Map())
@@ -332,6 +334,14 @@ function withSession(instanceId: string, sessionId: string, updater: (session: S
   })
 }
 
+function setSessionCompactingState(instanceId: string, sessionId: string, isCompacting: boolean): void {
+  withSession(instanceId, sessionId, (session) => {
+    const time = { ...(session.time ?? {}) }
+    time.compacting = isCompacting ? Date.now() : 0
+    session.time = time
+  })
+}
+
 const ID_LENGTH = 26
 const BASE62_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
@@ -408,8 +418,7 @@ async function fetchSessions(instanceId: string): Promise<void> {
         model: { providerId: "", modelId: "" },
         version: apiSession.version,  // Include version from SDK
         time: {
-          created: apiSession.time.created,
-          updated: apiSession.time.updated,
+          ...apiSession.time,
         },
         revert: apiSession.revert
           ? {
@@ -429,6 +438,12 @@ async function fetchSessions(instanceId: string): Promise<void> {
       next.set(instanceId, sessionMap)
       return next
     })
+
+    for (const session of sessionMap.values()) {
+      const flag = (session.time as (Session["time"] & { compacting?: number | boolean }) | undefined)?.compacting
+      const active = typeof flag === "number" ? flag > 0 : Boolean(flag)
+      setSessionCompactionState(instanceId, session.id, active)
+    }
 
     pruneDraftPrompts(instanceId, new Set(sessionMap.keys()))
   } catch (error) {
@@ -666,8 +681,7 @@ async function createSession(instanceId: string, agent?: string): Promise<Sessio
       model: defaultModel,
       version: response.data.version,  // Include version from SDK
       time: {
-        created: response.data.time.created,
-        updated: response.data.time.updated,
+        ...response.data.time,
       },
       revert: response.data.revert
         ? {
@@ -771,10 +785,7 @@ async function forkSession(
       modelId: info.model?.modelID || "",
     },
     version: "0",  // Default version for forked sessions
-    time: {
-      created: info.time?.created || Date.now(),
-      updated: info.time?.updated || Date.now(),
-    },
+    time: info.time ? { ...info.time } : { created: Date.now(), updated: Date.now() },
     revert: info.revert
       ? {
           messageID: info.revert.messageID,
@@ -849,6 +860,7 @@ async function deleteSession(instanceId: string, sessionId: string): Promise<voi
       return next
     })
 
+    setSessionCompactionState(instanceId, sessionId, false)
     clearSessionDraftPrompt(instanceId, sessionId)
 
     // Remove session info entry
@@ -1722,6 +1734,10 @@ function handleSessionUpdate(instanceId: string, event: EventSessionUpdated): vo
   const info = event.properties?.info
   if (!info) return
 
+  const compactingFlag = info.time?.compacting
+  const isCompacting = typeof compactingFlag === "number" ? compactingFlag > 0 : Boolean(compactingFlag)
+  setSessionCompactionState(instanceId, info.id, isCompacting)
+
   const instanceSessions = sessions().get(instanceId)
   if (!instanceSessions) return
 
@@ -1739,10 +1755,12 @@ function handleSessionUpdate(instanceId: string, event: EventSessionUpdated): vo
         modelId: "",
       },
       version: info.version || "0",
-      time: {
-        created: info.time?.created || Date.now(),
-        updated: info.time?.updated || Date.now(),
-      },
+      time: info.time
+        ? { ...info.time }
+        : {
+            created: Date.now(),
+            updated: Date.now(),
+          },
       messages: [],
       messagesInfo: new Map(),
     }
@@ -1757,13 +1775,18 @@ function handleSessionUpdate(instanceId: string, event: EventSessionUpdated): vo
 
     console.log(`[SSE] New session created: ${info.id}`, newSession)
   } else {
+    const mergedTime = {
+      ...existingSession.time,
+      ...(info.time ?? {}),
+    }
+    if (!info.time?.updated) {
+      mergedTime.updated = Date.now()
+    }
+
     const updatedSession = {
       ...existingSession,
       title: info.title || existingSession.title,
-      time: {
-        ...existingSession.time,
-        updated: info.time?.updated || Date.now(),
-      },
+      time: mergedTime,
       revert: info.revert
         ? {
             messageID: info.revert.messageID,
@@ -2067,6 +2090,15 @@ function handleSessionCompacted(instanceId: string, event: EventSessionCompacted
   if (!sessionID) return
 
   console.log(`[SSE] Session compacted: ${sessionID}`)
+
+  setSessionCompactionState(instanceId, sessionID, false)
+
+  withSession(instanceId, sessionID, (session) => {
+    const time = { ...(session.time ?? {}) }
+    time.compacting = 0
+    session.time = time
+  })
+
   loadMessages(instanceId, sessionID, true).catch(console.error)
 
   const instanceSessions = sessions().get(instanceId)

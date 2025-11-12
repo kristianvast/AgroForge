@@ -14,6 +14,8 @@ export type {
   Model as SDKModel
 } from "@opencode-ai/sdk"
 
+export type SessionStatus = "idle" | "working" | "compacting"
+
 // Our client-specific Session interface extending SDK Session
 export interface Session extends Omit<import("@opencode-ai/sdk").Session, 'projectID' | 'directory' | 'parentID'> {
   instanceId: string  // Client-specific field

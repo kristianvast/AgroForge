@@ -1,5 +1,6 @@
 import { Component, For, Show, createSignal, createEffect, onCleanup, onMount, createMemo, JSX } from "solid-js"
-import type { Session } from "../types/session"
+import type { Session, SessionStatus } from "../types/session"
+import { getSessionStatus } from "../stores/session-status"
 import { MessageSquare, Info, X, Copy } from "lucide-solid"
 import KeyboardHint from "./keyboard-hint"
 import Kbd from "./kbd"
@@ -26,6 +27,17 @@ const MIN_WIDTH = 200
 const MAX_WIDTH = 500
 const DEFAULT_WIDTH = 280
 const STORAGE_KEY = "opencode-session-sidebar-width"
+
+function formatSessionStatus(status: SessionStatus): string {
+  switch (status) {
+    case "working":
+      return "Working"
+    case "compacting":
+      return "Compacting"
+    default:
+      return "Idle"
+  }
+}
 
 function arraysEqual(prev: readonly string[] | undefined, next: readonly string[]): boolean {
   if (!prev) {
@@ -100,7 +112,7 @@ const SessionList: Component<SessionListProps> = (props) => {
   }
  
   const clampWidth = (width: number) => Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width))
-
+ 
 
   const removeMouseListeners = () => {
     if (mouseMoveHandler) {
@@ -112,7 +124,7 @@ const SessionList: Component<SessionListProps> = (props) => {
       mouseUpHandler = null
     }
   }
-
+ 
   const removeTouchListeners = () => {
     if (touchMoveHandler) {
       document.removeEventListener("touchmove", touchMoveHandler)
@@ -123,68 +135,132 @@ const SessionList: Component<SessionListProps> = (props) => {
       touchEndHandler = null
     }
   }
-
+ 
   const stopResizing = () => {
     setIsResizing(false)
     removeMouseListeners()
     removeTouchListeners()
   }
-
+ 
   const handleMouseMove = (event: MouseEvent) => {
     if (!isResizing()) return
     const diff = event.clientX - startX()
     const newWidth = clampWidth(startWidth() + diff)
     setSidebarWidth(newWidth)
   }
-
+ 
   const handleMouseUp = () => {
     stopResizing()
   }
-
+ 
   const handleTouchMove = (event: TouchEvent) => {
     if (!isResizing()) return
     const touch = event.touches[0]
+    if (!touch) return
     const diff = touch.clientX - startX()
     const newWidth = clampWidth(startWidth() + diff)
     setSidebarWidth(newWidth)
   }
-
+ 
   const handleTouchEnd = () => {
     stopResizing()
   }
-
+ 
   const handleMouseDown = (event: MouseEvent) => {
     event.preventDefault()
     setIsResizing(true)
     setStartX(event.clientX)
     setStartWidth(sidebarWidth())
-
+ 
     mouseMoveHandler = handleMouseMove
     mouseUpHandler = handleMouseUp
-
+ 
     document.addEventListener("mousemove", handleMouseMove)
     document.addEventListener("mouseup", handleMouseUp)
   }
-
+ 
   const handleTouchStart = (event: TouchEvent) => {
     event.preventDefault()
     const touch = event.touches[0]
+    if (!touch) return
     setIsResizing(true)
     setStartX(touch.clientX)
     setStartWidth(sidebarWidth())
-
+ 
     touchMoveHandler = handleTouchMove
     touchEndHandler = handleTouchEnd
-
+ 
     document.addEventListener("touchmove", handleTouchMove)
     document.addEventListener("touchend", handleTouchEnd)
   }
-
+ 
   onCleanup(() => {
     removeMouseListeners()
     removeTouchListeners()
   })
-
+ 
+  const SessionRow: Component<{ sessionId: string; canClose?: boolean }> = (rowProps) => {
+    const session = () => props.sessions.get(rowProps.sessionId)
+    if (!session()) {
+      return <></>
+    }
+    const isActive = () => props.activeSessionId === rowProps.sessionId
+    const title = () => session()?.title || "Untitled"
+    const status = () => getSessionStatus(props.instanceId, rowProps.sessionId)
+    const statusLabel = () => formatSessionStatus(status())
+ 
+    return (
+      <div class="session-list-item group">
+        <button
+          class={`session-item-base ${isActive() ? "session-item-active" : "session-item-inactive"}`}
+          onClick={() => selectSession(rowProps.sessionId)}
+          title={title()}
+          role="button"
+          aria-selected={isActive()}
+        >
+          <div class="session-item-row session-item-header">
+            <div class="session-item-title-row">
+              <MessageSquare class="w-4 h-4 flex-shrink-0" />
+              <span class="session-item-title truncate">{title()}</span>
+            </div>
+            <Show when={rowProps.canClose}>
+              <span
+                class="session-item-close opacity-0 group-hover:opacity-100 hover:bg-status-error hover:text-white rounded p-0.5 transition-all"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  props.onClose(rowProps.sessionId)
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label="Close session"
+              >
+                <X class="w-3 h-3" />
+              </span>
+            </Show>
+          </div>
+          <div class="session-item-row session-item-meta">
+            <span class={`status-indicator session-status session-status-list session-${status()}`}>
+              <span class="status-dot" />
+              {statusLabel()}
+            </span>
+            <div class="session-item-actions">
+              <span
+                class={`session-item-close opacity-80 hover:opacity-100 ${isActive() ? "hover:bg-white/20" : "hover:bg-surface-hover"}`}
+                onClick={(event) => copySessionId(event, rowProps.sessionId)}
+                role="button"
+                tabIndex={0}
+                aria-label="Copy session ID"
+                title="Copy session ID"
+              >
+                <Copy class="w-3 h-3" />
+              </span>
+            </div>
+          </div>
+        </button>
+      </div>
+    )
+  }
+ 
   const userSessionIds = createMemo(
     () => {
       const ids: string[] = []
@@ -198,7 +274,7 @@ const SessionList: Component<SessionListProps> = (props) => {
     undefined,
     { equals: arraysEqual },
   )
-
+ 
   const childSessionIds = createMemo(
     () => {
       const children: { id: string; updated: number }[] = []
@@ -216,9 +292,10 @@ const SessionList: Component<SessionListProps> = (props) => {
     undefined,
     { equals: arraysEqual },
   )
-
+ 
   return (
     <div
+
       class="session-list-container bg-surface-secondary border-r border-base flex flex-col"
       style={{ width: `${sidebarWidth()}px` }}
     >
@@ -271,56 +348,7 @@ const SessionList: Component<SessionListProps> = (props) => {
             <div class="session-section-header px-3 py-2 text-xs font-semibold text-primary/70 uppercase tracking-wide">
               User Sessions
             </div>
-            <For each={userSessionIds()}>
-              {(id) => {
-                const session = () => props.sessions.get(id)
-                if (!session()) {
-                  return null
-                }
-
-                const isActive = () => props.activeSessionId === id
-                const title = () => session()?.title || "Untitled"
-
-                return (
-                  <div class="session-list-item group">
-                    <button
-                      class={`session-item-base ${isActive() ? "session-item-active" : "session-item-inactive"}`}
-                      onClick={() => selectSession(id)}
-                      title={title()}
-                      role="button"
-                      aria-selected={isActive()}
-                    >
-                      <MessageSquare class="w-4 h-4 flex-shrink-0" />
-                      <span class="session-item-title truncate">{title()}</span>
-                      <div class="flex items-center gap-1 ml-auto">
-                        <span
-                          class={`session-item-close opacity-80 hover:opacity-100 ${isActive() ? "hover:bg-white/20" : "hover:bg-surface-hover"}`}
-                          onClick={(event) => copySessionId(event, id)}
-                          role="button"
-                          tabIndex={0}
-                          aria-label="Copy session ID"
-                          title="Copy session ID"
-                        >
-                          <Copy class="w-3 h-3" />
-                        </span>
-                        <span
-                          class="session-item-close opacity-0 group-hover:opacity-100 hover:bg-status-error hover:text-white rounded p-0.5 transition-all"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            props.onClose(id)
-                          }}
-                          role="button"
-                          tabIndex={0}
-                          aria-label="Close session"
-                        >
-                          <X class="w-3 h-3" />
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                )
-              }}
-            </For>
+            <For each={userSessionIds()}>{(id) => <SessionRow sessionId={id} canClose />}</For>
           </div>
         </Show>
 
@@ -329,44 +357,7 @@ const SessionList: Component<SessionListProps> = (props) => {
             <div class="session-section-header px-3 py-2 text-xs font-semibold text-primary/70 uppercase tracking-wide">
               Agent Sessions
             </div>
-            <For each={childSessionIds()}>
-              {(id) => {
-                const session = () => props.sessions.get(id)
-                if (!session()) {
-                  return null
-                }
-
-                const isActive = () => props.activeSessionId === id
-                const title = () => session()?.title || "Untitled"
-
-                return (
-                  <div class="session-list-item group">
-                    <button
-                      class={`session-item-base ${isActive() ? "session-item-active" : "session-item-inactive"}`}
-                      onClick={() => selectSession(id)}
-                      title={title()}
-                      role="button"
-                      aria-selected={isActive()}
-                    >
-                      <MessageSquare class="w-4 h-4 flex-shrink-0" />
-                      <span class="session-item-title truncate">{title()}</span>
-                      <div class="flex items-center gap-1 ml-auto">
-                        <span
-                          class={`session-item-close opacity-80 hover:opacity-100 ${isActive() ? "hover:bg-white/20" : "hover:bg-surface-hover"}`}
-                          onClick={(event) => copySessionId(event, id)}
-                          role="button"
-                          tabIndex={0}
-                          aria-label="Copy session ID"
-                          title="Copy session ID"
-                        >
-                          <Copy class="w-3 h-3" />
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                )
-              }}
-            </For>
+            <For each={childSessionIds()}>{(id) => <SessionRow sessionId={id} />}</For>
           </div>
         </Show>
       </div>

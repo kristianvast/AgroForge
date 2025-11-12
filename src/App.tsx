@@ -58,10 +58,10 @@ import {
   updateSessionAgent,
   updateSessionModel,
   agents,
-  isSessionBusy,
   getSessionInfo,
   isSessionMessagesLoading,
 } from "./stores/sessions"
+import { isSessionBusy } from "./stores/session-status"
 import { setupTabKeyboardShortcuts } from "./lib/keyboard"
 import { isOpen as isCommandPaletteOpen, showCommandPalette, hideCommandPalette } from "./stores/command-palette"
 import { registerNavigationShortcuts } from "./lib/shortcuts/navigation"
@@ -70,6 +70,7 @@ import { registerAgentShortcuts } from "./lib/shortcuts/agent"
 import { registerEscapeShortcut, setEscapeStateChangeHandler } from "./lib/shortcuts/escape"
 import { keyboardRegistry } from "./lib/keyboard-registry"
 import type { KeyboardShortcut } from "./lib/keyboard-registry"
+import { setSessionCompactionState } from "./stores/session-compaction"
 
 const SessionView: Component<{
   sessionId: string
@@ -620,6 +621,7 @@ const App: Component = () => {
         if (!session) return
 
         try {
+          setSessionCompactionState(instance.id, sessionId, true)
           console.log("Compacting session...")
           await instance.client.session.summarize({
             path: { id: sessionId },
@@ -629,6 +631,7 @@ const App: Component = () => {
             },
           })
         } catch (error: unknown) {
+          setSessionCompactionState(instance.id, sessionId, false)
           console.error("Failed to compact session:", error)
           const message = error instanceof Error ? error.message : "Failed to compact session"
           alert(`Compact failed: ${message}`)

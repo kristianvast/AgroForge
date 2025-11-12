@@ -530,6 +530,28 @@ button.button-primary {
   color: var(--text-muted);
 }
 
+:root {
+  --session-status-working-fg: #b45309;
+  --session-status-working-bg: rgba(245, 158, 11, 0.16);
+  --session-status-compacting-fg: #6d28d9;
+  --session-status-compacting-bg: rgba(109, 40, 217, 0.18);
+  --session-status-idle-fg: #15803d;
+  --session-status-idle-bg: rgba(22, 163, 74, 0.16);
+  --list-item-highlight-bg: rgba(0, 102, 255, 0.1);
+  --list-item-highlight-border: rgba(0, 102, 255, 0.25);
+}
+
+[data-theme="dark"] {
+  --session-status-working-fg: #facc15;
+  --session-status-working-bg: rgba(250, 204, 21, 0.25);
+  --session-status-compacting-fg: #c084fc;
+  --session-status-compacting-bg: rgba(192, 132, 252, 0.28);
+  --session-status-idle-fg: #4ade80;
+  --session-status-idle-bg: rgba(74, 222, 128, 0.22);
+  --list-item-highlight-bg: rgba(0, 128, 255, 0.2);
+  --list-item-highlight-border: rgba(0, 128, 255, 0.4);
+}
+
 .status-indicator {
   @apply flex items-center gap-1.5 text-xs;
   color: var(--text-muted);
@@ -551,6 +573,67 @@ button.button-primary {
 .status-indicator.disconnected .status-dot {
   background-color: var(--status-error);
 }
+
+.status-indicator.session-status {
+  --session-status-dot: var(--text-muted);
+}
+
+.status-indicator.session-status.session-working,
+.status-indicator.session-status.session-compacting,
+.status-indicator.session-status.session-idle {
+  font-weight: var(--font-weight-medium);
+}
+
+.status-indicator.session-status.session-working {
+  color: var(--session-status-working-fg);
+  --session-status-dot: var(--session-status-working-fg);
+}
+
+.status-indicator.session-status.session-compacting {
+  color: var(--session-status-compacting-fg);
+  --session-status-dot: var(--session-status-compacting-fg);
+}
+
+.status-indicator.session-status.session-idle {
+  color: var(--session-status-idle-fg);
+  --session-status-dot: var(--session-status-idle-fg);
+}
+
+.status-indicator.session-status .status-dot {
+  background-color: var(--session-status-dot);
+}
+
+.status-indicator.session-status.session-working .status-dot,
+.status-indicator.session-status.session-compacting .status-dot {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-indicator.session-status.session-working.session-status-list {
+  background-color: var(--session-status-working-bg);
+}
+
+.status-indicator.session-status.session-compacting.session-status-list {
+  background-color: var(--session-status-compacting-bg);
+}
+
+.status-indicator.session-status.session-idle.session-status-list {
+  background-color: var(--session-status-idle-bg);
+}
+
+.status-indicator.session-status-list {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-medium);
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+
 
 .message-stream {
   @apply flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-4;
@@ -1810,11 +1893,8 @@ button.button-primary {
 }
 
 .panel-list-item-highlight {
-  background-color: rgba(0, 102, 255, 0.1) !important;
-}
-
-[data-theme="dark"] .panel-list-item-highlight {
-  background-color: rgba(0, 128, 255, 0.2) !important;
+  background-color: var(--list-item-highlight-bg) !important;
+  box-shadow: inset 0 0 0 1px var(--list-item-highlight-border);
 }
 
 .panel-list-item-content {
@@ -2099,7 +2179,7 @@ button.button-primary {
 }
 
 .session-item-base {
-  @apply w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors outline-none;
+  @apply w-full flex flex-col gap-1 px-3 py-2.5 text-left transition-colors outline-none;
   font-family: var(--font-family-sans);
   font-size: var(--font-size-sm);
 }
@@ -2110,10 +2190,39 @@ button.button-primary {
   ring-offset-color: var(--surface-secondary);
 }
 
+.session-item-row {
+  @apply flex items-center gap-2 w-full;
+}
+
+.session-item-header {
+  @apply justify-between;
+}
+
+.session-item-title-row {
+  @apply flex items-center gap-2 min-w-0 flex-1;
+}
+
+.session-item-meta {
+  @apply justify-between items-center;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-top: 0.125rem;
+}
+
+.session-item-active .session-item-meta {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+.session-item-actions {
+  @apply flex items-center gap-1;
+}
+
 .session-item-active {
-  background-color: var(--accent-primary);
-  color: var(--text-inverted);
+  background-color: var(--list-item-highlight-bg);
+  color: var(--text-primary);
   font-weight: var(--font-weight-medium);
+  box-shadow: inset 0 0 0 1px var(--list-item-highlight-border);
 }
 
 .session-item-inactive {
@@ -2126,7 +2235,8 @@ button.button-primary {
 }
 
 .session-item-active .session-item-close:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
 }
 
 .session-item-title {
