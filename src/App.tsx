@@ -15,6 +15,7 @@ import InfoView from "./components/info-view"
 import AgentSelector from "./components/agent-selector"
 import ModelSelector from "./components/model-selector"
 import KeyboardHint from "./components/keyboard-hint"
+import InstanceDisconnectedModal from "./components/instance-disconnected-modal"
 import { initMarkdown } from "./lib/markdown"
 import { useTheme } from "./lib/theme"
 import { createCommandRegistry } from "./lib/commands"
@@ -39,6 +40,8 @@ import {
   addLog,
   getActivePermission,
   sendPermissionResponse,
+  disconnectedInstance,
+  acknowledgeDisconnectedInstance,
 } from "./stores/instances"
 import {
   getSessions,
@@ -430,6 +433,14 @@ const App: Component = () => {
       setShowFolderSelection(true)
     } else {
       handleSelectFolder()
+    }
+  }
+
+  async function handleDisconnectedInstanceClose() {
+    try {
+      await acknowledgeDisconnectedInstance()
+    } catch (error) {
+      console.error("Failed to finalize disconnected instance:", error)
     }
   }
 
@@ -1019,12 +1030,19 @@ const App: Component = () => {
   })
 
   return (
-    <div class="h-screen w-screen flex flex-col">
-      <Show
-        when={!hasInstances()}
-        fallback={
-          <>
-            <InstanceTabs
+    <>
+      <InstanceDisconnectedModal
+        open={Boolean(disconnectedInstance())}
+        folder={disconnectedInstance()?.folder}
+        reason={disconnectedInstance()?.reason}
+        onClose={handleDisconnectedInstanceClose}
+      />
+      <div class="h-screen w-screen flex flex-col">
+        <Show
+          when={!hasInstances()}
+          fallback={
+            <>
+              <InstanceTabs
               instances={instances()}
               activeInstanceId={activeInstanceId()}
               onSelect={setActiveInstanceId}
@@ -1176,6 +1194,7 @@ const App: Component = () => {
         }}
       />
     </div>
+    </>
   )
 }
 

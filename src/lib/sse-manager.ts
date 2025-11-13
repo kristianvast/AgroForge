@@ -17,7 +17,6 @@ import type {
 interface SSEConnection {
   instanceId: string
   eventSource: EventSource
-  reconnectAttempts: number
   status: "connecting" | "connected" | "disconnected" | "error"
 }
 
@@ -51,8 +50,6 @@ const [connectionStatus, setConnectionStatus] = createSignal<
 
 class SSEManager {
   private connections = new Map<string, SSEConnection>()
-  private maxReconnectAttempts = 5
-  private baseReconnectDelay = 1000
 
   connect(instanceId: string, port: number): void {
     if (this.connections.has(instanceId)) {
@@ -65,7 +62,6 @@ class SSEManager {
     const connection: SSEConnection = {
       instanceId,
       eventSource,
-      reconnectAttempts: 0,
       status: "connecting",
     }
 
@@ -74,7 +70,6 @@ class SSEManager {
 
     eventSource.onopen = () => {
       connection.status = "connected"
-      connection.reconnectAttempts = 0
       this.updateConnectionStatus(instanceId, "connected")
       console.log(`[SSE] Connected to instance ${instanceId}`)
     }
@@ -92,7 +87,7 @@ class SSEManager {
       connection.status = "error"
       this.updateConnectionStatus(instanceId, "error")
       console.error(`[SSE] Connection error for instance ${instanceId}`)
-      this.handleReconnect(instanceId, port)
+      this.handleConnectionLost(instanceId, "Connection to instance lost")
     }
   }
 
@@ -148,25 +143,15 @@ class SSEManager {
     }
   }
 
-  private handleReconnect(instanceId: string, port: number): void {
+  private handleConnectionLost(instanceId: string, reason: string): void {
     const connection = this.connections.get(instanceId)
     if (!connection) return
 
-    if (connection.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error(`[SSE] Max reconnection attempts reached for ${instanceId}`)
-      connection.status = "disconnected"
-      this.updateConnectionStatus(instanceId, "disconnected")
-      return
-    }
-
-    const delay = this.baseReconnectDelay * Math.pow(2, connection.reconnectAttempts)
-    connection.reconnectAttempts++
-
-    console.log(`[SSE] Reconnecting to ${instanceId} in ${delay}ms (attempt ${connection.reconnectAttempts})`)
-
-    setTimeout(() => {
-      this.connect(instanceId, port)
-    }, delay)
+    connection.eventSource.close()
+    this.connections.delete(instanceId)
+    connection.status = "disconnected"
+    this.updateConnectionStatus(instanceId, "disconnected")
+    this.onConnectionLost?.(instanceId, reason)
   }
 
   private updateConnectionStatus(instanceId: string, status: SSEConnection["status"]): void {
@@ -188,6 +173,7 @@ class SSEManager {
   onSessionIdle?: (instanceId: string, event: EventSessionIdle) => void
   onPermissionUpdated?: (instanceId: string, event: EventPermissionUpdated) => void
   onPermissionReplied?: (instanceId: string, event: EventPermissionReplied) => void
+  onConnectionLost?: (instanceId: string, reason: string) => void | Promise<void>
 
   getStatus(instanceId: string): "connecting" | "connected" | "disconnected" | "error" | null {
     return connectionStatus().get(instanceId) ?? null

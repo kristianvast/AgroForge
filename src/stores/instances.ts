@@ -11,6 +11,7 @@ import {
   clearInstanceDraftPrompts,
 } from "./sessions"
 import { preferences, updateLastUsedBinary } from "./preferences"
+import { setHasInstances } from "./ui"
 
 const [instances, setInstances] = createSignal<Map<string, Instance>>(new Map())
 const [activeInstanceId, setActiveInstanceId] = createSignal<string | null>(null)
@@ -20,6 +21,12 @@ const [logStreamingState, setLogStreamingState] = createSignal<Map<string, boole
 // Permission queue management per instance
 const [permissionQueues, setPermissionQueues] = createSignal<Map<string, Permission[]>>(new Map())
 const [activePermissionId, setActivePermissionId] = createSignal<Map<string, string | null>>(new Map())
+interface DisconnectedInstanceInfo {
+  id: string
+  folder: string
+  reason: string
+}
+const [disconnectedInstance, setDisconnectedInstance] = createSignal<DisconnectedInstanceInfo | null>(null)
 
 const MAX_LOG_ENTRIES = 1000
 
@@ -356,6 +363,37 @@ async function sendPermissionResponse(
   }
 }
 
+sseManager.onConnectionLost = (instanceId, reason) => {
+  const instance = instances().get(instanceId)
+  if (!instance) {
+    return
+  }
+
+  setDisconnectedInstance({
+    id: instanceId,
+    folder: instance.folder,
+    reason,
+  })
+}
+
+async function acknowledgeDisconnectedInstance(): Promise<void> {
+  const pending = disconnectedInstance()
+  if (!pending) {
+    return
+  }
+
+  try {
+    await stopInstance(pending.id)
+  } catch (error) {
+    console.error("Failed to stop disconnected instance:", error)
+  } finally {
+    setDisconnectedInstance(null)
+    if (instances().size === 0) {
+      setHasInstances(false)
+    }
+  }
+}
+
 export {
   instances,
   activeInstanceId,
@@ -382,4 +420,6 @@ export {
   removePermissionFromQueue,
   clearPermissionQueue,
   sendPermissionResponse,
+  disconnectedInstance,
+  acknowledgeDisconnectedInstance,
 }

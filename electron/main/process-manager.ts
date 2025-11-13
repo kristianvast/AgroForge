@@ -182,7 +182,8 @@ class ProcessManager {
   async kill(pid: number): Promise<void> {
     const meta = this.processes.get(pid)
     if (!meta) {
-      throw new Error(`Process ${pid} not found`)
+      // Treat unknown processes as already stopped so tabs close cleanly
+      return
     }
 
     return new Promise((resolve, reject) => {
