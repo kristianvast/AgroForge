@@ -88,10 +88,11 @@ export default function MessageItem(props: MessageItemProps) {
       <div class="flex justify-between items-center gap-2.5 pb-0.5">
         <div class="flex flex-col">
           <Show when={isUser()}>
-            <span class="font-semibold text-xs text-[var(--text-muted)]">You</span>
+            <span class="font-semibold text-xs text-[var(--message-user-border)]">You</span>
           </Show>
+
           <Show when={!isUser()}>
-            <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[var(--text-muted)]">
+            <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[var(--message-assistant-border)]">
               <Show when={agentIdentifier()}>{(value) => <span>Agent: {value()}</span>}</Show>
               <Show when={modelIdentifier()}>{(value) => <span>Model: {value()}</span>}</Show>
             </div>

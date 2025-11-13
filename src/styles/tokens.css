@@ -27,10 +27,11 @@
   --status-warning: #ff9800;
   
   /* Message-specific tokens */
-  --message-user-bg: #f0f7ff;
+  --message-user-bg: var(--surface-secondary);
   --message-user-border: #2196f3;
-  --message-assistant-bg: #faf5ff;
-  --message-assistant-border: #9c27b0;
+  --message-assistant-bg: var(--message-tool-bg);
+  --message-assistant-border: #f59e0b;
+
   --message-tool-bg: #f8f9fa;
   --message-tool-border: #6c757d;
   
@@ -73,7 +74,7 @@
     --border-muted: #3a3a3a;
     
     /* Text tokens */
-    --text-primary: #e0e0e0;
+    --text-primary: #cfd4dc;
     --text-secondary: #999999;
     --text-muted: #999999;
     --text-inverted: #1a1a1a;
@@ -88,10 +89,11 @@
     --status-warning: #ff9800;
     
     /* Message-specific tokens */
-    --message-user-bg: #1a2332;
+    --message-user-bg: #202734;
     --message-user-border: #42a5f5;
-    --message-assistant-bg: #251a2e;
-    --message-assistant-border: #ba68c8;
+    --message-assistant-bg: var(--message-tool-bg);
+    --message-assistant-border: #d97706;
+
     --message-tool-bg: #212529;
     --message-tool-border: #adb5bd;
     
@@ -134,7 +136,7 @@
   --border-muted: #3a3a3a;
   
   /* Text tokens */
-  --text-primary: #e0e0e0;
+  --text-primary: #cfd4dc;
   --text-secondary: #999999;
   --text-muted: #999999;
   --text-inverted: #1a1a1a;
@@ -149,10 +151,11 @@
   --status-warning: #ff9800;
   
   /* Message-specific tokens */
-  --message-user-bg: #1a2332;
-  --message-user-border: #42a5f5;
-  --message-assistant-bg: #251a2e;
-  --message-assistant-border: #ba68c8;
+  --message-user-bg: #202734;
+  --message-user-border: #2196f3;
+  --message-assistant-bg: var(--message-tool-bg);
+  --message-assistant-border: #d97706;
+
   --message-tool-bg: #212529;
   --message-tool-border: #adb5bd;
   
