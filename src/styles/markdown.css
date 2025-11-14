@@ -189,8 +189,8 @@
     padding: 4px 8px;
     background-color: var(--surface-secondary);
     border-bottom: 1px solid var(--border-base);
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
+    /* border-top-left-radius: 6px;
+    border-top-right-radius: 6px; */
   }
 
   .code-block-language {
@@ -236,8 +236,7 @@
     padding: 12px !important;
     overflow-x: auto;
     background-color: transparent !important;
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
+    border-radius: 0;
   }
 
   .markdown-code-block code {

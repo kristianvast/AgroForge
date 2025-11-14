@@ -846,7 +846,7 @@ button.button-primary:disabled {
 
 /* Tool call component */
 .tool-call {
-  @apply border rounded-md overflow-hidden;
+  @apply border overflow-hidden;
   border-color: var(--border-base);
   color: inherit;
   --tool-call-line-unit: 1.4em;
@@ -867,6 +867,7 @@ button.button-primary:disabled {
   @apply flex items-center gap-2 p-2 w-full bg-transparent border-none cursor-pointer text-left;
   font-family: var(--font-family-mono);
   font-size: 13px;
+  border-radius: 0;
 }
 
 .tool-call-header:hover {
@@ -1084,7 +1085,7 @@ button.button-primary:disabled {
   margin: 0;
   padding: 8px;
   background-color: var(--surface-base);
-  border-radius: 4px;
+  border-radius: 0px;
   overflow-x: auto;
   max-height: var(--tool-call-max-height-compact, calc(25 * 1.4em));
   overflow-y: scroll;
@@ -1104,12 +1105,12 @@ button.button-primary:disabled {
 
 .tool-call-section pre::-webkit-scrollbar-track {
   background: var(--surface-secondary);
-  border-radius: 4px;
+  border-radius: 0px;
 }
 
 .tool-call-section pre::-webkit-scrollbar-thumb {
   background: var(--border-base);
-  border-radius: 4px;
+  border-radius: 0px;
 }
 
 .tool-call-section pre::-webkit-scrollbar-thumb:hover {
@@ -1151,7 +1152,7 @@ button.button-primary:disabled {
 .tool-call-content {
   background-color: var(--surface-secondary);
   border: 1px solid var(--border-base);
-  border-radius: 4px;
+  border-radius: 0;
   padding: 8px 12px;
   font-family: var(--font-family-mono);
   font-size: var(--font-size-xs);

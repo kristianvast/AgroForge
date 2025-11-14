@@ -99,7 +99,6 @@ export default function MessageItem(props: MessageItemProps) {
           </Show>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[11px] text-[var(--text-muted)]">{timestamp()}</span>
           <Show when={isUser() && props.onRevert}>
             <button
               class="bg-transparent border border-[var(--border-base)] text-[var(--text-muted)] cursor-pointer px-3 py-0.5 rounded text-xs font-semibold leading-none transition-all duration-200 flex items-center justify-center h-6 hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] active:scale-95"
@@ -120,9 +119,10 @@ export default function MessageItem(props: MessageItemProps) {
               Fork
             </button>
           </Show>
+          <span class="text-[11px] text-[var(--text-muted)]">{timestamp()}</span>
         </div>
       </div>
- 
+
       <div class="pt-1 whitespace-pre-wrap break-words leading-[1.1]">
 
         <Show when={props.isQueued && isUser()}>
