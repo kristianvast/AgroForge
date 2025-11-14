@@ -98,7 +98,7 @@ async function build(platform) {
       throw new Error("dist/ directory not found. Build failed.")
     }
 
-    await run(npxCmd, ["electron-builder", ...config.args])
+    await run(npxCmd, ["electron-builder", "--publish=never", ...config.args])
 
     console.log("\n✅ Build complete!")
     console.log(`📁 Binaries available in: ${join(appDir, "release")}\n`)
