@@ -1,6 +1,6 @@
 import { createSignal, onMount } from "solid-js"
 import type { Accessor } from "solid-js"
-import type { Preferences } from "../../stores/preferences"
+import type { Preferences, ExpansionPreference } from "../../stores/preferences"
 import { createCommandRegistry, type Command } from "../commands"
 import { instances, activeInstanceId, setActiveInstanceId } from "../../stores/instances"
 import {
@@ -17,6 +17,8 @@ export interface UseCommandsOptions {
   preferences: Accessor<Preferences>
   toggleShowThinkingBlocks: () => void
   setDiffViewMode: (mode: "split" | "unified") => void
+  setToolOutputExpansion: (mode: ExpansionPreference) => void
+  setDiagnosticsExpansion: (mode: ExpansionPreference) => void
   handleNewInstanceRequest: () => void
   handleCloseInstance: (instanceId: string) => Promise<void>
   handleNewSession: (instanceId: string) => Promise<void>
@@ -375,6 +377,38 @@ export function useCommands(options: UseCommandsOptions) {
       category: "System",
       keywords: ["diff", "unified", "view"],
       action: () => options.setDiffViewMode("unified"),
+    })
+
+    commandRegistry.register({
+      id: "tool-output-default-visibility",
+      label: () => {
+        const mode = options.preferences().toolOutputExpansion || "expanded"
+        return `Tool Outputs Default · ${mode === "expanded" ? "Expanded" : "Collapsed"}`
+      },
+      description: "Toggle default expansion for tool outputs",
+      category: "System",
+      keywords: ["tool", "output", "expand", "collapse"],
+      action: () => {
+        const mode = options.preferences().toolOutputExpansion || "expanded"
+        const next: ExpansionPreference = mode === "expanded" ? "collapsed" : "expanded"
+        options.setToolOutputExpansion(next)
+      },
+    })
+
+    commandRegistry.register({
+      id: "diagnostics-default-visibility",
+      label: () => {
+        const mode = options.preferences().diagnosticsExpansion || "expanded"
+        return `Diagnostics Default · ${mode === "expanded" ? "Expanded" : "Collapsed"}`
+      },
+      description: "Toggle default expansion for diagnostics output",
+      category: "System",
+      keywords: ["diagnostics", "expand", "collapse"],
+      action: () => {
+        const mode = options.preferences().diagnosticsExpansion || "expanded"
+        const next: ExpansionPreference = mode === "expanded" ? "collapsed" : "expanded"
+        options.setDiagnosticsExpansion(next)
+      },
     })
 
     commandRegistry.register({

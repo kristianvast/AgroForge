@@ -12,6 +12,7 @@ export interface AgentModelSelections {
 }
 
 export type DiffViewMode = "split" | "unified"
+export type ExpansionPreference = "expanded" | "collapsed"
 
 export interface Preferences {
   showThinkingBlocks: boolean
@@ -20,6 +21,8 @@ export interface Preferences {
   modelRecents?: ModelPreference[]
   agentModelSelections?: AgentModelSelections
   diffViewMode?: DiffViewMode
+  toolOutputExpansion?: ExpansionPreference
+  diagnosticsExpansion?: ExpansionPreference
 }
 
 export interface OpenCodeBinary {
@@ -41,6 +44,8 @@ const defaultPreferences: Preferences = {
   modelRecents: [],
   agentModelSelections: {},
   diffViewMode: "split",
+  toolOutputExpansion: "expanded",
+  diagnosticsExpansion: "expanded",
 }
 
 const [preferences, setPreferences] = createSignal<Preferences>(defaultPreferences)
@@ -115,6 +120,16 @@ function updatePreferences(updates: Partial<Preferences>): void {
 function setDiffViewMode(mode: DiffViewMode): void {
   if (preferences().diffViewMode === mode) return
   updatePreferences({ diffViewMode: mode })
+}
+
+function setToolOutputExpansion(mode: ExpansionPreference): void {
+  if (preferences().toolOutputExpansion === mode) return
+  updatePreferences({ toolOutputExpansion: mode })
+}
+
+function setDiagnosticsExpansion(mode: ExpansionPreference): void {
+  if (preferences().diagnosticsExpansion === mode) return
+  updatePreferences({ diagnosticsExpansion: mode })
 }
 
 function toggleShowThinkingBlocks(): void {
@@ -230,6 +245,8 @@ interface ConfigContextValue {
   opencodeBinaries: typeof opencodeBinaries
   toggleShowThinkingBlocks: typeof toggleShowThinkingBlocks
   setDiffViewMode: typeof setDiffViewMode
+  setToolOutputExpansion: typeof setToolOutputExpansion
+  setDiagnosticsExpansion: typeof setDiagnosticsExpansion
   addRecentFolder: typeof addRecentFolder
   removeRecentFolder: typeof removeRecentFolder
   addOpenCodeBinary: typeof addOpenCodeBinary
@@ -253,6 +270,8 @@ const configContextValue: ConfigContextValue = {
   opencodeBinaries,
   toggleShowThinkingBlocks,
   setDiffViewMode,
+  setToolOutputExpansion,
+  setDiagnosticsExpansion,
   addRecentFolder,
   removeRecentFolder,
   addOpenCodeBinary,
@@ -315,4 +334,6 @@ export {
   setAgentModelPreference,
   getAgentModelPreference,
   setDiffViewMode,
+  setToolOutputExpansion,
+  setDiagnosticsExpansion,
 }

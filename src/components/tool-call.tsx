@@ -347,7 +347,9 @@ export default function ToolCall(props: ToolCallProps) {
   const { isDark } = useTheme()
   const toolCallId = () => props.toolCallId || props.toolCall?.id || ""
   const expanded = () => isToolCallExpanded(toolCallId())
-  const [initializedId, setInitializedId] = createSignal<string | null>(null)
+  const toolOutputDefaultExpanded = createMemo(() => (preferences().toolOutputExpansion || "expanded") === "expanded")
+  const diagnosticsDefaultExpanded = createMemo(() => (preferences().diagnosticsExpansion || "expanded") === "expanded")
+  const [appliedPreference, setAppliedPreference] = createSignal<boolean | null>(null)
   const pendingPermission = createMemo(() => props.toolCall.pendingPermission)
   const permissionDetails = createMemo(() => pendingPermission()?.permission)
   const isPermissionActive = createMemo(() => pendingPermission()?.active === true)
@@ -357,7 +359,7 @@ export default function ToolCall(props: ToolCallProps) {
   })
   const [permissionSubmitting, setPermissionSubmitting] = createSignal(false)
   const [permissionError, setPermissionError] = createSignal<string | null>(null)
-  const [diagnosticsExpanded, setDiagnosticsExpanded] = createSignal(true)
+  const [diagnosticsExpanded, setDiagnosticsExpanded] = createSignal(diagnosticsDefaultExpanded())
   const diagnosticsEntries = createMemo(() => {
     const tool = props.toolCall?.tool || ""
     const state = props.toolCall?.state
@@ -365,13 +367,18 @@ export default function ToolCall(props: ToolCallProps) {
     return extractDiagnostics(tool, state)
   })
 
- 
-   let scrollContainerRef: HTMLDivElement | undefined
-   let toolCallRootRef: HTMLDivElement | undefined
- 
-   const handleScrollRendered = () => {
+  createEffect(() => {
+    const preferred = diagnosticsDefaultExpanded()
+    setDiagnosticsExpanded((prev) => (prev === preferred ? prev : preferred))
+  })
 
-    const id = toolCallId()
+  let scrollContainerRef: HTMLDivElement | undefined
+  let toolCallRootRef: HTMLDivElement | undefined
+ 
+  const handleScrollRendered = () => {
+ 
+   const id = toolCallId()
+
     if (!id || !scrollContainerRef) return
     restoreScrollState(id, scrollContainerRef)
   }
@@ -395,13 +402,18 @@ export default function ToolCall(props: ToolCallProps) {
 
   createEffect(() => {
     const id = toolCallId()
-    if (!id || initializedId() === id) return
+    if (!id) return
+    const toolName = props.toolCall?.tool || ""
+    const desiredExpansion = toolName === "read" ? false : toolOutputDefaultExpanded()
+    if (appliedPreference() === desiredExpansion) return
+    setToolCallExpanded(id, desiredExpansion)
+    setAppliedPreference(desiredExpansion)
+  })
 
-    const tool = props.toolCall?.tool || ""
-    const shouldExpand = tool !== "read"
-
-    setToolCallExpanded(id, shouldExpand)
-    setInitializedId(id)
+  createEffect(() => {
+    const id = toolCallId()
+    if (!id) return
+    setAppliedPreference((prev) => (prev === null ? prev : null))
   })
 
   createEffect(() => {

@@ -41,7 +41,14 @@ import {
 
 const App: Component = () => {
   const { isDark } = useTheme()
-  const { preferences, addRecentFolder, toggleShowThinkingBlocks, setDiffViewMode } = useConfig()
+  const {
+    preferences,
+    addRecentFolder,
+    toggleShowThinkingBlocks,
+    setDiffViewMode,
+    setToolOutputExpansion,
+    setDiagnosticsExpansion,
+  } = useConfig()
   const [escapeInDebounce, setEscapeInDebounce] = createSignal(false)
   const [launchErrorBinary, setLaunchErrorBinary] = createSignal<string | null>(null)
   const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = createSignal(false)
@@ -195,6 +202,8 @@ const App: Component = () => {
     preferences,
     toggleShowThinkingBlocks,
     setDiffViewMode,
+    setToolOutputExpansion,
+    setDiagnosticsExpansion,
     handleNewInstanceRequest,
     handleCloseInstance,
     handleNewSession,

@@ -83,6 +83,8 @@ export class FileStorage {
           modelRecents: [],
           agentModelSelections: {},
           diffViewMode: "split",
+          toolOutputExpansion: "expanded",
+          diagnosticsExpansion: "expanded",
         },
         recentFolders: [],
         opencodeBinaries: [],
