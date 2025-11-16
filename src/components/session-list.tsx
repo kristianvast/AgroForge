@@ -352,7 +352,7 @@ const SessionList: Component<SessionListProps> = (props) => {
         <Show when={userSessionIds().length > 0}>
           <div class="session-section">
             <div class="session-section-header px-3 py-2 text-xs font-semibold text-primary/70 uppercase tracking-wide">
-              User Sessions
+              User Session
             </div>
             <For each={userSessionIds()}>{(id) => <SessionRow sessionId={id} canClose />}</For>
           </div>
