@@ -22,6 +22,7 @@
     "build:win-arm64": "node scripts/build.js win-arm64",
     "build:linux": "node scripts/build.js linux",
     "build:linux-arm64": "node scripts/build.js linux-arm64",
+    "build:linux-rpm": "node scripts/build.js linux-rpm",
     "build:all": "node scripts/build.js all",
     "package:mac": "electron-builder --mac",
     "package:win": "electron-builder --win",
@@ -139,6 +140,13 @@
         },
         {
           "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "rpm",
           "arch": [
             "x64",
             "arm64"

@@ -41,6 +41,10 @@ const platforms = {
     args: ["--linux", "--arm64"],
     description: "Linux (ARM64)",
   },
+  "linux-rpm": {
+    args: ["--linux", "rpm", "--x64", "--arm64"],
+    description: "Linux RPM packages (x64 & ARM64)",
+  },
   all: {
     args: ["--mac", "--win", "--linux", "--x64", "--arm64"],
     description: "All platforms (macOS, Windows, Linux)",

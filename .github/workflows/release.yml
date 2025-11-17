@@ -175,3 +175,42 @@ jobs:
                 ;;
             esac
           done
+
+  build-linux-rpm:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install rpm packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm ruby ruby-dev build-essential
+          sudo gem install --no-document fpm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Build Linux RPM binaries
+        run: npm run build:linux-rpm
+
+      - name: Upload RPM release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.prepare-release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for file in release/*.rpm; do
+            [ -f "$file" ] || continue
+            gh release upload "$TAG" "$file" --clobber
+          done
