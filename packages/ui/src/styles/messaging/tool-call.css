@@ -655,9 +655,10 @@
 }
 
 .tool-call-todos {
-  @apply my-2 flex flex-col gap-0;
+  @apply flex flex-col gap-0;
   list-style: none;
-  padding: 4px 0;
+  padding: 0;
+  margin: 0;
 }
 
 .tool-call-todo-item {
