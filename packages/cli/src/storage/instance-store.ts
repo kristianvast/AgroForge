@@ -6,6 +6,7 @@ import type { InstanceData } from "../api-types"
 
 const DEFAULT_INSTANCE_DATA: InstanceData = {
   messageHistory: [],
+  agentModelSelections: {},
 }
 
 export class InstanceStore {

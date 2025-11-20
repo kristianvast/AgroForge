@@ -6,6 +6,7 @@ export type ConfigData = AppConfig
 
 const DEFAULT_INSTANCE_DATA: InstanceData = {
   messageHistory: [],
+  agentModelSelections: {},
 }
 
 function isDeepEqual(a: unknown, b: unknown): boolean {
@@ -150,9 +151,11 @@ export class ServerStorage {
   private normalizeInstanceData(data?: InstanceData | null): InstanceData {
     const source = data ?? DEFAULT_INSTANCE_DATA
     const messageHistory = Array.isArray(source.messageHistory) ? [...source.messageHistory] : []
+    const agentModelSelections = { ...(source.agentModelSelections ?? {}) }
     return {
       ...source,
       messageHistory,
+      agentModelSelections,
     }
   }
 

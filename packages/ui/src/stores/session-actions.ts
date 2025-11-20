@@ -306,7 +306,7 @@ async function updateSessionAgent(instanceId: string, sessionId: string, agent: 
   })
 
   if (agent && shouldApplyModel) {
-    setAgentModelPreference(instanceId, agent, nextModel)
+    await setAgentModelPreference(instanceId, agent, nextModel)
   }
 
   if (shouldApplyModel) {
@@ -335,7 +335,7 @@ async function updateSessionModel(
   })
 
   if (session.agent) {
-    setAgentModelPreference(instanceId, session.agent, model)
+    await setAgentModelPreference(instanceId, session.agent, model)
   }
   addRecentModelPreference(model)
 

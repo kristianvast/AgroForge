@@ -7,6 +7,7 @@ import { sseManager } from "../lib/sse-manager"
 import { cliApi } from "../lib/api-client"
 import { cliEvents } from "../lib/cli-events"
 import type { WorkspaceDescriptor, WorkspaceEventPayload, WorkspaceLogEntry } from "../../../cli/src/api-types"
+import { ensureInstanceConfigLoaded } from "./instance-config"
 import {
   fetchSessions,
   fetchAgents,
@@ -19,6 +20,7 @@ import { preferences } from "./preferences"
 import { computeDisplayParts } from "./session-messages"
 import { withSession, setSessionPendingPermission } from "./session-state"
 import { setHasInstances } from "./ui"
+
 
 const [instances, setInstances] = createSignal<Map<string, Instance>>(new Map())
 const [activeInstanceId, setActiveInstanceId] = createSignal<string | null>(null)
@@ -116,6 +118,7 @@ async function hydrateInstanceData(instanceId: string) {
     await fetchSessions(instanceId)
     await fetchAgents(instanceId)
     await fetchProviders(instanceId)
+    await ensureInstanceConfigLoaded(instanceId)
     const instance = instances().get(instanceId)
     if (!instance?.client) return
     await fetchCommands(instanceId, instance.client)

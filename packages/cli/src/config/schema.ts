@@ -13,7 +13,6 @@ const PreferencesSchema = z.object({
   lastUsedBinary: z.string().optional(),
   environmentVariables: z.record(z.string()).default({}),
   modelRecents: z.array(ModelPreferenceSchema).default([]),
-  agentModelSelections: AgentModelSelectionsSchema.default({}),
   diffViewMode: z.enum(["split", "unified"]).default("split"),
   toolOutputExpansion: z.enum(["expanded", "collapsed"]).default("expanded"),
   diagnosticsExpansion: z.enum(["expanded", "collapsed"]).default("expanded"),

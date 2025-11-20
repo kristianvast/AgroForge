@@ -159,7 +159,7 @@ async function createSession(instanceId: string, agent?: string): Promise<Sessio
   const defaultModel = await getDefaultModel(instanceId, selectedAgent)
 
   if (selectedAgent && isModelValid(instanceId, defaultModel)) {
-    setAgentModelPreference(instanceId, selectedAgent, defaultModel)
+    await setAgentModelPreference(instanceId, selectedAgent, defaultModel)
   }
 
   setLoading((prev) => {

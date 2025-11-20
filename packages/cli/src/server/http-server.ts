@@ -67,7 +67,11 @@ export function createHttpServer(deps: HttpServerDeps) {
   registerFilesystemRoutes(app, { fileSystemBrowser: deps.fileSystemBrowser })
   registerMetaRoutes(app, { serverMeta: deps.serverMeta })
   registerEventRoutes(app, { eventBus: deps.eventBus, registerClient: registerSseClient })
-  registerStorageRoutes(app, { instanceStore: deps.instanceStore, eventBus: deps.eventBus })
+  registerStorageRoutes(app, {
+    instanceStore: deps.instanceStore,
+    eventBus: deps.eventBus,
+    workspaceManager: deps.workspaceManager,
+  })
   registerInstanceProxyRoutes(app, { workspaceManager: deps.workspaceManager, logger: proxyLogger })
 
 

@@ -1,6 +1,11 @@
 import { createContext, createMemo, createSignal, onMount, useContext } from "solid-js"
 import type { Accessor, ParentComponent } from "solid-js"
 import { storage, type ConfigData } from "../lib/storage"
+import {
+  ensureInstanceConfigLoaded,
+  getInstanceConfig,
+  updateInstanceConfig as updateInstanceData,
+} from "./instance-config"
 
 type DeepReadonly<T> = T extends (...args: any[]) => unknown
   ? T
@@ -27,7 +32,6 @@ export interface Preferences {
   lastUsedBinary?: string
   environmentVariables: Record<string, string>
   modelRecents: ModelPreference[]
-  agentModelSelections: AgentModelSelections
   diffViewMode: DiffViewMode
   toolOutputExpansion: ExpansionPreference
   diagnosticsExpansion: ExpansionPreference
@@ -53,7 +57,6 @@ const defaultPreferences: Preferences = {
   showThinkingBlocks: false,
   environmentVariables: {},
   modelRecents: [],
-  agentModelSelections: {},
   diffViewMode: "split",
   toolOutputExpansion: "expanded",
   diagnosticsExpansion: "expanded",
@@ -71,32 +74,24 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return false
 }
 
-function normalizePreferences(pref?: Partial<Preferences>): Preferences {
+function normalizePreferences(pref?: Partial<Preferences> & { agentModelSelections?: unknown }): Preferences {
+  const sanitized = pref ?? {}
   const environmentVariables = {
     ...defaultPreferences.environmentVariables,
-    ...(pref?.environmentVariables ?? {}),
+    ...(sanitized.environmentVariables ?? {}),
   }
 
-  const sourceModelRecents = pref?.modelRecents ?? defaultPreferences.modelRecents
+  const sourceModelRecents = sanitized.modelRecents ?? defaultPreferences.modelRecents
   const modelRecents = sourceModelRecents.map((item) => ({ ...item }))
 
-  const sourceAgentSelections = pref?.agentModelSelections ?? defaultPreferences.agentModelSelections
-  const agentModelSelections: AgentModelSelections = {}
-  for (const [instanceId, selections] of Object.entries(sourceAgentSelections)) {
-    agentModelSelections[instanceId] = Object.fromEntries(
-      Object.entries(selections).map(([agentId, selection]) => [agentId, { ...selection }]),
-    )
-  }
-
   return {
-    showThinkingBlocks: pref?.showThinkingBlocks ?? defaultPreferences.showThinkingBlocks,
-    lastUsedBinary: pref?.lastUsedBinary ?? defaultPreferences.lastUsedBinary,
+    showThinkingBlocks: sanitized.showThinkingBlocks ?? defaultPreferences.showThinkingBlocks,
+    lastUsedBinary: sanitized.lastUsedBinary ?? defaultPreferences.lastUsedBinary,
     environmentVariables,
     modelRecents,
-    agentModelSelections,
-    diffViewMode: pref?.diffViewMode ?? defaultPreferences.diffViewMode,
-    toolOutputExpansion: pref?.toolOutputExpansion ?? defaultPreferences.toolOutputExpansion,
-    diagnosticsExpansion: pref?.diagnosticsExpansion ?? defaultPreferences.diagnosticsExpansion,
+    diffViewMode: sanitized.diffViewMode ?? defaultPreferences.diffViewMode,
+    toolOutputExpansion: sanitized.toolOutputExpansion ?? defaultPreferences.toolOutputExpansion,
+    diagnosticsExpansion: sanitized.diagnosticsExpansion ?? defaultPreferences.diagnosticsExpansion,
   }
 }
 
@@ -122,10 +117,22 @@ function buildFallbackConfig(): ConfigData {
   return normalizeConfig()
 }
 
+function removeLegacyAgentSelections(config?: ConfigData | null): { cleaned: ConfigData; migrated: boolean } {
+  const migrated = Boolean((config?.preferences as { agentModelSelections?: unknown } | undefined)?.agentModelSelections)
+  const cleanedConfig = normalizeConfig(config)
+  return { cleaned: cleanedConfig, migrated }
+}
+
 async function syncConfig(source?: ConfigData): Promise<void> {
   try {
-    const configData = source ?? (await storage.loadConfig())
-    applyConfig(configData)
+    const loaded = source ?? (await storage.loadConfig())
+    const { cleaned, migrated } = removeLegacyAgentSelections(loaded)
+    applyConfig(cleaned)
+    if (migrated) {
+      void storage.updateConfig(cleaned).catch((error: unknown) => {
+        console.error("Failed to persist legacy config cleanup:", error)
+      })
+    }
   } catch (error) {
     console.error("Failed to load config:", error)
     applyConfig(buildFallbackConfig())
@@ -328,27 +335,25 @@ function addRecentModelPreference(model: ModelPreference): void {
   updatePreferences({ modelRecents: updated })
 }
 
-function setAgentModelPreference(instanceId: string, agent: string, model: ModelPreference): void {
+async function setAgentModelPreference(instanceId: string, agent: string, model: ModelPreference): Promise<void> {
   if (!instanceId || !agent || !model.providerId || !model.modelId) return
-  const selections = preferences().agentModelSelections ?? {}
-  const instanceSelections = selections[instanceId] ?? {}
-  const existing = instanceSelections[agent]
-  if (existing && existing.providerId === model.providerId && existing.modelId === model.modelId) {
-    return
-  }
-  updatePreferences({
-    agentModelSelections: {
-      ...selections,
-      [instanceId]: {
-        ...instanceSelections,
-        [agent]: model,
-      },
-    },
+  await ensureInstanceConfigLoaded(instanceId)
+  await updateInstanceData(instanceId, (draft) => {
+    const selections = { ...(draft.agentModelSelections ?? {}) }
+    const existing = selections[agent]
+    if (existing && existing.providerId === model.providerId && existing.modelId === model.modelId) {
+      return
+    }
+    selections[agent] = model
+    draft.agentModelSelections = selections
   })
 }
 
-function getAgentModelPreference(instanceId: string, agent: string): ModelPreference | undefined {
-  return preferences().agentModelSelections?.[instanceId]?.[agent]
+async function getAgentModelPreference(instanceId: string, agent: string): Promise<ModelPreference | undefined> {
+  if (!instanceId || !agent) return undefined
+  await ensureInstanceConfigLoaded(instanceId)
+  const selections = getInstanceConfig(instanceId).agentModelSelections ?? {}
+  return selections[agent]
 }
 
 void ensureConfigLoaded().catch((error: unknown) => {

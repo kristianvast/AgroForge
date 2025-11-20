@@ -33,19 +33,17 @@ async function getDefaultModel(
   const instanceAgents = agents().get(instanceId) || []
 
   if (agentName) {
-    const stored = getAgentModelPreference(instanceId, agentName)
-    if (isModelValid(instanceId, stored)) {
-      return stored
-    }
-  }
-
-  if (agentName) {
     const agent = instanceAgents.find((a) => a.name === agentName)
     if (agent && agent.model && isModelValid(instanceId, agent.model)) {
       return {
         providerId: agent.model.providerId,
         modelId: agent.model.modelId,
       }
+    }
+
+    const stored = await getAgentModelPreference(instanceId, agentName)
+    if (isModelValid(instanceId, stored)) {
+      return stored
     }
   }
 
