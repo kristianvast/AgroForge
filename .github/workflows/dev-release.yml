@@ -73,6 +73,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          registry-url: https://registry.npmjs.org
 
       - name: Set workspace versions
         run: npm version ${VERSION} --workspaces --include-workspace-root --no-git-tag-version --allow-same-version
@@ -87,4 +88,8 @@ jobs:
         run: npm run build --workspace @neuralnomads/codenomad
 
       - name: Publish server package to dev tag
+        env:
+          NPM_CONFIG_PROVENANCE: true
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
+          NPM_CONFIG_ALWAYS_AUTH: true
         run: npm publish --workspace @neuralnomads/codenomad --access public --tag dev --provenance
