@@ -1,5 +1,5 @@
 import type { ServerMeta } from "../../../server/src/api-types"
-import { cliApi } from "./api-client"
+import { serverApi } from "./api-client"
 
 let cachedMeta: ServerMeta | null = null
 let pendingMeta: Promise<ServerMeta> | null = null
@@ -11,7 +11,7 @@ export async function getServerMeta(): Promise<ServerMeta> {
   if (pendingMeta) {
     return pendingMeta
   }
-  pendingMeta = cliApi.fetchServerMeta().then((meta) => {
+  pendingMeta = serverApi.fetchServerMeta().then((meta) => {
     cachedMeta = meta
     pendingMeta = null
     return meta

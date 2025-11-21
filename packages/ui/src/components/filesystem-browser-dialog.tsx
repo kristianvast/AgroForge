@@ -1,7 +1,7 @@
 import { Component, Show, For, createSignal, createMemo, createEffect, onCleanup } from "solid-js"
 import { Folder as FolderIcon, File as FileIcon, Loader2, Search, X, ArrowUpLeft } from "lucide-solid"
 import type { FileSystemEntry, FileSystemListingMetadata } from "../../../server/src/api-types"
-import { cliApi } from "../lib/api-client"
+import { serverApi } from "../lib/api-client"
 
 const MAX_RESULTS = 200
 
@@ -91,7 +91,7 @@ const FileSystemBrowserDialog: Component<FileSystemBrowserDialogProps> = (props)
 
     const loadPromise = (async () => {
       setLoadingPath(normalized)
-      const response = await cliApi.listFileSystem(normalized === "." ? "." : normalized, {
+      const response = await serverApi.listFileSystem(normalized === "." ? "." : normalized, {
         includeFiles: props.mode === "files",
       })
       directoryCache.set(normalized, response.entries)

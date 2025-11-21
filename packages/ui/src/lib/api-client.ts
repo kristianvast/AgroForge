@@ -80,7 +80,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 
-export const cliApi = {
+export const serverApi = {
   fetchWorkspaces(): Promise<WorkspaceDescriptor[]> {
     return request<WorkspaceDescriptor[]>("/api/workspaces")
   },

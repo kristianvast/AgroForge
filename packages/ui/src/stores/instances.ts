@@ -4,8 +4,8 @@ import type { LspStatus, Permission } from "@opencode-ai/sdk"
 import type { ClientPart, Message } from "../types/message"
 import { sdkManager } from "../lib/sdk-manager"
 import { sseManager } from "../lib/sse-manager"
-import { cliApi } from "../lib/api-client"
-import { cliEvents } from "../lib/cli-events"
+import { serverApi } from "../lib/api-client"
+import { serverEvents } from "../lib/server-events"
 import type { WorkspaceDescriptor, WorkspaceEventPayload, WorkspaceLogEntry } from "../../../server/src/api-types"
 import { ensureInstanceConfigLoaded } from "./instance-config"
 import {
@@ -129,7 +129,7 @@ async function hydrateInstanceData(instanceId: string) {
 
 void (async function initializeWorkspaces() {
   try {
-    const workspaces = await cliApi.fetchWorkspaces()
+    const workspaces = await serverApi.fetchWorkspaces()
     workspaces.forEach((workspace) => upsertWorkspace(workspace))
     if (workspaces.length === 0) {
       setHasInstances(false)
@@ -139,7 +139,7 @@ void (async function initializeWorkspaces() {
   }
 })()
 
-cliEvents.on("*", (event) => handleWorkspaceEvent(event))
+serverEvents.on("*", (event) => handleWorkspaceEvent(event))
 
 function handleWorkspaceEvent(event: WorkspaceEventPayload) {
   switch (event.type) {
@@ -299,7 +299,7 @@ function removeInstance(id: string) {
 
 async function createInstance(folder: string, _binaryPath?: string): Promise<string> {
   try {
-    const workspace = await cliApi.createWorkspace({ path: folder })
+    const workspace = await serverApi.createWorkspace({ path: folder })
     upsertWorkspace(workspace)
     setActiveInstanceId(workspace.id)
     return workspace.id
@@ -316,7 +316,7 @@ async function stopInstance(id: string) {
   releaseInstanceResources(id)
 
   try {
-    await cliApi.deleteWorkspace(id)
+    await serverApi.deleteWorkspace(id)
   } catch (error) {
     console.error("Failed to stop workspace", error)
   }

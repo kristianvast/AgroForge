@@ -1,6 +1,6 @@
 import type { AppConfig, InstanceData } from "../../../server/src/api-types"
-import { cliApi } from "./api-client"
-import { cliEvents } from "./cli-events"
+import { serverApi } from "./api-client"
+import { serverEvents } from "./server-events"
 
 export type ConfigData = AppConfig
 
@@ -35,12 +35,12 @@ export class ServerStorage {
   private instanceLoadPromises = new Map<string, Promise<InstanceData>>()
 
   constructor() {
-    cliEvents.on("config.appChanged", (event) => {
+    serverEvents.on("config.appChanged", (event) => {
       if (event.type !== "config.appChanged") return
       this.setConfigCache(event.config)
     })
 
-    cliEvents.on("instance.dataChanged", (event) => {
+    serverEvents.on("instance.dataChanged", (event) => {
       if (event.type !== "instance.dataChanged") return
       this.setInstanceDataCache(event.instanceId, event.data)
     })
@@ -52,7 +52,7 @@ export class ServerStorage {
     }
 
     if (!this.loadPromise) {
-      this.loadPromise = cliApi
+      this.loadPromise = serverApi
         .fetchConfig()
         .then((config) => {
           this.setConfigCache(config)
@@ -67,7 +67,7 @@ export class ServerStorage {
   }
 
   async updateConfig(next: ConfigData): Promise<ConfigData> {
-    const nextConfig = await cliApi.updateConfig(next)
+    const nextConfig = await serverApi.updateConfig(next)
     this.setConfigCache(nextConfig)
     return nextConfig
   }
@@ -79,7 +79,7 @@ export class ServerStorage {
     }
 
     if (!this.instanceLoadPromises.has(instanceId)) {
-      const promise = cliApi
+      const promise = serverApi
         .readInstanceData(instanceId)
         .then((data) => {
           const normalized = this.normalizeInstanceData(data)
@@ -98,12 +98,12 @@ export class ServerStorage {
 
   async saveInstanceData(instanceId: string, data: InstanceData): Promise<void> {
     const normalized = this.normalizeInstanceData(data)
-    await cliApi.writeInstanceData(instanceId, normalized)
+    await serverApi.writeInstanceData(instanceId, normalized)
     this.setInstanceDataCache(instanceId, normalized)
   }
 
   async deleteInstanceData(instanceId: string): Promise<void> {
-    await cliApi.deleteInstanceData(instanceId)
+    await serverApi.deleteInstanceData(instanceId)
     this.setInstanceDataCache(instanceId, DEFAULT_INSTANCE_DATA)
   }
 

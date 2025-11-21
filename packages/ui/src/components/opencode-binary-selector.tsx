@@ -1,7 +1,7 @@
 import { Component, For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js"
 import { FolderOpen, Trash2, Check, AlertCircle, Loader2, Plus } from "lucide-solid"
 import { useConfig } from "../stores/preferences"
-import { cliApi } from "../lib/api-client"
+import { serverApi } from "../lib/api-client"
 import FileSystemBrowserDialog from "./filesystem-browser-dialog"
 
 interface BinaryOption {
@@ -105,7 +105,7 @@ const OpenCodeBinarySelector: Component<OpenCodeBinarySelectorProps> = (props) =
       setValidating(true)
       setValidationError(null)
 
-      const result = await cliApi.validateBinary(path)
+      const result = await serverApi.validateBinary(path)
 
       if (result.valid && result.version) {
         const updatedVersionInfo = new Map(versionInfo())

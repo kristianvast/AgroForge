@@ -1,5 +1,5 @@
 import type { WorkspaceEventPayload, WorkspaceEventType } from "../../../server/src/api-types"
-import { cliApi } from "./api-client"
+import { serverApi } from "./api-client"
 
 const RETRY_BASE_DELAY = 1000
 const RETRY_MAX_DELAY = 10000
@@ -13,7 +13,7 @@ function logSse(message: string, context?: Record<string, unknown>) {
   console.log(`${SSE_PREFIX} ${message}`)
 }
 
-class CliEvents {
+class ServerEvents {
   private handlers = new Map<WorkspaceEventType | "*", Set<(event: WorkspaceEventPayload) => void>>()
   private source: EventSource | null = null
   private retryDelay = RETRY_BASE_DELAY
@@ -27,7 +27,7 @@ class CliEvents {
       this.source.close()
     }
     logSse("Connecting to backend events stream")
-    this.source = cliApi.connectEvents((event) => this.dispatch(event), () => this.scheduleReconnect())
+    this.source = serverApi.connectEvents((event) => this.dispatch(event), () => this.scheduleReconnect())
     this.source.onopen = () => {
       logSse("Events stream connected")
       this.retryDelay = RETRY_BASE_DELAY
@@ -62,4 +62,4 @@ class CliEvents {
   }
 }
 
-export const cliEvents = new CliEvents()
+export const serverEvents = new ServerEvents()

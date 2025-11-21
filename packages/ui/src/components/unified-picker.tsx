@@ -1,7 +1,7 @@
 import { Component, createSignal, createEffect, For, Show, onCleanup } from "solid-js"
 import type { Agent } from "../types/session"
 import type { OpencodeClient } from "@opencode-ai/sdk/client"
-import { cliApi } from "../lib/api-client"
+import { serverApi } from "../lib/api-client"
 
 const SEARCH_RESULT_LIMIT = 100
 const SEARCH_DEBOUNCE_MS = 200
@@ -115,7 +115,7 @@ const UnifiedPicker: Component<UnifiedPickerProps> = (props) => {
     }
  
     inflightWorkspaceId = workspaceId
-    inflightSnapshotPromise = cliApi
+    inflightSnapshotPromise = serverApi
       .listWorkspaceFiles(workspaceId)
       .then((entries) => mapEntriesToFileItems(entries))
       .then((snapshot) => {
@@ -169,7 +169,7 @@ const UnifiedPicker: Component<UnifiedPickerProps> = (props) => {
         return
       }
 
-      const results = await cliApi.searchWorkspaceFiles(workspaceId, normalizedQuery, {
+      const results = await serverApi.searchWorkspaceFiles(workspaceId, normalizedQuery, {
         limit: SEARCH_RESULT_LIMIT,
       })
       if (!shouldApplyResults(requestId, workspaceId)) {

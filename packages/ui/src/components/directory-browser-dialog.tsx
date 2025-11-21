@@ -2,7 +2,7 @@ import { Component, Show, For, createSignal, createMemo, createEffect, onCleanup
 import { ArrowUpLeft, Folder as FolderIcon, Loader2, X } from "lucide-solid"
 import type { FileSystemEntry, FileSystemListingMetadata } from "../../../server/src/api-types"
 import { WINDOWS_DRIVES_ROOT } from "../../../server/src/api-types"
-import { cliApi } from "../lib/api-client"
+import { serverApi } from "../lib/api-client"
 
 function normalizePathKey(input?: string | null) {
   if (!input || input === "." || input === "./") {
@@ -144,7 +144,7 @@ const DirectoryBrowserDialog: Component<DirectoryBrowserDialogProps> = (props) =
         })
       }
 
-      const response = await cliApi.listFileSystem(targetPath, { includeFiles: false })
+      const response = await serverApi.listFileSystem(targetPath, { includeFiles: false })
       const canonicalKey = normalizePathKey(response.metadata.currentPath)
       const directories = response.entries
         .filter((entry) => entry.type === "directory")
