@@ -39,6 +39,6 @@
       "resources/server"
     ],
     "icon": ["icon.icns", "icon.ico", "icon.png"],
-    "targets": ["app"]
+    "targets": ["appimage"]
   }
 }
