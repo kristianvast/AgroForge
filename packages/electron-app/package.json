@@ -8,6 +8,11 @@
   },
   "type": "module",
   "main": "dist/main/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NeuralNomadsAI/CodeNomad.git"
+  },
+  "homepage": "https://github.com/NeuralNomadsAI/CodeNomad",
   "scripts": {
     "dev": "electron-vite dev",
     "dev:electron": "NODE_ENV=development ELECTRON_ENABLE_LOGGING=1 NODE_OPTIONS=\"--import tsx\" electron electron/main/main.ts",
