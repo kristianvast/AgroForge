@@ -1,6 +1,7 @@
 import { createSignal, onCleanup, onMount } from "solid-js"
 import { render } from "solid-js/web"
 import iconUrl from "../../images/CodeNomad-Icon.png"
+import { runtimeEnv, isTauriHost } from "../../lib/runtime-env"
 import "../../index.css"
 import "./loading.css"
 
@@ -17,6 +18,12 @@ const phrases = [
   "Persuading the AI to give you keyboard control…",
 ]
 
+const hostStatusMap: Record<typeof runtimeEnv.host, string> = {
+  electron: "Starting desktop shell…",
+  tauri: "Starting native shell…",
+  web: "Connecting to CodeNomad…",
+}
+
 interface CliStatus {
   state?: string
   url?: string | null
@@ -27,12 +34,6 @@ interface TauriBridge {
   invoke?: <T = unknown>(cmd: string, args?: Record<string, unknown>) => Promise<T>
   event?: {
     listen: (event: string, handler: (payload: { payload: unknown }) => void) => Promise<() => void>
-  }
-}
-
-declare global {
-  interface Window {
-    __TAURI__?: TauriBridge
   }
 }
 
@@ -52,26 +53,34 @@ function getTauriBridge(): TauriBridge | null {
   if (typeof window === "undefined") {
     return null
   }
-  const bridge = (window as any).__TAURI__ as TauriBridge | undefined
+  const bridge = (window as { __TAURI__?: TauriBridge }).__TAURI__
   if (!bridge || !bridge.event || !bridge.invoke) {
     return null
   }
   return bridge
 }
 
+function annotateDocument() {
+  if (typeof document === "undefined") {
+    return
+  }
+  document.documentElement.dataset.runtimeHost = runtimeEnv.host
+  document.documentElement.dataset.runtimePlatform = runtimeEnv.platform
+}
+
 function LoadingApp() {
   const [phrase, setPhrase] = createSignal(pickPhrase())
   const [error, setError] = createSignal<string | null>(null)
-  const [status, setStatus] = createSignal<string>("Starting services…")
+  const [status, setStatus] = createSignal<string>(hostStatusMap[runtimeEnv.host] ?? "Starting services…")
 
   const changePhrase = () => setPhrase(pickPhrase(phrase()))
 
   onMount(() => {
+    annotateDocument()
     setPhrase(pickPhrase())
-    const tauriBridge = getTauriBridge()
     const unsubscribers: Array<() => void> = []
 
-    async function bootstrapTauri() {
+    async function bootstrapTauri(tauriBridge: TauriBridge | null) {
       if (!tauriBridge || !tauriBridge.event || !tauriBridge.invoke) {
         return
       }
@@ -115,7 +124,9 @@ function LoadingApp() {
       }
     }
 
-    void bootstrapTauri()
+    if (isTauriHost()) {
+      void bootstrapTauri(getTauriBridge())
+    }
 
     onCleanup(() => {
       unsubscribers.forEach((unsubscribe) => {
