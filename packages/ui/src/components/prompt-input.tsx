@@ -25,6 +25,7 @@ interface PromptInputProps {
 export default function PromptInput(props: PromptInputProps) {
   const [prompt, setPromptInternal] = createSignal("")
   const [history, setHistory] = createSignal<string[]>([])
+  const HISTORY_LIMIT = 100
   const [historyIndex, setHistoryIndex] = createSignal(-1)
   const [historyDraft, setHistoryDraft] = createSignal<string | null>(null)
   const [, setIsFocused] = createSignal(false)
@@ -499,10 +500,26 @@ export default function PromptInput(props: PromptInputProps) {
   async function handleSend() {
     const text = prompt().trim()
     const currentAttachments = attachments()
-    if (props.disabled || !text) return
+    if (props.disabled || (!text && currentAttachments.length === 0)) return
 
     const resolvedPrompt = resolvePastedPlaceholders(text, currentAttachments)
     const isShellMode = mode() === "shell"
+
+    const refreshHistory = async () => {
+      try {
+        await addToHistory(props.instanceFolder, resolvedPrompt)
+        setHistory((prev) => {
+          const next = [resolvedPrompt, ...prev]
+          if (next.length > HISTORY_LIMIT) {
+            next.length = HISTORY_LIMIT
+          }
+          return next
+        })
+        setHistoryIndex(-1)
+      } catch (historyError) {
+        console.error("Failed to update prompt history:", historyError)
+      }
+    }
 
     clearPrompt()
     clearAttachments(props.instanceId, props.sessionId)
@@ -512,10 +529,6 @@ export default function PromptInput(props: PromptInputProps) {
     setHistoryDraft(null)
 
     try {
-      await addToHistory(props.instanceFolder, resolvedPrompt)
-      const updated = await getHistory(props.instanceFolder)
-      setHistory(updated)
-      setHistoryIndex(-1)
       if (isShellMode) {
         if (props.onRunShell) {
           await props.onRunShell(resolvedPrompt)
@@ -523,8 +536,9 @@ export default function PromptInput(props: PromptInputProps) {
           await props.onSend(resolvedPrompt, [])
         }
       } else {
-        await props.onSend(text, currentAttachments)
+        await props.onSend(resolvedPrompt, currentAttachments)
       }
+      void refreshHistory()
     } catch (error) {
       console.error("Failed to send message:", error)
       showAlertDialog("Failed to send message", {
