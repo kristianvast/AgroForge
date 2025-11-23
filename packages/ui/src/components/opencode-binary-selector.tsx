@@ -3,6 +3,7 @@ import { FolderOpen, Trash2, Check, AlertCircle, Loader2, Plus } from "lucide-so
 import { useConfig } from "../stores/preferences"
 import { serverApi } from "../lib/api-client"
 import FileSystemBrowserDialog from "./filesystem-browser-dialog"
+import { openNativeFileDialog, supportsNativeDialogs } from "../lib/native/native-functions"
 
 interface BinaryOption {
   path: string
@@ -32,8 +33,10 @@ const OpenCodeBinarySelector: Component<OpenCodeBinarySelectorProps> = (props) =
   const [versionInfo, setVersionInfo] = createSignal<Map<string, string>>(new Map<string, string>())
   const [validatingPaths, setValidatingPaths] = createSignal<Set<string>>(new Set<string>())
   const [isBinaryBrowserOpen, setIsBinaryBrowserOpen] = createSignal(false)
-
+  const nativeDialogsAvailable = supportsNativeDialogs()
+ 
   const binaries = () => opencodeBinaries()
+
   const lastUsedBinary = () => preferences().lastUsedBinary
 
   const customBinaries = createMemo(() => binaries().filter((binary) => binary.path !== "opencode"))
@@ -128,9 +131,19 @@ const OpenCodeBinarySelector: Component<OpenCodeBinarySelectorProps> = (props) =
     }
   }
 
-  function handleBrowseBinary() {
+  async function handleBrowseBinary() {
     if (props.disabled) return
     setValidationError(null)
+    if (nativeDialogsAvailable) {
+      const selected = await openNativeFileDialog({
+        title: "Select OpenCode Binary",
+      })
+      if (selected) {
+        setCustomPath(selected)
+        void handleValidateAndAdd(selected)
+      }
+      return
+    }
     setIsBinaryBrowserOpen(true)
   }
  
@@ -245,7 +258,7 @@ const OpenCodeBinarySelector: Component<OpenCodeBinarySelectorProps> = (props) =
 
           <button
             type="button"
-            onClick={handleBrowseBinary}
+            onClick={() => void handleBrowseBinary()}
             disabled={props.disabled}
             class="selector-button selector-button-secondary w-full flex items-center justify-center gap-2"
           >

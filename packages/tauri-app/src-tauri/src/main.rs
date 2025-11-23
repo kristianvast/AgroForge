@@ -19,6 +19,7 @@ fn cli_get_status(state: tauri::State<AppState>) -> CliStatus {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             manager: CliProcessManager::new(),
         })

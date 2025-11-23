@@ -14,6 +14,10 @@ declare global {
       event?: {
         listen: (event: string, handler: (payload: { payload: unknown }) => void) => Promise<() => void>
       }
+      dialog?: {
+        open?: (options: Record<string, unknown>) => Promise<string | string[] | null>
+        save?: (options: Record<string, unknown>) => Promise<string | null>
+      }
     }
   }
 }

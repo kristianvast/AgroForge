@@ -4,6 +4,7 @@ import { useConfig } from "../stores/preferences"
 import AdvancedSettingsModal from "./advanced-settings-modal"
 import DirectoryBrowserDialog from "./directory-browser-dialog"
 import Kbd from "./kbd"
+import { openNativeFolderDialog, supportsNativeDialogs } from "../lib/native/native-functions"
 
 const codeNomadLogo = new URL("../images/CodeNomad-Icon.png", import.meta.url).href
 
@@ -21,6 +22,7 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
   const [focusMode, setFocusMode] = createSignal<"recent" | "new" | null>("recent")
   const [selectedBinary, setSelectedBinary] = createSignal(preferences().lastUsedBinary || "opencode")
   const [isFolderBrowserOpen, setIsFolderBrowserOpen] = createSignal(false)
+  const nativeDialogsAvailable = supportsNativeDialogs()
   let recentListRef: HTMLDivElement | undefined
  
   const folders = () => recentFolders()
@@ -78,7 +80,7 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
 
     if (isBrowseShortcut) {
       e.preventDefault()
-      handleBrowse()
+      void handleBrowse()
       return
     }
 
@@ -172,9 +174,20 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
     props.onSelectFolder(path, selectedBinary())
   }
  
-  function handleBrowse() {
+  async function handleBrowse() {
     if (isLoading()) return
     setFocusMode("new")
+    if (nativeDialogsAvailable) {
+      const fallbackPath = folders()[0]?.path
+      const selected = await openNativeFolderDialog({
+        title: "Select Workspace",
+        defaultPath: fallbackPath,
+      })
+      if (selected) {
+        handleFolderSelect(selected)
+      }
+      return
+    }
     setIsFolderBrowserOpen(true)
   }
  
@@ -313,7 +326,7 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
 
               <div class="panel-body">
                 <button
-                  onClick={handleBrowse}
+                  onClick={() => void handleBrowse()}
                   disabled={props.isLoading}
                   class="button-primary w-full flex items-center justify-center text-sm disabled:cursor-not-allowed"
                   onMouseEnter={() => setFocusMode("new")}

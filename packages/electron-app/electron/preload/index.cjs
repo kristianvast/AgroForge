@@ -14,6 +14,7 @@ const electronAPI = {
     return () => ipcRenderer.removeAllListeners("cli:error")
   },
   getCliStatus: () => ipcRenderer.invoke("cli:getStatus"),
+  openDialog: (options) => ipcRenderer.invoke("dialog:open", options),
 }
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI)
