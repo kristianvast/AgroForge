@@ -58,8 +58,8 @@ class SSEManager {
     serverEvents.on("instance.eventStatus", (event) => {
       const payload = event as InstanceStatusPayload
       this.updateConnectionStatus(payload.instanceId, payload.status)
-      if (payload.status === "error") {
-        const reason = payload.reason ?? "Instance stream error"
+      if (payload.status === "disconnected") {
+        const reason = payload.reason ?? "Instance disconnected"
         void this.onConnectionLost?.(payload.instanceId, reason)
       }
     })
