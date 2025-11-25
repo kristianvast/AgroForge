@@ -234,36 +234,6 @@ export default function MessageItem(props: MessageItemProps) {
               Fork
             </button>
           </Show>
-          <Show when={usageStats()}>
-            {(usage) => (
-              <div class="flex flex-wrap items-center gap-1 text-[10px] text-[var(--text-muted)]">
-                <div class={statChipClass}>
-                  <span class={statLabelClass}>Input</span>
-                  <span class={statValueClass}>{formatTokenTotal(usage().input)}</span>
-                </div>
-                <div class={statChipClass}>
-                  <span class={statLabelClass}>Output</span>
-                  <span class={statValueClass}>{formatTokenTotal(usage().output)}</span>
-                </div>
-                <div class={statChipClass}>
-                  <span class={statLabelClass}>Reasoning</span>
-                  <span class={statValueClass}>{formatTokenTotal(usage().reasoning)}</span>
-                </div>
-                <div class={statChipClass}>
-                  <span class={statLabelClass}>Cache Read</span>
-                  <span class={statValueClass}>{formatTokenTotal(usage().cacheRead)}</span>
-                </div>
-                <div class={statChipClass}>
-                  <span class={statLabelClass}>Cache Write</span>
-                  <span class={statValueClass}>{formatTokenTotal(usage().cacheWrite)}</span>
-                </div>
-                <div class={statChipClass}>
-                  <span class={statLabelClass}>Cost</span>
-                  <span class={statValueClass}>{formatCostValue(usage().cost)}</span>
-                </div>
-              </div>
-            )}
-          </Show>
           <span class="text-[11px] text-[var(--text-muted)]">{timestamp()}</span>
         </div>
       </div>
@@ -295,6 +265,7 @@ export default function MessageItem(props: MessageItemProps) {
           )}
         </For>
       </div>
+
 
       <Show when={fileAttachments().length > 0}>
         <div class="message-attachments">
@@ -340,7 +311,38 @@ export default function MessageItem(props: MessageItemProps) {
         </div>
       </Show>
 
+      <Show when={usageStats()}>
+        {(usage) => (
+          <div class="mt-3 flex flex-wrap items-center gap-1 text-[10px] text-[var(--text-muted)]">
+            <div class={statChipClass}>
+              <span class={statLabelClass}>Input</span>
+              <span class={statValueClass}>{formatTokenTotal(usage().input)}</span>
+            </div>
+            <div class={statChipClass}>
+              <span class={statLabelClass}>Output</span>
+              <span class={statValueClass}>{formatTokenTotal(usage().output)}</span>
+            </div>
+            <div class={statChipClass}>
+              <span class={statLabelClass}>Reasoning</span>
+              <span class={statValueClass}>{formatTokenTotal(usage().reasoning)}</span>
+            </div>
+            <div class={statChipClass}>
+              <span class={statLabelClass}>Cache Read</span>
+              <span class={statValueClass}>{formatTokenTotal(usage().cacheRead)}</span>
+            </div>
+            <div class={statChipClass}>
+              <span class={statLabelClass}>Cache Write</span>
+              <span class={statValueClass}>{formatTokenTotal(usage().cacheWrite)}</span>
+            </div>
+            <div class={statChipClass}>
+              <span class={statLabelClass}>Cost</span>
+              <span class={statValueClass}>{formatCostValue(usage().cost)}</span>
+            </div>
+          </div>
+        )}
+      </Show>
       <Show when={props.message.status === "sending"}>
+
 
         <div class="message-sending">
           <span class="generating-spinner">●</span> Sending...
