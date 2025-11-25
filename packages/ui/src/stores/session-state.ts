@@ -3,12 +3,15 @@ import { createSignal } from "solid-js"
 import type { Session, Agent, Provider } from "../types/session"
 
 export interface SessionInfo {
-  tokens: number
   cost: number
   contextWindow: number
   isSubscriptionModel: boolean
-  contextUsageTokens: number
-  contextUsagePercent: number | null
+  inputTokens: number
+  outputTokens: number
+  reasoningTokens: number
+  actualUsageTokens: number
+  modelOutputLimit: number
+  contextAvailableTokens: number | null
 }
 
 const [sessions, setSessions] = createSignal<Map<string, Map<string, Session>>>(new Map())

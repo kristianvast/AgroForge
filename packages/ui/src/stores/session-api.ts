@@ -21,7 +21,7 @@ import {
   loading,
   setLoading,
 } from "./session-state"
-import { getDefaultModel, isModelValid } from "./session-models"
+import { DEFAULT_MODEL_OUTPUT_LIMIT, getDefaultModel, isModelValid } from "./session-models"
 import {
   computeDisplayParts,
   clearSessionIndex,
@@ -29,6 +29,7 @@ import {
   initializePartVersion,
   normalizeMessagePart,
   rebuildSessionIndex,
+  rebuildSessionUsage,
   updateSessionInfo,
 } from "./session-messages"
 
@@ -212,18 +213,25 @@ async function createSession(instanceId: string, agent?: string): Promise<Sessio
     const initialModel = initialProvider?.models.find((m) => m.id === session.model.modelId)
     const initialContextWindow = initialModel?.limit?.context ?? 0
     const initialSubscriptionModel = initialModel?.cost?.input === 0 && initialModel?.cost?.output === 0
-    const initialContextPercent = initialContextWindow > 0 ? 0 : null
+    const initialOutputLimit =
+      initialModel?.limit?.output && initialModel.limit.output > 0
+        ? initialModel.limit.output
+        : DEFAULT_MODEL_OUTPUT_LIMIT
+    const initialContextAvailable = initialContextWindow > 0 ? initialContextWindow : null
 
     setSessionInfoByInstance((prev) => {
       const next = new Map(prev)
       const instanceInfo = new Map(prev.get(instanceId))
       instanceInfo.set(session.id, {
-        tokens: 0,
         cost: 0,
         contextWindow: initialContextWindow,
         isSubscriptionModel: Boolean(initialSubscriptionModel),
-        contextUsageTokens: 0,
-        contextUsagePercent: initialContextPercent,
+        inputTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        actualUsageTokens: 0,
+        modelOutputLimit: initialOutputLimit,
+        contextAvailableTokens: initialContextAvailable,
       })
       next.set(instanceId, instanceInfo)
       return next
@@ -310,18 +318,23 @@ async function forkSession(
   const forkModel = forkProvider?.models.find((m) => m.id === forkedSession.model.modelId)
   const forkContextWindow = forkModel?.limit?.context ?? 0
   const forkSubscriptionModel = forkModel?.cost?.input === 0 && forkModel?.cost?.output === 0
-  const forkContextPercent = forkContextWindow > 0 ? 0 : null
+  const forkOutputLimit =
+    forkModel?.limit?.output && forkModel.limit.output > 0 ? forkModel.limit.output : DEFAULT_MODEL_OUTPUT_LIMIT
+  const forkContextAvailable = forkContextWindow > 0 ? forkContextWindow : null
 
   setSessionInfoByInstance((prev) => {
     const next = new Map(prev)
     const instanceInfo = new Map(prev.get(instanceId))
     instanceInfo.set(forkedSession.id, {
-      tokens: 0,
       cost: 0,
       contextWindow: forkContextWindow,
       isSubscriptionModel: Boolean(forkSubscriptionModel),
-      contextUsageTokens: 0,
-      contextUsagePercent: forkContextPercent,
+      inputTokens: 0,
+      outputTokens: 0,
+      reasoningTokens: 0,
+      actualUsageTokens: 0,
+      modelOutputLimit: forkOutputLimit,
+      contextAvailableTokens: forkContextAvailable,
     })
     next.set(instanceId, instanceInfo)
     return next
@@ -587,6 +600,7 @@ async function loadMessages(instanceId: string, sessionId: string, force = false
     })
 
     rebuildSessionIndex(instanceId, sessionId, messages)
+    rebuildSessionUsage(instanceId, sessionId, messagesInfo)
 
     setMessagesLoaded((prev) => {
       const next = new Map(prev)
@@ -595,6 +609,7 @@ async function loadMessages(instanceId: string, sessionId: string, force = false
       next.set(instanceId, loadedSet)
       return next
     })
+
   } catch (error) {
     console.error("Failed to load messages:", error)
     throw error
@@ -608,17 +623,17 @@ async function loadMessages(instanceId: string, sessionId: string, force = false
       return next
     })
   }
- 
-   updateSessionInfo(instanceId, sessionId)
-   refreshPermissionsForSession(instanceId, sessionId)
- }
 
+  updateSessionInfo(instanceId, sessionId)
+  refreshPermissionsForSession(instanceId, sessionId)
+}
 
 export {
   createSession,
   deleteSession,
   fetchAgents,
   fetchProviders,
+
   fetchSessions,
   forkSession,
   loadMessages,

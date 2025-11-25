@@ -32,6 +32,7 @@ import { sseManager } from "../lib/sse-manager"
 import Kbd from "./kbd"
 import { useConfig } from "../stores/preferences"
 import { getSessionInfo, computeDisplayParts, sessions, setActiveSession, setActiveParentSession } from "../stores/sessions"
+import { formatTokenTotal } from "../lib/formatters"
 import { setActiveInstanceId } from "../stores/instances"
 import { showCommandPalette } from "../stores/command-palette"
 
@@ -72,26 +73,9 @@ function navigateToTaskSession(location: TaskSessionLocation) {
   }
 }
 
-// Format tokens like TUI (e.g., "110K", "1.2M")
+// Format tokens like session sidebar (comma-separated totals)
 function formatTokens(tokens: number): string {
-  if (tokens >= 1000000) {
-    return `${(tokens / 1000000).toFixed(1)}M`
-  } else if (tokens >= 1000) {
-    return `${(tokens / 1000).toFixed(0)}K`
-  }
-  return tokens.toString()
-}
-
-// Format session info for the session view header
-function formatSessionInfo(usageTokens: number, contextWindow: number, usagePercent: number | null): string {
-  if (contextWindow > 0) {
-    const windowStr = formatTokens(contextWindow)
-    const usageStr = formatTokens(usageTokens)
-    const percent = usagePercent ?? Math.min(100, Math.max(0, Math.round((usageTokens / contextWindow) * 100)))
-    return `${usageStr} of ${windowStr} (${percent}%)`
-  }
-
-  return formatTokens(usageTokens)
+  return formatTokenTotal(tokens)
 }
 
 interface MessageStreamProps {
@@ -206,18 +190,27 @@ export default function MessageStream(props: MessageStreamProps) {
 
   const sessionInfo = createMemo(() =>
     getSessionInfo(props.instanceId, props.sessionId) ?? {
-      tokens: 0,
       cost: 0,
       contextWindow: 0,
       isSubscriptionModel: false,
-      contextUsageTokens: 0,
-      contextUsagePercent: null,
+      inputTokens: 0,
+      outputTokens: 0,
+      reasoningTokens: 0,
+      actualUsageTokens: 0,
+      modelOutputLimit: 0,
+      contextAvailableTokens: null,
     },
   )
 
-  const formattedSessionInfo = createMemo(() => {
+  const tokenStats = createMemo(() => {
     const info = sessionInfo()
-    return formatSessionInfo(info.contextUsageTokens, info.contextWindow, info.contextUsagePercent)
+    return {
+      input: info.inputTokens ?? 0,
+      output: info.outputTokens ?? 0,
+      cost: info.cost ?? 0,
+      used: info.actualUsageTokens ?? 0,
+      avail: info.contextAvailableTokens,
+    }
   })
 
   function isNearBottom(element: HTMLDivElement, offset = SCROLL_OFFSET) {
@@ -552,10 +545,20 @@ export default function MessageStream(props: MessageStreamProps) {
 
   return (
     <div class="message-stream-container">
-      <div class="connection-status">
-        <div class="connection-status-text connection-status-info flex items-center gap-2 text-sm font-medium">
-          <span>{formattedSessionInfo()}</span>
-        </div>
+        <div class="connection-status">
+          <div class="connection-status-text connection-status-info flex flex-wrap items-center gap-2 text-sm font-medium">
+            <div class="inline-flex items-center gap-1 rounded-full border border-base px-2 py-0.5 text-xs text-primary">
+              <span class="uppercase text-[10px] tracking-wide text-primary/70">Used</span>
+              <span class="font-semibold text-primary">{formatTokens(sessionInfo().actualUsageTokens ?? 0)}</span>
+            </div>
+            <div class="inline-flex items-center gap-1 rounded-full border border-base px-2 py-0.5 text-xs text-primary">
+              <span class="uppercase text-[10px] tracking-wide text-primary/70">Avail</span>
+              <span class="font-semibold text-primary">
+                {sessionInfo().contextAvailableTokens !== null ? formatTokens(sessionInfo().contextAvailableTokens ?? 0) : "--"}
+              </span>
+            </div>
+          </div>
+
         <div class="connection-status-text connection-status-shortcut">
           <div class="connection-status-shortcut-action">
             <button

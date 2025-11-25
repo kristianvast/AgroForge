@@ -30,6 +30,7 @@ import {
   normalizeMessagePart,
   rebuildSessionIndex,
   updateSessionInfo,
+  updateUsageFromMessageInfo,
 } from "./session-messages"
 import { loadMessages } from "./session-api"
 import { setSessionCompactionState } from "./session-compaction"
@@ -305,6 +306,7 @@ function handleMessageUpdate(instanceId: string, event: MessageUpdateEvent | Mes
     }
 
     session.messagesInfo.set(info.id, info)
+    updateUsageFromMessageInfo(instanceId, info.sessionID, info)
     withSession(instanceId, info.sessionID, () => {
       /* ensure reactivity */
     })
@@ -313,6 +315,7 @@ function handleMessageUpdate(instanceId: string, event: MessageUpdateEvent | Mes
     refreshPermissionsForSession(instanceId, info.sessionID)
   }
 }
+
 
 function handleSessionUpdate(instanceId: string, event: EventSessionUpdated): void {
   const info = event.properties?.info

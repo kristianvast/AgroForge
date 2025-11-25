@@ -1,9 +1,9 @@
 import type { Message, MessageDisplayParts } from "../types/message"
-import { partHasRenderableText } from "../types/message"
+import { partHasRenderableText, type MessageInfo } from "../types/message"
 import type { Provider } from "../types/session"
 
 import { decodeHtmlEntities } from "../lib/markdown"
-import { providers, sessions, setSessionInfoByInstance } from "./session-state"
+import { providers, sessions, sessionInfoByInstance, setSessionInfoByInstance } from "./session-state"
 import { DEFAULT_MODEL_OUTPUT_LIMIT } from "./session-models"
 
 interface SessionIndexCache {
@@ -11,7 +11,153 @@ interface SessionIndexCache {
   partIndex: Map<string, Map<string, number>>
 }
 
+interface AssistantUsageEntry {
+  info: MessageInfo
+  inputTokens: number
+  outputTokens: number
+  reasoningTokens: number
+  combinedTokens: number
+  cost: number
+  hasContextUsage: boolean
+  timestamp: number
+}
+
+interface SessionUsageState {
+  entries: Map<string, AssistantUsageEntry>
+  totalInputTokens: number
+  totalOutputTokens: number
+  totalReasoningTokens: number
+  totalCost: number
+  latestEntry: AssistantUsageEntry | null
+}
+
 const sessionIndexes = new Map<string, Map<string, SessionIndexCache>>()
+const sessionUsageStates = new Map<string, Map<string, SessionUsageState>>()
+
+function createEmptyUsageState(): SessionUsageState {
+  return {
+    entries: new Map(),
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalReasoningTokens: 0,
+    totalCost: 0,
+    latestEntry: null,
+  }
+}
+
+function getUsageInstance(instanceId: string): Map<string, SessionUsageState> {
+  let usageMap = sessionUsageStates.get(instanceId)
+  if (!usageMap) {
+    usageMap = new Map()
+    sessionUsageStates.set(instanceId, usageMap)
+  }
+  return usageMap
+}
+
+function getSessionUsageState(instanceId: string, sessionId: string): SessionUsageState {
+  const usageMap = getUsageInstance(instanceId)
+  let state = usageMap.get(sessionId)
+  if (!state) {
+    state = createEmptyUsageState()
+    usageMap.set(sessionId, state)
+  }
+  return state
+}
+
+function recomputeLatestEntry(state: SessionUsageState) {
+  state.latestEntry = null
+  for (const entry of state.entries.values()) {
+    if (!state.latestEntry || entry.timestamp >= state.latestEntry.timestamp) {
+      state.latestEntry = entry
+    }
+  }
+}
+
+function extractAssistantUsage(info: MessageInfo): AssistantUsageEntry | null {
+  if (!info || info.role !== "assistant") return null
+  if (!info.tokens) return null
+  const tokens = info.tokens
+  const inputTokens = tokens.input ?? 0
+  const outputTokens = tokens.output ?? 0
+  const reasoningTokens = tokens.reasoning ?? 0
+  if (inputTokens === 0 && outputTokens === 0 && reasoningTokens === 0) {
+    return null
+  }
+  const cacheReadTokens = tokens.cache?.read ?? 0
+  const cacheWriteTokens = tokens.cache?.write ?? 0
+  const combinedTokens = info.summary
+    ? outputTokens
+    : inputTokens + cacheReadTokens + cacheWriteTokens + outputTokens + reasoningTokens
+  const cost = info.cost ?? 0
+  const hasContextUsage = inputTokens + cacheReadTokens + cacheWriteTokens > 0
+  return {
+    info,
+    inputTokens,
+    outputTokens,
+    reasoningTokens,
+    combinedTokens,
+    cost,
+    hasContextUsage,
+    timestamp: info.time?.created ?? 0,
+  }
+}
+
+function removeUsageEntry(state: SessionUsageState, messageId: string | undefined) {
+  if (!messageId) return
+  const existing = state.entries.get(messageId)
+  if (!existing) return
+  state.entries.delete(messageId)
+  state.totalInputTokens -= existing.inputTokens
+  state.totalOutputTokens -= existing.outputTokens
+  state.totalReasoningTokens -= existing.reasoningTokens
+  state.totalCost -= existing.cost
+  if (state.latestEntry?.info.id === messageId) {
+    recomputeLatestEntry(state)
+  }
+}
+
+function addUsageEntry(state: SessionUsageState, entry: AssistantUsageEntry) {
+  state.entries.set(entry.info.id, entry)
+  state.totalInputTokens += entry.inputTokens
+  state.totalOutputTokens += entry.outputTokens
+  state.totalReasoningTokens += entry.reasoningTokens
+  state.totalCost += entry.cost
+  if (!state.latestEntry || entry.timestamp >= state.latestEntry.timestamp) {
+    state.latestEntry = entry
+  }
+}
+
+function updateUsageFromMessageInfo(instanceId: string, sessionId: string, info: MessageInfo) {
+  const messageId = typeof info.id === "string" ? info.id : undefined
+  if (!messageId) return
+  const state = getSessionUsageState(instanceId, sessionId)
+  removeUsageEntry(state, messageId)
+  const entry = extractAssistantUsage(info)
+  if (entry) {
+    addUsageEntry(state, entry)
+  }
+}
+
+function rebuildSessionUsage(instanceId: string, sessionId: string, messagesInfo: Map<string, MessageInfo>) {
+  const usageMap = getUsageInstance(instanceId)
+  const nextState = createEmptyUsageState()
+  for (const info of messagesInfo.values()) {
+    const entry = extractAssistantUsage(info)
+    if (entry) {
+      addUsageEntry(nextState, entry)
+    }
+  }
+  usageMap.set(sessionId, nextState)
+}
+
+function clearSessionUsage(instanceId: string, sessionId: string) {
+  const usageMap = sessionUsageStates.get(instanceId)
+  if (!usageMap) return
+  usageMap.delete(sessionId)
+  if (usageMap.size === 0) {
+    sessionUsageStates.delete(instanceId)
+  }
+}
 
 function decodeTextSegment(segment: any): any {
   if (typeof segment === "string") {
@@ -163,10 +309,12 @@ function clearSessionIndex(instanceId: string, sessionId: string) {
       sessionIndexes.delete(instanceId)
     }
   }
+  clearSessionUsage(instanceId, sessionId)
 }
 
 function removeSessionIndexes(instanceId: string) {
   sessionIndexes.delete(instanceId)
+  sessionUsageStates.delete(instanceId)
 }
 
 function updateSessionInfo(instanceId: string, sessionId: string) {
@@ -176,51 +324,66 @@ function updateSessionInfo(instanceId: string, sessionId: string) {
   const session = instanceSessions.get(sessionId)
   if (!session) return
 
-  let tokens = 0
-  let cost = 0
   let contextWindow = 0
   let isSubscriptionModel = false
   let modelID = ""
   let providerID = ""
   let actualUsageTokens = 0
-  let contextUsagePercent: number | null = null
-  let hasContextUsage = false
 
-  if (session.messagesInfo.size > 0) {
-    const messageArray = Array.from(session.messagesInfo.values()).reverse()
+  const usageState = getSessionUsageState(instanceId, sessionId)
+  const hasUsageEntries = usageState.entries.size > 0
 
-    for (const info of messageArray) {
-      if (info.role === "assistant" && info.tokens) {
-        const usage = info.tokens
+  let totalInputTokens = hasUsageEntries ? usageState.totalInputTokens : 0
+  let totalOutputTokens = hasUsageEntries ? usageState.totalOutputTokens : 0
+  let totalReasoningTokens = hasUsageEntries ? usageState.totalReasoningTokens : 0
+  let totalCost = hasUsageEntries ? usageState.totalCost : 0
 
-        if (usage.output > 0) {
-          const inputTokens = usage.input || 0
-          const reasoningTokens = usage.reasoning || 0
-          const cacheReadTokens = usage.cache?.read || 0
-          const cacheWriteTokens = usage.cache?.write || 0
-          const outputTokens = usage.output || 0
+  let latestAssistantInfo: MessageInfo | null = usageState.latestEntry?.info ?? null
+  let latestHasContextUsage = usageState.latestEntry?.hasContextUsage ?? false
+  const previousInfo = sessionInfoByInstance().get(instanceId)?.get(sessionId)
+  let contextAvailableTokens: number | null = null
+  let contextAvailableFromPrevious = false
 
-          if (info.summary) {
-            tokens = outputTokens
-          } else {
-            tokens = inputTokens + cacheReadTokens + cacheWriteTokens + outputTokens + reasoningTokens
-          }
+  if (latestAssistantInfo) {
+    const infoAny = latestAssistantInfo as any
+    actualUsageTokens = usageState.latestEntry?.combinedTokens ?? 0
+    modelID = infoAny.modelID || ""
+    providerID = infoAny.providerID || ""
+  } else if (previousInfo) {
+    totalInputTokens = previousInfo.inputTokens
+    totalOutputTokens = previousInfo.outputTokens
+    totalReasoningTokens = previousInfo.reasoningTokens
+    totalCost = previousInfo.cost
+    actualUsageTokens = previousInfo.actualUsageTokens
 
-          cost = info.cost || 0
-          actualUsageTokens = tokens
-          hasContextUsage = inputTokens + cacheReadTokens + cacheWriteTokens > 0
+    const previousContextWindow = previousInfo.contextWindow
+    const previousContextAvailable = previousInfo.contextAvailableTokens ?? null
+    const previousHasContextUsage =
+      previousContextAvailable !== null && previousContextWindow > 0
+        ? previousContextAvailable < previousContextWindow
+        : false
 
-          modelID = info.modelID || ""
-          providerID = info.providerID || ""
-          isSubscriptionModel = cost === 0
-
-          break
-        }
-      }
+    if (contextWindow === 0) {
+      contextWindow = previousContextWindow
     }
+
+    if (contextWindow !== previousContextWindow) {
+      contextAvailableTokens = null
+      contextAvailableFromPrevious = false
+      latestHasContextUsage = previousHasContextUsage
+    } else {
+      contextAvailableTokens = previousContextAvailable
+      contextAvailableFromPrevious = true
+      latestHasContextUsage = previousHasContextUsage
+    }
+
+    isSubscriptionModel = previousInfo.isSubscriptionModel
   }
 
   const instanceProviders = providers().get(instanceId) || []
+
+
+
 
   const sessionModel = session.model
   let selectedModel: Provider["models"][number] | undefined
@@ -252,30 +415,32 @@ function updateSessionInfo(instanceId: string, sessionId: string) {
   }
 
   const outputBudget = Math.min(modelOutputLimit, DEFAULT_MODEL_OUTPUT_LIMIT)
-  let contextUsageTokens = 0
 
-  if (hasContextUsage && actualUsageTokens > 0) {
-    contextUsageTokens = actualUsageTokens + outputBudget
+  if (!contextAvailableFromPrevious) {
     if (contextWindow > 0) {
-      const percent = Math.round((contextUsageTokens / contextWindow) * 100)
-      contextUsagePercent = Math.min(100, Math.max(0, percent))
+      if (latestHasContextUsage && actualUsageTokens > 0) {
+        contextAvailableTokens = Math.max(contextWindow - (actualUsageTokens + outputBudget), 0)
+      } else {
+        contextAvailableTokens = contextWindow
+      }
     } else {
-      contextUsagePercent = null
+      contextAvailableTokens = null
     }
-  } else {
-    contextUsagePercent = contextWindow > 0 ? 0 : null
   }
 
   setSessionInfoByInstance((prev) => {
     const next = new Map(prev)
     const instanceInfo = new Map(prev.get(instanceId))
     instanceInfo.set(sessionId, {
-      tokens,
-      cost,
+      cost: totalCost,
       contextWindow,
       isSubscriptionModel,
-      contextUsageTokens,
-      contextUsagePercent,
+      inputTokens: totalInputTokens,
+      outputTokens: totalOutputTokens,
+      reasoningTokens: totalReasoningTokens,
+      actualUsageTokens,
+      modelOutputLimit,
+      contextAvailableTokens,
     })
     next.set(instanceId, instanceInfo)
     return next
@@ -290,6 +455,8 @@ export {
   initializePartVersion,
   normalizeMessagePart,
   rebuildSessionIndex,
+  rebuildSessionUsage,
   removeSessionIndexes,
   updateSessionInfo,
+  updateUsageFromMessageInfo,
 }

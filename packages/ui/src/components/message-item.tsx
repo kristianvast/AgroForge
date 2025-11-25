@@ -1,6 +1,7 @@
-import { For, Show } from "solid-js"
+import { For, Show, createMemo } from "solid-js"
 import type { Message, SDKPart, MessageInfo, ClientPart } from "../types/message"
 import { partHasRenderableText } from "../types/message"
+import { formatTokenTotal } from "../lib/formatters"
 import MessagePart from "./message-part"
 
 interface MessageItemProps {
@@ -138,6 +139,41 @@ export default function MessageItem(props: MessageItemProps) {
     isUser()
       ? "message-item-base bg-[var(--message-user-bg)] border-l-4 border-[var(--message-user-border)]"
       : "message-item-base assistant-message bg-[var(--message-assistant-bg)] border-l-4 border-[var(--message-assistant-border)]"
+
+  const statChipClass =
+    "inline-flex items-center gap-1 rounded-full border border-[var(--border-base)] px-2 py-0.5 text-[10px]"
+  const statLabelClass = "uppercase text-[9px] tracking-wide text-[var(--text-muted)]"
+  const statValueClass = "font-semibold text-[var(--text-primary)]"
+
+  const usageStats = createMemo(() => {
+    const info = props.messageInfo
+    if (!info || info.role !== "assistant" || !info.tokens) {
+      return null
+    }
+
+    const tokens = info.tokens
+    const input = tokens.input ?? 0
+    const output = tokens.output ?? 0
+    const reasoning = tokens.reasoning ?? 0
+    if (input === 0 && output === 0 && reasoning === 0) {
+      return null
+    }
+
+    return {
+      input,
+      output,
+      reasoning,
+      cacheRead: tokens.cache?.read ?? 0,
+      cacheWrite: tokens.cache?.write ?? 0,
+      cost: info.cost ?? 0,
+    }
+  })
+
+  const formatCostValue = (value: number) => {
+    if (!value) return "$0.00"
+    if (value < 0.01) return `$${value.toPrecision(2)}`
+    return `$${value.toFixed(2)}`
+  }
  
   const agentIdentifier = () => {
     if (isUser()) return ""
@@ -192,6 +228,36 @@ export default function MessageItem(props: MessageItemProps) {
             >
               Fork
             </button>
+          </Show>
+          <Show when={usageStats()}>
+            {(usage) => (
+              <div class="flex flex-wrap items-center gap-1 text-[10px] text-[var(--text-muted)]">
+                <div class={statChipClass}>
+                  <span class={statLabelClass}>Input</span>
+                  <span class={statValueClass}>{formatTokenTotal(usage().input)}</span>
+                </div>
+                <div class={statChipClass}>
+                  <span class={statLabelClass}>Output</span>
+                  <span class={statValueClass}>{formatTokenTotal(usage().output)}</span>
+                </div>
+                <div class={statChipClass}>
+                  <span class={statLabelClass}>Reasoning</span>
+                  <span class={statValueClass}>{formatTokenTotal(usage().reasoning)}</span>
+                </div>
+                <div class={statChipClass}>
+                  <span class={statLabelClass}>Cache Read</span>
+                  <span class={statValueClass}>{formatTokenTotal(usage().cacheRead)}</span>
+                </div>
+                <div class={statChipClass}>
+                  <span class={statLabelClass}>Cache Write</span>
+                  <span class={statValueClass}>{formatTokenTotal(usage().cacheWrite)}</span>
+                </div>
+                <div class={statChipClass}>
+                  <span class={statLabelClass}>Cost</span>
+                  <span class={statValueClass}>{formatCostValue(usage().cost)}</span>
+                </div>
+              </div>
+            )}
           </Show>
           <span class="text-[11px] text-[var(--text-muted)]">{timestamp()}</span>
         </div>
