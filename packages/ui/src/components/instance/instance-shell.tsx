@@ -14,6 +14,7 @@ import InfoView from "../info-view"
 import AgentSelector from "../agent-selector"
 import ModelSelector from "../model-selector"
 import CommandPalette from "../command-palette"
+import Kbd from "../kbd"
 import ContextUsagePanel from "../session/context-usage-panel"
 import SessionView from "../session/session-view"
 
@@ -28,7 +29,7 @@ interface InstanceShellProps {
   onExecuteCommand: (command: Command) => void
 }
 
-const DEFAULT_SESSION_SIDEBAR_WIDTH = 280
+const DEFAULT_SESSION_SIDEBAR_WIDTH = 350
 
 const InstanceShell: Component<InstanceShellProps> = (props) => {
   const [sessionSidebarWidth, setSessionSidebarWidth] = createSignal(DEFAULT_SESSION_SIDEBAR_WIDTH)
@@ -114,12 +115,22 @@ const InstanceShell: Component<InstanceShellProps> = (props) => {
                       onAgentChange={(agent) => props.handleSidebarAgentChange(activeSession().id, agent)}
                     />
 
+                    <div class="sidebar-selector-hints" aria-hidden="true">
+                      <span class="hint sidebar-selector-hint sidebar-selector-hint--left">
+                        <Kbd shortcut="cmd+shift+a" />
+                      </span>
+                      <span class="hint sidebar-selector-hint sidebar-selector-hint--right">
+                        <Kbd shortcut="cmd+shift+m" />
+                      </span>
+                    </div>
+
                     <ModelSelector
                       instanceId={props.instance.id}
                       sessionId={activeSession().id}
                       currentModel={activeSession().model}
                       onModelChange={(model) => props.handleSidebarModelChange(activeSession().id, model)}
                     />
+
                   </div>
                 </>
               )}

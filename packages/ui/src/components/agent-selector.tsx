@@ -3,7 +3,6 @@ import { For, Show, createEffect, createMemo } from "solid-js"
 import { agents, fetchAgents, sessions } from "../stores/sessions"
 import { ChevronDown } from "lucide-solid"
 import type { Agent } from "../types/session"
-import Kbd from "./kbd"
 
 interface AgentSelectorProps {
   instanceId: string
@@ -116,9 +115,6 @@ export default function AgentSelector(props: AgentSelectorProps) {
           </Select.Content>
         </Select.Portal>
       </Select>
-      <span class="hint sidebar-selector-hint">
-        <Kbd shortcut="cmd+shift+a" />
-      </span>
     </div>
   )
 }

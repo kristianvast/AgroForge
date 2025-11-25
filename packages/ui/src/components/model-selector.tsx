@@ -3,7 +3,6 @@ import { createEffect, createMemo, createSignal } from "solid-js"
 import { providers, fetchProviders } from "../stores/sessions"
 import { ChevronDown } from "lucide-solid"
 import type { Model } from "../types/session"
-import Kbd from "./kbd"
 
 interface ModelSelectorProps {
   instanceId: string
@@ -132,9 +131,6 @@ export default function ModelSelector(props: ModelSelectorProps) {
           </Combobox.Content>
         </Combobox.Portal>
       </Combobox>
-      <span class="hint sidebar-selector-hint">
-        <Kbd shortcut="cmd+shift+m" />
-      </span>
     </div>
   )
 }
