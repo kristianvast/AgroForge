@@ -301,10 +301,10 @@ export function createInstanceMessageStore(instanceId: string): InstanceMessageS
       }
     }
 
-    setState("messages", reconcile(nextMessages))
-    setState("messageInfoVersion", reconcile(nextMessageInfoVersion))
-    setState("pendingParts", reconcile(nextPendingParts))
-    setState("permissions", "byMessage", reconcile(nextPermissionsByMessage))
+    setState("messages", (prev) => ({ ...prev, ...nextMessages }))
+    setState("messageInfoVersion", (prev) => ({ ...prev, ...nextMessageInfoVersion }))
+    setState("pendingParts", (prev) => ({ ...prev, ...nextPendingParts }))
+    setState("permissions", "byMessage", (prev) => ({ ...prev, ...nextPermissionsByMessage }))
 
     if (usageState) {
       setState("usage", sessionId, usageState)
