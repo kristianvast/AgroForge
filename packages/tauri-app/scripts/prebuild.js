@@ -115,18 +115,22 @@ function ensureUiDevDependencies() {
 }
 
 function ensureRollupPlatformBinary() {
-  if (process.platform !== "linux" || process.arch !== "x64") {
+  const platformKey = `${process.platform}-${process.arch}`
+  const platformPackages = {
+    "linux-x64": "@rollup/rollup-linux-x64-gnu",
+    "linux-arm64": "@rollup/rollup-linux-arm64-gnu",
+    "darwin-arm64": "@rollup/rollup-darwin-arm64",
+    "darwin-x64": "@rollup/rollup-darwin-x64",
+    "win32-x64": "@rollup/rollup-win32-x64-msvc",
+  }
+
+  const pkgName = platformPackages[platformKey]
+  if (!pkgName) {
     return
   }
 
-  const rollupLinuxPath = path.join(
-    workspaceRoot,
-    "node_modules",
-    "@rollup",
-    "rollup-linux-x64-gnu",
-  )
-
-  if (fs.existsSync(rollupLinuxPath)) {
+  const platformPackagePath = path.join(workspaceRoot, "node_modules", "@rollup", pkgName.split("/").pop())
+  if (fs.existsSync(platformPackagePath)) {
     return
   }
 
@@ -137,11 +141,9 @@ function ensureRollupPlatformBinary() {
     // leave version empty; fallback install will use latest compatible
   }
 
-  const packageSpec = rollupVersion
-    ? `@rollup/rollup-linux-x64-gnu@${rollupVersion}`
-    : "@rollup/rollup-linux-x64-gnu"
+  const packageSpec = rollupVersion ? `${pkgName}@${rollupVersion}` : pkgName
 
-  console.log("[prebuild] installing rollup linux binary (optional dep workaround)...")
+  console.log("[prebuild] installing rollup platform binary (optional dep workaround)...")
   execSync(`npm install ${packageSpec} --no-save --ignore-scripts --fund=false --audit=false`, {
     cwd: workspaceRoot,
     stdio: "inherit",
