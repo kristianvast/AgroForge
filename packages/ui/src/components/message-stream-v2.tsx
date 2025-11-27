@@ -20,9 +20,6 @@ const SCROLL_SCOPE = "session"
 const TOOL_ICON = "🔧"
 const codeNomadLogo = new URL("../images/CodeNomad-Icon.png", import.meta.url).href
 
-const messageItemCache = new Map<string, ContentDisplayItem>()
-const toolItemCache = new Map<string, ToolDisplayItem>()
-
 const USER_BORDER_COLOR = "var(--message-user-border)"
 const ASSISTANT_BORDER_COLOR = "var(--message-assistant-border)"
 const TOOL_BORDER_COLOR = "var(--message-tool-border)"
@@ -88,27 +85,52 @@ function formatTokens(tokens: number): string {
   return formatTokenTotal(tokens)
 }
 
-function makeInstanceCacheKey(instanceId: string, id: string) {
-  return `${instanceId}:${id}`
+interface CachedBlockEntry {
+  signature: string
+  block: MessageDisplayBlock
+  contentKeys: string[]
+  toolKeys: string[]
+}
+
+interface SessionRenderCache {
+  messageItems: Map<string, ContentDisplayItem>
+  toolItems: Map<string, ToolDisplayItem>
+  messageBlocks: Map<string, CachedBlockEntry>
+}
+
+const renderCaches = new Map<string, SessionRenderCache>()
+
+function makeSessionCacheKey(instanceId: string, sessionId: string) {
+  return `${instanceId}:${sessionId}`
+}
+
+function getSessionRenderCache(instanceId: string, sessionId: string): SessionRenderCache {
+  const key = makeSessionCacheKey(instanceId, sessionId)
+  let cache = renderCaches.get(key)
+  if (!cache) {
+    cache = {
+      messageItems: new Map(),
+      toolItems: new Map(),
+      messageBlocks: new Map(),
+    }
+    renderCaches.set(key, cache)
+  }
+  return cache
 }
 
 function clearInstanceCaches(instanceId: string) {
-
+  
   clearRecordDisplayCacheForInstance(instanceId)
   const prefix = `${instanceId}:`
-  for (const key of messageItemCache.keys()) {
+  for (const key of renderCaches.keys()) {
     if (key.startsWith(prefix)) {
-      messageItemCache.delete(key)
-    }
-  }
-  for (const key of toolItemCache.keys()) {
-    if (key.startsWith(prefix)) {
-      toolItemCache.delete(key)
+      renderCaches.delete(key)
     }
   }
 }
 
 messageStoreBus.onInstanceDestroyed(clearInstanceCaches)
+
 
 interface MessageStreamV2Props {
   instanceId: string
@@ -270,14 +292,17 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
     const thinkingDefaultExpanded = (preferences().thinkingBlocksExpansion ?? "expanded") === "expanded"
     const revert = revertTarget()
     const instanceId = props.instanceId
+    const sessionCache = getSessionRenderCache(instanceId, props.sessionId)
     const blocks: MessageDisplayBlock[] = []
     const usedMessageKeys = new Set<string>()
     const usedToolKeys = new Set<string>()
+    const activeMessageIds = new Set<string>()
     const records = messageRecords()
     const assistantIndex = lastAssistantIndex()
     const indexMap = messageIndexMap()
-
+ 
     for (const record of records) {
+
       if (revert?.messageID && record.id === revert.messageID) {
         break
       }
@@ -286,23 +311,51 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
       const messageInfo = infoMap.get(record.id)
       const recordIndex = indexMap.get(record.id) ?? 0
       const isQueued = record.role === "user" && (assistantIndex === -1 || recordIndex > assistantIndex)
-
+      const infoTime = (messageInfo?.time ?? {}) as { created?: number; updated?: number; completed?: number }
+      const infoTimestamp = typeof infoTime.completed === "number"
+        ? infoTime.completed
+        : typeof infoTime.updated === "number"
+          ? infoTime.updated
+          : infoTime.created ?? 0
+      const infoError = (messageInfo as { error?: { name?: string } } | undefined)?.error
+      const infoErrorName = typeof infoError?.name === "string" ? infoError.name : ""
+      const cacheSignature = [
+        record.revision,
+        isQueued ? 1 : 0,
+        showThinking ? 1 : 0,
+        thinkingDefaultExpanded ? 1 : 0,
+        showUsageMetrics ? 1 : 0,
+        infoTimestamp,
+        infoErrorName,
+      ].join("|")
+      const cachedBlock = sessionCache.messageBlocks.get(record.id)
+      if (cachedBlock && cachedBlock.signature === cacheSignature) {
+        cachedBlock.contentKeys.forEach((key) => usedMessageKeys.add(key))
+        cachedBlock.toolKeys.forEach((key) => usedToolKeys.add(key))
+        blocks.push(cachedBlock.block)
+        activeMessageIds.add(record.id)
+        continue
+      }
+ 
       const items: MessageBlockItem[] = []
+      const blockContentKeys: string[] = []
+      const blockToolKeys: string[] = []
       let segmentIndex = 0
       let pendingParts: ClientPart[] = []
       let agentMetaAttached = record.role !== "assistant"
       const defaultAccentColor = record.role === "user" ? USER_BORDER_COLOR : ASSISTANT_BORDER_COLOR
       let lastAccentColor = defaultAccentColor
 
+
       const flushContent = () => {
         if (pendingParts.length === 0) return
-        const segmentKey = makeInstanceCacheKey(instanceId, `${record.id}:segment:${segmentIndex}`)
+        const segmentKey = `${record.id}:segment:${segmentIndex}`
         segmentIndex += 1
         const shouldShowAgentMeta =
           record.role === "assistant" &&
           !agentMetaAttached &&
           pendingParts.some((part) => partHasRenderableText(part))
-        let cached = messageItemCache.get(segmentKey)
+        let cached = sessionCache.messageItems.get(segmentKey)
         if (!cached) {
           cached = {
             type: "content",
@@ -313,7 +366,7 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
             isQueued,
             showAgentMeta: shouldShowAgentMeta,
           }
-          messageItemCache.set(segmentKey, cached)
+          sessionCache.messageItems.set(segmentKey, cached)
         } else {
           cached.record = record
           cached.parts = pendingParts.slice()
@@ -326,6 +379,7 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
         }
         items.push(cached)
         usedMessageKeys.add(segmentKey)
+        blockContentKeys.push(segmentKey)
         lastAccentColor = defaultAccentColor
         pendingParts = []
       }
@@ -336,8 +390,7 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
           const partVersion = typeof part.version === "number" ? part.version : 0
           const messageVersion = record.revision
           const key = `${record.id}:${part.id ?? partIndex}`
-          const cacheKey = makeInstanceCacheKey(instanceId, key)
-          let toolItem = toolItemCache.get(cacheKey)
+          let toolItem = sessionCache.toolItems.get(key)
           if (!toolItem) {
             toolItem = {
               type: "tool",
@@ -348,7 +401,7 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
               messageVersion,
               partVersion,
             }
-            toolItemCache.set(cacheKey, toolItem)
+            sessionCache.toolItems.set(key, toolItem)
           } else {
             toolItem.key = key
             toolItem.toolPart = part as ToolCallPart
@@ -358,7 +411,8 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
             toolItem.partVersion = partVersion
           }
           items.push(toolItem)
-          usedToolKeys.add(cacheKey)
+          usedToolKeys.add(key)
+          blockToolKeys.push(key)
           lastAccentColor = TOOL_BORDER_COLOR
           return
         }
@@ -371,7 +425,7 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
         if (part.type === "step-finish") {
           flushContent()
           if (showUsageMetrics) {
-            const key = makeInstanceCacheKey(instanceId, `${record.id}:${part.id ?? partIndex}:${part.type}`)
+            const key = `${record.id}:${part.id ?? partIndex}:${part.type}`
             const accentColor = lastAccentColor || defaultAccentColor
             items.push({ type: part.type, key, part, messageInfo, accentColor })
             lastAccentColor = accentColor
@@ -382,7 +436,7 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
         if (part.type === "reasoning") {
           flushContent()
           if (showThinking && reasoningHasRenderableContent(part)) {
-            const key = makeInstanceCacheKey(instanceId, `${record.id}:${part.id ?? partIndex}:reasoning`)
+            const key = `${record.id}:${part.id ?? partIndex}:reasoning`
             const showAgentMeta = record.role === "assistant" && !agentMetaAttached
             if (showAgentMeta) {
               agentMetaAttached = true
@@ -409,21 +463,35 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
         continue
       }
 
-      blocks.push({ record, items })
+      const resultBlock: MessageDisplayBlock = { record, items }
+      blocks.push(resultBlock)
+      sessionCache.messageBlocks.set(record.id, {
+        signature: cacheSignature,
+        block: resultBlock,
+        contentKeys: blockContentKeys.slice(),
+        toolKeys: blockToolKeys.slice(),
+      })
+      activeMessageIds.add(record.id)
     }
-
-    for (const key of messageItemCache.keys()) {
+ 
+    for (const [key] of sessionCache.messageItems) {
       if (!usedMessageKeys.has(key)) {
-        messageItemCache.delete(key)
+        sessionCache.messageItems.delete(key)
       }
     }
-    for (const key of toolItemCache.keys()) {
+    for (const [key] of sessionCache.toolItems) {
       if (!usedToolKeys.has(key)) {
-        toolItemCache.delete(key)
+        sessionCache.toolItems.delete(key)
       }
     }
-
+    for (const [messageId] of sessionCache.messageBlocks) {
+      if (!activeMessageIds.has(messageId)) {
+        sessionCache.messageBlocks.delete(messageId)
+      }
+    }
+ 
     return blocks
+
   })
 
   const changeToken = createMemo(() => {
@@ -482,59 +550,50 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
     requestAnimationFrame(() => {
       if (!containerRef) return
       updateScrollIndicators(containerRef)
-      persistScrollState()
+      scheduleScrollPersist()
     })
   }
-
+ 
   function scrollToTop(immediate = false) {
-    if (!containerRef) return
-    const behavior = immediate ? "auto" : "smooth"
-    setAutoScroll(false)
-    containerRef.scrollTo({ top: 0, behavior })
-    requestAnimationFrame(() => {
-      if (!containerRef) return
-      updateScrollIndicators(containerRef)
-      persistScrollState()
-    })
-  }
+ 
+     if (!containerRef) return
+     const behavior = immediate ? "auto" : "smooth"
+     setAutoScroll(false)
+     containerRef.scrollTo({ top: 0, behavior })
+     requestAnimationFrame(() => {
+       if (!containerRef) return
+       updateScrollIndicators(containerRef)
+       scheduleScrollPersist()
+     })
+   }
+ 
+   let pendingScrollPersist: number | null = null
+   function scheduleScrollPersist() {
+     if (pendingScrollPersist !== null) return
+     pendingScrollPersist = requestAnimationFrame(() => {
+       pendingScrollPersist = null
+       if (!containerRef) return
+       scrollCache.persist(containerRef, { atBottomOffset: 48 })
+     })
+   }
+ 
+   function handleScroll(event: Event) {
+     if (!containerRef) return
+     updateScrollIndicators(containerRef)
+     if (event.isTrusted) {
+       const atBottom = isNearBottom(containerRef)
+       if (!atBottom) {
+         setAutoScroll(false)
+       } else {
+         setAutoScroll(true)
+       }
+     }
+     scheduleScrollPersist()
+   }
+ 
+   let previousToken: string | undefined
 
-  function persistScrollState() {
-    if (!containerRef) return
-    scrollCache.persist(containerRef, { atBottomOffset: 48 })
-  }
 
-  function handleScroll(event: Event) {
-    if (!containerRef) return
-    updateScrollIndicators(containerRef)
-    if (event.isTrusted) {
-      const atBottom = isNearBottom(containerRef)
-      if (!atBottom) {
-        setAutoScroll(false)
-      } else {
-        setAutoScroll(true)
-      }
-    }
-    persistScrollState()
-  }
-
-  createEffect(() => {
-    const target = containerRef
-    if (!target) return
-    scrollCache.restore(target, {
-      fallback: () => scrollToBottom(true),
-      onApplied: (snapshot) => {
-        if (snapshot) {
-          setAutoScroll(snapshot.atBottom)
-        } else {
-          const atBottom = isNearBottom(target)
-          setAutoScroll(atBottom)
-        }
-        updateScrollIndicators(target)
-      },
-    })
-  })
-
-  let previousToken: string | undefined
   createEffect(() => {
     const token = changeToken()
     if (!token || token === previousToken) {
@@ -555,7 +614,13 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
   })
 
   onCleanup(() => {
-    persistScrollState()
+    if (pendingScrollPersist !== null) {
+      cancelAnimationFrame(pendingScrollPersist)
+      pendingScrollPersist = null
+    }
+    if (containerRef) {
+      scrollCache.persist(containerRef, { atBottomOffset: 48 })
+    }
   })
 
   return (
