@@ -25,7 +25,7 @@ interface SessionListProps {
 
 const MIN_WIDTH = 200
 const MAX_WIDTH = 520
-const DEFAULT_WIDTH = 350
+const DEFAULT_WIDTH = 360
 const STORAGE_KEY = "opencode-session-sidebar-width-v7"
 
 function formatSessionStatus(status: SessionStatus): string {
