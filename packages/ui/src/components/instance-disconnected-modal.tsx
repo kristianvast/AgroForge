@@ -19,7 +19,7 @@ export default function InstanceDisconnectedModal(props: InstanceDisconnectedMod
           <Dialog.Content class="modal-surface w-full max-w-md p-6 flex flex-col gap-6">
             <div>
               <Dialog.Title class="text-xl font-semibold text-primary">Instance Disconnected</Dialog.Title>
-              <Dialog.Description class="text-sm text-secondary mt-2">
+              <Dialog.Description class="text-sm text-secondary mt-2 break-words">
                 {folderLabel} can no longer be reached. Close the tab to continue working.
               </Dialog.Description>
             </div>

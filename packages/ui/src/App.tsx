@@ -248,7 +248,7 @@ const App: Component = () => {
             <Dialog.Content class="modal-surface w-full max-w-md p-6 flex flex-col gap-6">
               <div>
                 <Dialog.Title class="text-xl font-semibold text-primary">Unable to launch OpenCode</Dialog.Title>
-                <Dialog.Description class="text-sm text-secondary mt-2">
+                <Dialog.Description class="text-sm text-secondary mt-2 break-words">
                   Install the OpenCode CLI and make sure it is available in your PATH, or pick a custom binary from
                   Advanced Settings.
                 </Dialog.Description>

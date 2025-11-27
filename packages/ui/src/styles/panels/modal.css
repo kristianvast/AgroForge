@@ -8,6 +8,10 @@
   @apply rounded-lg shadow-2xl flex flex-col;
   background-color: var(--surface-base);
   color: var(--text-primary);
+  max-width: min(100%, calc(100vw - 32px));
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .modal-search-container {

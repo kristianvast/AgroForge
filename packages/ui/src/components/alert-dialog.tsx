@@ -89,9 +89,9 @@ const AlertDialog: Component = () => {
                     >
                       {accent.symbol}
                     </div>
-                    <div class="flex-1">
+                    <div class="flex-1 min-w-0">
                       <Dialog.Title class="text-lg font-semibold text-primary">{title}</Dialog.Title>
-                      <Dialog.Description class="text-sm text-secondary mt-1 whitespace-pre-line">
+                      <Dialog.Description class="text-sm text-secondary mt-1 whitespace-pre-line break-words">
                         {payload.message}
                         {payload.detail && <p class="mt-2 text-secondary">{payload.detail}</p>}
                       </Dialog.Description>
