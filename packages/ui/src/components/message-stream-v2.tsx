@@ -1,5 +1,6 @@
 import { For, Match, Show, Switch, createMemo, createSignal, createEffect, onCleanup } from "solid-js"
 import MessageItem from "./message-item"
+import type { InstanceMessageStore } from "../stores/message-v2/instance-store"
 import ToolCall from "./tool-call"
 import Kbd from "./kbd"
 import type { MessageInfo, ClientPart } from "../types/message"
@@ -51,6 +52,38 @@ function extractTaskSessionId(state: ToolState | undefined): string {
   const metadata = (state as unknown as { metadata?: Record<string, unknown> }).metadata ?? {}
   const directId = metadata?.sessionId ?? metadata?.sessionID
   return typeof directId === "string" ? directId : ""
+}
+
+function reasoningHasRenderableContent(part: ClientPart): boolean {
+  if (!part || part.type !== "reasoning") {
+    return false
+  }
+  const checkSegment = (segment: unknown): boolean => {
+    if (typeof segment === "string") {
+      return segment.trim().length > 0
+    }
+    if (segment && typeof segment === "object") {
+      const candidate = segment as { text?: unknown; value?: unknown; content?: unknown[] }
+      if (typeof candidate.text === "string" && candidate.text.trim().length > 0) {
+        return true
+      }
+      if (typeof candidate.value === "string" && candidate.value.trim().length > 0) {
+        return true
+      }
+      if (Array.isArray(candidate.content)) {
+        return candidate.content.some((entry) => checkSegment(entry))
+      }
+    }
+    return false
+  }
+
+  if (checkSegment((part as any).text)) {
+    return true
+  }
+  if (Array.isArray((part as any).content)) {
+    return (part as any).content.some((entry: unknown) => checkSegment(entry))
+  }
+  return false
 }
 
 interface TaskSessionLocation {
@@ -245,27 +278,15 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
     showCommandPalette(props.instanceId)
   }
 
-  const messageInfoMap = createMemo(() => {
-    const map = new Map<string, MessageInfo>()
-    messageRecords().forEach((record) => {
-      const info = store().getMessageInfo(record.id)
-      if (info) {
-        map.set(record.id, info)
-      }
-    })
-    return map
-  })
-  const revertTarget = createMemo(() => store().getSessionRevert(props.sessionId))
-
   const messageIndexMap = createMemo(() => {
     const map = new Map<string, number>()
-    const ids = visibleMessageIds()
+    const ids = messageIds()
     ids.forEach((id, index) => map.set(id, index))
     return map
   })
 
   const lastAssistantIndex = createMemo(() => {
-    const ids = visibleMessageIds()
+    const ids = messageIds()
     const resolvedStore = store()
     for (let index = ids.length - 1; index >= 0; index--) {
       const record = resolvedStore.getMessage(ids[index])
@@ -276,268 +297,38 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
     return -1
   })
 
-  function reasoningHasRenderableContent(part: ClientPart): boolean {
-    if (!part || part.type !== "reasoning") {
-      return false
-    }
-    const checkSegment = (segment: unknown): boolean => {
-      if (typeof segment === "string") {
-        return segment.trim().length > 0
-      }
-      if (segment && typeof segment === "object") {
-        const candidate = segment as { text?: unknown; value?: unknown; content?: unknown[] }
-        if (typeof candidate.text === "string" && candidate.text.trim().length > 0) {
-          return true
-        }
-        if (typeof candidate.value === "string" && candidate.value.trim().length > 0) {
-          return true
-        }
-        if (Array.isArray(candidate.content)) {
-          return candidate.content.some((entry) => checkSegment(entry))
-        }
-      }
-      return false
-    }
-
-    if (checkSegment((part as any).text)) {
-      return true
-    }
-    if (Array.isArray((part as any).content)) {
-      return (part as any).content.some((entry: unknown) => checkSegment(entry))
-    }
-    return false
-  }
-
-  const displayBlocks = createMemo<MessageDisplayBlock[]>(() => {
-    const infoMap = messageInfoMap()
-    const showThinking = preferences().showThinkingBlocks
-    const showUsageMetrics = showUsagePreference()
-    const thinkingDefaultExpanded = (preferences().thinkingBlocksExpansion ?? "expanded") === "expanded"
-    const revert = revertTarget()
-    const instanceId = props.instanceId
-    const sessionCache = getSessionRenderCache(instanceId, props.sessionId)
-    const blocks: MessageDisplayBlock[] = []
-    const usedMessageKeys = new Set<string>()
-    const usedToolKeys = new Set<string>()
-    const activeMessageIds = new Set<string>()
-    const records = messageRecords()
-    const assistantIndex = lastAssistantIndex()
-    const indexMap = messageIndexMap()
- 
-    for (const record of records) {
-
-      if (revert?.messageID && record.id === revert.messageID) {
-        break
-      }
-
-      const { orderedParts } = buildRecordDisplayData(instanceId, record)
-      const messageInfo = infoMap.get(record.id)
-      const recordIndex = indexMap.get(record.id) ?? 0
-      const isQueued = record.role === "user" && (assistantIndex === -1 || recordIndex > assistantIndex)
-      const infoTime = (messageInfo?.time ?? {}) as { created?: number; updated?: number; completed?: number }
-      const infoTimestamp = typeof infoTime.completed === "number"
-        ? infoTime.completed
-        : typeof infoTime.updated === "number"
-          ? infoTime.updated
-          : infoTime.created ?? 0
-      const infoError = (messageInfo as { error?: { name?: string } } | undefined)?.error
-      const infoErrorName = typeof infoError?.name === "string" ? infoError.name : ""
-      const cacheSignature = [
-        record.id,
-        record.revision,
-        isQueued ? 1 : 0,
-        showThinking ? 1 : 0,
-        thinkingDefaultExpanded ? 1 : 0,
-        showUsageMetrics ? 1 : 0,
-        infoTimestamp,
-        infoErrorName,
-      ].join("|")
-      const cachedBlock = sessionCache.messageBlocks.get(record.id)
-      if (cachedBlock && cachedBlock.signature === cacheSignature) {
-        cachedBlock.contentKeys.forEach((key) => usedMessageKeys.add(key))
-        cachedBlock.toolKeys.forEach((key) => usedToolKeys.add(key))
-        blocks.push(cachedBlock.block)
-        activeMessageIds.add(record.id)
-        continue
-      }
- 
-      const items: MessageBlockItem[] = []
-      const blockContentKeys: string[] = []
-      const blockToolKeys: string[] = []
-      let segmentIndex = 0
-      let pendingParts: ClientPart[] = []
-      let agentMetaAttached = record.role !== "assistant"
-      const defaultAccentColor = record.role === "user" ? USER_BORDER_COLOR : ASSISTANT_BORDER_COLOR
-      let lastAccentColor = defaultAccentColor
-
-
-      const flushContent = () => {
-        if (pendingParts.length === 0) return
-        const segmentKey = `${record.id}:segment:${segmentIndex}`
-        segmentIndex += 1
-        const shouldShowAgentMeta =
-          record.role === "assistant" &&
-          !agentMetaAttached &&
-          pendingParts.some((part) => partHasRenderableText(part))
-        let cached = sessionCache.messageItems.get(segmentKey)
-        if (!cached) {
-          cached = {
-            type: "content",
-            key: segmentKey,
-            record,
-            parts: pendingParts.slice(),
-            messageInfo,
-            isQueued,
-            showAgentMeta: shouldShowAgentMeta,
-          }
-          sessionCache.messageItems.set(segmentKey, cached)
-        } else {
-          cached.record = record
-          cached.parts = pendingParts.slice()
-          cached.messageInfo = messageInfo
-          cached.isQueued = isQueued
-          cached.showAgentMeta = shouldShowAgentMeta
-        }
-        if (shouldShowAgentMeta) {
-          agentMetaAttached = true
-        }
-        items.push(cached)
-        usedMessageKeys.add(segmentKey)
-        blockContentKeys.push(segmentKey)
-        lastAccentColor = defaultAccentColor
-        pendingParts = []
-      }
-
-      orderedParts.forEach((part, partIndex) => {
-        if (part.type === "tool") {
-          flushContent()
-          const partRevision = typeof part.revision === "number" ? part.revision : 0
-          const messageVersion = record.revision
-          const key = `${record.id}:${part.id ?? partIndex}`
-          let toolItem = sessionCache.toolItems.get(key)
-          if (!toolItem) {
-            toolItem = {
-              type: "tool",
-              key,
-              toolPart: part as ToolCallPart,
-              messageInfo,
-              messageId: record.id,
-              messageVersion,
-              partRevision,
-            }
-            sessionCache.toolItems.set(key, toolItem)
-          } else {
-            toolItem.key = key
-            toolItem.toolPart = part as ToolCallPart
-            toolItem.messageInfo = messageInfo
-            toolItem.messageId = record.id
-            toolItem.messageVersion = messageVersion
-            toolItem.partRevision = partRevision
-          }
-          items.push(toolItem)
-          usedToolKeys.add(key)
-          blockToolKeys.push(key)
-          lastAccentColor = TOOL_BORDER_COLOR
-          return
-        }
-
-        if (part.type === "step-start") {
-          flushContent()
-          return
-        }
-
-        if (part.type === "step-finish") {
-          flushContent()
-          if (showUsageMetrics) {
-            const key = `${record.id}:${part.id ?? partIndex}:${part.type}`
-            const accentColor = lastAccentColor || defaultAccentColor
-            items.push({ type: part.type, key, part, messageInfo, accentColor })
-            lastAccentColor = accentColor
-          }
-          return
-        }
-
-        if (part.type === "reasoning") {
-          flushContent()
-          if (showThinking && reasoningHasRenderableContent(part)) {
-            const key = `${record.id}:${part.id ?? partIndex}:reasoning`
-            const showAgentMeta = record.role === "assistant" && !agentMetaAttached
-            if (showAgentMeta) {
-              agentMetaAttached = true
-            }
-            items.push({
-              type: "reasoning",
-              key,
-              part,
-              messageInfo,
-              showAgentMeta,
-              defaultExpanded: thinkingDefaultExpanded,
-            })
-            lastAccentColor = ASSISTANT_BORDER_COLOR
-          }
-          return
-        }
-
-        pendingParts.push(part)
-      })
-
-      flushContent()
-
-      if (items.length === 0) {
-        continue
-      }
-
-      const resultBlock: MessageDisplayBlock = { record, items }
-      blocks.push(resultBlock)
-      sessionCache.messageBlocks.set(record.id, {
-        signature: cacheSignature,
-        block: resultBlock,
-        contentKeys: blockContentKeys.slice(),
-        toolKeys: blockToolKeys.slice(),
-      })
-      activeMessageIds.add(record.id)
-    }
- 
-    for (const [key] of sessionCache.messageItems) {
-      if (!usedMessageKeys.has(key)) {
-        sessionCache.messageItems.delete(key)
-      }
-    }
-    for (const [key] of sessionCache.toolItems) {
-      if (!usedToolKeys.has(key)) {
-        sessionCache.toolItems.delete(key)
-      }
-    }
-    for (const [messageId] of sessionCache.messageBlocks) {
-      if (!activeMessageIds.has(messageId)) {
-        sessionCache.messageBlocks.delete(messageId)
-      }
-    }
- 
-    return blocks
-
-  })
-
   const changeToken = createMemo(() => {
     const revisionValue = sessionRevision()
-    const blocks = displayBlocks()
-    if (blocks.length === 0) {
+    const ids = messageIds()
+    if (ids.length === 0) {
       return `${revisionValue}:empty`
     }
-    const lastBlock = blocks[blocks.length - 1]
-    const lastItem = lastBlock.items[lastBlock.items.length - 1]
-    let tailSignature: string
-    if (!lastItem) {
-      tailSignature = `msg:${lastBlock.record.id}:${lastBlock.record.revision}`
-    } else if (lastItem.type === "tool") {
-      tailSignature = `tool:${lastItem.key}:${lastItem.partRevision}`
-    } else if (lastItem.type === "content") {
-      tailSignature = `content:${lastItem.key}:${lastBlock.record.revision}`
-    } else {
-      const revision = typeof lastItem.part.revision === "number" ? lastItem.part.revision : lastBlock.record.revision
-      tailSignature = `step:${lastItem.key}:${revision}`
-    }
+    const lastId = ids[ids.length - 1]
+    const lastRecord = store().getMessage(lastId)
+    const tailSignature = lastRecord ? `msg:${lastRecord.id}:${lastRecord.revision}` : `msg:${lastId}:missing`
     return `${revisionValue}:${tailSignature}`
+  })
+
+  createEffect(() => {
+    const ids = new Set(messageIds())
+    const cache = getSessionRenderCache(props.instanceId, props.sessionId)
+    for (const [key] of cache.messageBlocks) {
+      if (!ids.has(key)) {
+        cache.messageBlocks.delete(key)
+      }
+    }
+    for (const [key] of cache.messageItems) {
+      const messageId = key.split(":", 1)[0]
+      if (!ids.has(messageId)) {
+        cache.messageItems.delete(key)
+      }
+    }
+    for (const [key] of cache.toolItems) {
+      const messageId = key.split(":", 1)[0]
+      if (!ids.has(messageId)) {
+        cache.toolItems.delete(key)
+      }
+    }
   })
 
   const scrollCache = useScrollCache({
@@ -607,7 +398,7 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
   }
 
   function updateScrollIndicators(element: HTMLDivElement) {
-    const hasItems = displayBlocks().length > 0
+    const hasItems = messageIds().length > 0
     setShowScrollBottomButton(hasItems && !isNearBottom(element))
     setShowScrollTopButton(hasItems && !isNearTop(element))
   }
@@ -817,7 +608,7 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
         ref={setContainerRef}
         onScroll={handleScroll}
       >
-        <Show when={!props.loading && displayBlocks().length === 0}>
+        <Show when={!props.loading && messageIds().length === 0}>
           <div class="empty-state">
             <div class="empty-state-content">
               <div class="flex flex-col items-center gap-3 mb-6">
@@ -847,13 +638,18 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
           </div>
         </Show>
 
-        <For each={displayBlocks()}>
-          {(block) => (
+        <For each={messageIds()}>
+          {(messageId) => (
             <MessageBlock
-              block={block}
+              messageId={messageId}
               instanceId={props.instanceId}
               sessionId={props.sessionId}
-              showUsagePreference={showUsagePreference}
+              store={store}
+              messageIndexMap={messageIndexMap()}
+              lastAssistantIndex={lastAssistantIndex()}
+              showThinking={preferences().showThinkingBlocks}
+              thinkingDefaultExpanded={(preferences().thinkingBlocksExpansion ?? "expanded") === "expanded"}
+              showUsageMetrics={showUsagePreference()}
               onRevert={props.onRevert}
               onFork={props.onFork}
             />
@@ -894,18 +690,204 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
 }
 
 interface MessageBlockProps {
-  block: MessageDisplayBlock
+  messageId: string
   instanceId: string
   sessionId: string
-  showUsagePreference: () => boolean
+  store: () => InstanceMessageStore
+  messageIndexMap: Map<string, number>
+  lastAssistantIndex: number
+  showThinking: boolean
+  thinkingDefaultExpanded: boolean
+  showUsageMetrics: boolean
   onRevert?: (messageId: string) => void
   onFork?: (messageId?: string) => void
 }
 
 function MessageBlock(props: MessageBlockProps) {
+  const record = createMemo(() => props.store().getMessage(props.messageId))
+  const messageInfo = createMemo(() => props.store().getMessageInfo(props.messageId))
+  const sessionCache = getSessionRenderCache(props.instanceId, props.sessionId)
+
+  const block = createMemo<MessageDisplayBlock | null>(() => {
+    const current = record()
+    if (!current) return null
+
+    const index = props.messageIndexMap.get(current.id) ?? 0
+    const isQueued = current.role === "user" && (props.lastAssistantIndex === -1 || index > props.lastAssistantIndex)
+    const info = messageInfo()
+    const infoTime = (info?.time ?? {}) as { created?: number; updated?: number; completed?: number }
+    const infoTimestamp = typeof infoTime.completed === "number"
+      ? infoTime.completed
+      : typeof infoTime.updated === "number"
+        ? infoTime.updated
+        : infoTime.created ?? 0
+    const infoError = (info as { error?: { name?: string } } | undefined)?.error
+    const infoErrorName = typeof infoError?.name === "string" ? infoError.name : ""
+    const cacheSignature = [
+      current.id,
+      current.revision,
+      isQueued ? 1 : 0,
+      props.showThinking ? 1 : 0,
+      props.thinkingDefaultExpanded ? 1 : 0,
+      props.showUsageMetrics ? 1 : 0,
+      infoTimestamp,
+      infoErrorName,
+    ].join("|")
+
+    const cachedBlock = sessionCache.messageBlocks.get(current.id)
+    if (cachedBlock && cachedBlock.signature === cacheSignature) {
+      return cachedBlock.block
+    }
+
+    const { orderedParts } = buildRecordDisplayData(props.instanceId, current)
+    const items: MessageBlockItem[] = []
+    const blockContentKeys: string[] = []
+    const blockToolKeys: string[] = []
+    let segmentIndex = 0
+    let pendingParts: ClientPart[] = []
+    let agentMetaAttached = current.role !== "assistant"
+    const defaultAccentColor = current.role === "user" ? USER_BORDER_COLOR : ASSISTANT_BORDER_COLOR
+    let lastAccentColor = defaultAccentColor
+
+    const flushContent = () => {
+      if (pendingParts.length === 0) return
+      const segmentKey = `${current.id}:segment:${segmentIndex}`
+      segmentIndex += 1
+      const shouldShowAgentMeta =
+        current.role === "assistant" &&
+        !agentMetaAttached &&
+        pendingParts.some((part) => partHasRenderableText(part))
+      let cached = sessionCache.messageItems.get(segmentKey)
+      if (!cached) {
+        cached = {
+          type: "content",
+          key: segmentKey,
+          record: current,
+          parts: pendingParts.slice(),
+          messageInfo: info,
+          isQueued,
+          showAgentMeta: shouldShowAgentMeta,
+        }
+        sessionCache.messageItems.set(segmentKey, cached)
+      } else {
+        cached.record = current
+        cached.parts = pendingParts.slice()
+        cached.messageInfo = info
+        cached.isQueued = isQueued
+        cached.showAgentMeta = shouldShowAgentMeta
+      }
+      if (shouldShowAgentMeta) {
+        agentMetaAttached = true
+      }
+      items.push(cached)
+      blockContentKeys.push(segmentKey)
+      lastAccentColor = defaultAccentColor
+      pendingParts = []
+    }
+
+    orderedParts.forEach((part, partIndex) => {
+      if (part.type === "tool") {
+        flushContent()
+        const partVersion = typeof (part as any).revision === "number" ? (part as any).revision : 0
+        const messageVersion = current.revision
+        const key = `${current.id}:${part.id ?? partIndex}`
+        let toolItem = sessionCache.toolItems.get(key)
+        if (!toolItem) {
+          toolItem = {
+            type: "tool",
+            key,
+            toolPart: part as ToolCallPart,
+            messageInfo: info,
+            messageId: current.id,
+            messageVersion,
+            partVersion,
+          }
+          sessionCache.toolItems.set(key, toolItem)
+        } else {
+          toolItem.key = key
+          toolItem.toolPart = part as ToolCallPart
+          toolItem.messageInfo = info
+          toolItem.messageId = current.id
+          toolItem.messageVersion = messageVersion
+          toolItem.partVersion = partVersion
+        }
+        items.push(toolItem)
+        blockToolKeys.push(key)
+        lastAccentColor = TOOL_BORDER_COLOR
+        return
+      }
+
+      if (part.type === "step-start") {
+        flushContent()
+        return
+      }
+
+      if (part.type === "step-finish") {
+        flushContent()
+        if (props.showUsageMetrics) {
+          const key = `${current.id}:${part.id ?? partIndex}:${part.type}`
+          const accentColor = lastAccentColor || defaultAccentColor
+          items.push({ type: part.type, key, part, messageInfo: info, accentColor })
+          lastAccentColor = accentColor
+        }
+        return
+      }
+
+      if (part.type === "reasoning") {
+        flushContent()
+        if (props.showThinking && reasoningHasRenderableContent(part)) {
+          const key = `${current.id}:${part.id ?? partIndex}:reasoning`
+          const showAgentMeta = current.role === "assistant" && !agentMetaAttached
+          if (showAgentMeta) {
+            agentMetaAttached = true
+          }
+          items.push({
+            type: "reasoning",
+            key,
+            part,
+            messageInfo: info,
+            showAgentMeta,
+            defaultExpanded: props.thinkingDefaultExpanded,
+          })
+          lastAccentColor = ASSISTANT_BORDER_COLOR
+        }
+        return
+      }
+
+      pendingParts.push(part)
+    })
+
+    flushContent()
+
+    const resultBlock: MessageDisplayBlock = { record: current, items }
+    sessionCache.messageBlocks.set(current.id, {
+      signature: cacheSignature,
+      block: resultBlock,
+      contentKeys: blockContentKeys.slice(),
+      toolKeys: blockToolKeys.slice(),
+    })
+
+    const messagePrefix = `${current.id}:`
+    for (const [key] of sessionCache.messageItems) {
+      if (key.startsWith(messagePrefix) && !blockContentKeys.includes(key)) {
+        sessionCache.messageItems.delete(key)
+      }
+    }
+    for (const [key] of sessionCache.toolItems) {
+      if (key.startsWith(messagePrefix) && !blockToolKeys.includes(key)) {
+        sessionCache.toolItems.delete(key)
+      }
+    }
+
+    return resultBlock
+  })
+
+  const resolvedBlock = block()
+  if (!resolvedBlock) return null
+
   return (
-    <div class="message-stream-block" data-message-id={props.block.record.id}>
-      <For each={props.block.items}>
+    <div class="message-stream-block" data-message-id={resolvedBlock.record.id}>
+      <For each={resolvedBlock.items}>
         {(item) => (
           <Switch>
             <Match when={item.type === "content"}>
@@ -962,7 +944,7 @@ function MessageBlock(props: MessageBlockProps) {
                       toolCallId={toolItem.key}
                       messageId={toolItem.messageId}
                       messageVersion={toolItem.messageVersion}
-                      partVersion={toolItem.partRevision}
+                      partVersion={toolItem.partVersion}
                       instanceId={props.instanceId}
                       sessionId={props.sessionId}
                     />
@@ -983,7 +965,7 @@ function MessageBlock(props: MessageBlockProps) {
                 kind="finish"
                 part={(item as StepDisplayItem).part}
                 messageInfo={(item as StepDisplayItem).messageInfo}
-                showUsage={props.showUsagePreference()}
+                showUsage={props.showUsageMetrics}
                 borderColor={(item as StepDisplayItem).accentColor}
               />
             </Match>
