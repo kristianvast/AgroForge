@@ -1,4 +1,4 @@
-import { For, Match, Show, Switch, createMemo, createSignal, createEffect, onCleanup } from "solid-js"
+import { For, Index, Match, Show, Switch, createMemo, createSignal, createEffect, onCleanup } from "solid-js"
 import MessageItem from "./message-item"
 import type { InstanceMessageStore } from "../stores/message-v2/instance-store"
 import ToolCall from "./tool-call"
@@ -225,20 +225,6 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
   const showUsagePreference = () => preferences().showUsageMetrics ?? true
   const store = createMemo(() => messageStoreBus.getOrCreate(props.instanceId))
   const messageIds = createMemo(() => store().getSessionMessageIds(props.sessionId))
-  const visibleMessageIds = createMemo(() => {
-    const ids = messageIds()
-    const revert = store().getSessionRevert(props.sessionId)
-    if (!revert?.messageID) {
-      return ids
-    }
-    const stopIndex = ids.indexOf(revert.messageID)
-    return stopIndex === -1 ? ids : ids.slice(0, stopIndex)
-  })
-  const messageRecords = createMemo(() =>
-    visibleMessageIds()
-      .map((id) => store().getMessage(id))
-      .filter((record): record is MessageRecord => Boolean(record)),
-  )
 
   const sessionRevision = createMemo(() => store().getSessionRevision(props.sessionId))
   const usageSnapshot = createMemo(() => store().getSessionUsage(props.sessionId))
@@ -638,10 +624,10 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
           </div>
         </Show>
 
-        <For each={messageIds()}>
+        <Index each={messageIds()}>
           {(messageId) => (
             <MessageBlock
-              messageId={messageId}
+              messageId={messageId()}
               instanceId={props.instanceId}
               sessionId={props.sessionId}
               store={store}
@@ -654,7 +640,7 @@ export default function MessageStreamV2(props: MessageStreamV2Props) {
               onFork={props.onFork}
             />
           )}
-        </For>
+        </Index>
       </div>
 
       <Show when={showScrollTopButton() || showScrollBottomButton()}>
