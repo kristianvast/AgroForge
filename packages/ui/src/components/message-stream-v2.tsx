@@ -1043,16 +1043,10 @@ function StepCard(props: StepCardProps) {
       return null
     }
     const tokens = info.tokens
-    const input = tokens.input ?? 0
-    const output = tokens.output ?? 0
-    const reasoningTokens = tokens.reasoning ?? 0
-    if (input === 0 && output === 0 && reasoningTokens === 0) {
-      return null
-    }
     return {
-      input,
-      output,
-      reasoning: reasoningTokens,
+      input: tokens.input ?? 0,
+      output: tokens.output ?? 0,
+      reasoning: tokens.reasoning ?? 0,
       cacheRead: tokens.cache?.read ?? 0,
       cacheWrite: tokens.cache?.write ?? 0,
       cost: info.cost ?? 0,
@@ -1063,13 +1057,13 @@ function StepCard(props: StepCardProps) {
 
   const renderUsageChips = (usage: NonNullable<ReturnType<typeof usageStats>>) => {
     const entries = [
-      { label: "Input", value: usage.input, formatter: formatTokenTotal, show: usage.input > 0 },
-      { label: "Output", value: usage.output, formatter: formatTokenTotal, show: usage.output > 0 },
-      { label: "Reasoning", value: usage.reasoning, formatter: formatTokenTotal, show: usage.reasoning > 0 },
-      { label: "Cache Read", value: usage.cacheRead, formatter: formatTokenTotal, show: usage.cacheRead > 0 },
-      { label: "Cache Write", value: usage.cacheWrite, formatter: formatTokenTotal, show: usage.cacheWrite > 0 },
-      { label: "Cost", value: usage.cost, formatter: formatCostValue, show: true },
-    ].filter((entry) => entry.show)
+      { label: "Input", value: usage.input, formatter: formatTokenTotal },
+      { label: "Output", value: usage.output, formatter: formatTokenTotal },
+      { label: "Reasoning", value: usage.reasoning, formatter: formatTokenTotal },
+      { label: "Cache Read", value: usage.cacheRead, formatter: formatTokenTotal },
+      { label: "Cache Write", value: usage.cacheWrite, formatter: formatTokenTotal },
+      { label: "Cost", value: usage.cost, formatter: formatCostValue },
+    ]
 
     return (
       <div class="message-step-usage">
