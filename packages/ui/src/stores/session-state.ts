@@ -5,6 +5,7 @@ import { deleteSession, loadMessages } from "./session-api"
 import { showToastNotification } from "../lib/notifications"
 import { messageStoreBus } from "./message-v2/bus"
 import { instances } from "./instances"
+import { showConfirmDialog } from "./alerts"
 
 export interface SessionInfo {
   cost: number
@@ -287,6 +288,19 @@ async function isBlankSession(session: Session, instanceId: string, fetchIfNeede
 async function cleanupBlankSessions(instanceId: string, excludeSessionId?: string, fetchIfNeeded = false): Promise<void> {
   const instanceSessions = sessions().get(instanceId)
   if (!instanceSessions) return
+
+  if (fetchIfNeeded) {
+    const confirmed = await showConfirmDialog(
+      "This cleanup may be slow, and may delete sessions you didn't intend to delete. Are you sure?",
+      {
+        title: "Deep Clean Sessions",
+        detail: "Deep cleaning sessions fetches the messages for each and every session in your history so it can remove not just all blank sessions, but all unused forks of sessions, and all subagents whose primary task has been completed.",
+        confirmLabel: "Continue",
+        cancelLabel: "Cancel"
+      }
+    )
+    if (!confirmed) return
+  }
 
   const cleanupPromises = Array.from(instanceSessions)
     .filter(([sessionId]) => sessionId !== excludeSessionId)
