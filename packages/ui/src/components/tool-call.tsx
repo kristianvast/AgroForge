@@ -1,5 +1,4 @@
 import { createSignal, Show, For, createEffect, createMemo, onCleanup } from "solid-js"
-import { isToolCallExpanded, toggleToolCallExpanded, setToolCallExpanded } from "../stores/tool-call-state"
 import { messageStoreBus } from "../stores/message-v2/bus"
 import { Markdown } from "./markdown"
 import { ToolCallDiffViewer } from "./diff-viewer"
@@ -349,10 +348,28 @@ export default function ToolCall(props: ToolCallProps) {
     }
     return props.toolCall.pendingPermission
   })
-  const expanded = () => (pendingPermission() ? true : isToolCallExpanded(toolCallId()))
   const toolOutputDefaultExpanded = createMemo(() => (preferences().toolOutputExpansion || "expanded") === "expanded")
   const diagnosticsDefaultExpanded = createMemo(() => (preferences().diagnosticsExpansion || "expanded") === "expanded")
-  const [appliedPreference, setAppliedPreference] = createSignal<boolean | null>(null)
+
+  const defaultExpandedForTool = createMemo(() => {
+    const prefExpanded = toolOutputDefaultExpanded()
+    const toolName = props.toolCall?.tool || ""
+    if (toolName === "read") {
+      return false
+    }
+    return prefExpanded
+  })
+
+  const [userExpanded, setUserExpanded] = createSignal<boolean | null>(null)
+
+  const expanded = () => {
+    const permission = pendingPermission()
+    if (permission?.active) return true
+    const override = userExpanded()
+    if (override !== null) return override
+    return defaultExpandedForTool()
+  }
+
   const permissionDetails = createMemo(() => pendingPermission()?.permission)
   const isPermissionActive = createMemo(() => pendingPermission()?.active === true)
   const activePermissionKey = createMemo(() => {
@@ -361,7 +378,16 @@ export default function ToolCall(props: ToolCallProps) {
   })
   const [permissionSubmitting, setPermissionSubmitting] = createSignal(false)
   const [permissionError, setPermissionError] = createSignal<string | null>(null)
-  const [diagnosticsExpanded, setDiagnosticsExpanded] = createSignal(diagnosticsDefaultExpanded())
+  const [diagnosticsOverride, setDiagnosticsOverride] = createSignal<boolean | undefined>(undefined)
+
+  const diagnosticsExpanded = () => {
+    const permission = pendingPermission()
+    if (permission?.active) return true
+    const override = diagnosticsOverride()
+    if (override !== undefined) return override
+    return diagnosticsDefaultExpanded()
+  }
+
   const diagnosticsEntries = createMemo(() => {
     const tool = props.toolCall?.tool || ""
     const state = props.toolCall?.state
@@ -369,10 +395,6 @@ export default function ToolCall(props: ToolCallProps) {
     return extractDiagnostics(tool, state)
   })
 
-  createEffect(() => {
-    const preferred = diagnosticsDefaultExpanded()
-    setDiagnosticsExpanded((prev) => (prev === preferred ? prev : preferred))
-  })
 
   let scrollContainerRef: HTMLDivElement | undefined
   let toolCallRootRef: HTMLDivElement | undefined
@@ -421,21 +443,6 @@ export default function ToolCall(props: ToolCallProps) {
     restoreScrollSnapshot(resolvedElement)
   }
 
-  createEffect(() => {
-    const id = toolCallId()
-    if (!id) return
-    const toolName = props.toolCall?.tool || ""
-    const desiredExpansion = toolName === "read" ? false : toolOutputDefaultExpanded()
-    if (appliedPreference() === desiredExpansion) return
-    setToolCallExpanded(id, desiredExpansion)
-    setAppliedPreference(desiredExpansion)
-  })
-
-  createEffect(() => {
-    const id = toolCallId()
-    if (!id) return
-    setAppliedPreference((prev) => (prev === null ? prev : null))
-  })
 
   createEffect(() => {
     const permission = permissionDetails()
@@ -447,19 +454,6 @@ export default function ToolCall(props: ToolCallProps) {
     }
   })
 
-  createEffect(() => {
-    if (props.toolCall?.tool !== "task") return
-    const state = props.toolCall?.state
-    const summarySignature = JSON.stringify(
-      state && (isToolStateRunning(state) || isToolStateCompleted(state) || isToolStateError(state))
-        ? state.metadata?.summary ?? [] 
-        : []
-    )
-    requestAnimationFrame(() => {
-      void summarySignature
-      handleScrollRendered()
-    })
-  })
 
   createEffect(() => {
     const activeKey = activePermissionKey()
@@ -516,7 +510,14 @@ export default function ToolCall(props: ToolCallProps) {
   }
 
   function toggle() {
-    toggleToolCallExpanded(toolCallId())
+    const permission = pendingPermission()
+    if (permission?.active) {
+      return
+    }
+    setUserExpanded((prev) => {
+      const current = prev === null ? defaultExpandedForTool() : prev
+      return !current
+    })
   }
 
   const renderToolAction = () => {
@@ -1213,7 +1214,10 @@ export default function ToolCall(props: ToolCallProps) {
         {renderDiagnosticsSection(
           diagnosticsEntries(),
           diagnosticsExpanded(),
-          () => setDiagnosticsExpanded((prev) => !prev),
+          () => setDiagnosticsOverride((prev) => {
+            const current = prev === undefined ? diagnosticsDefaultExpanded() : prev
+            return !current
+          }),
           getToolIcon(toolName()),
           diagnosticFileName(diagnosticsEntries()),
         )}
