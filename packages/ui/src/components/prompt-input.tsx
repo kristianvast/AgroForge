@@ -163,6 +163,53 @@ export default function PromptInput(props: PromptInputProps) {
     }
   }
 
+  function handleExpandTextAttachment(attachment: Attachment) {
+    if (attachment.source.type !== "text") return
+
+    const textarea = textareaRef
+    const value = attachment.source.value
+    const match = attachment.display.match(/pasted #(\d+)/)
+    const placeholder = match ? `[pasted #${match[1]}]` : null
+    const currentText = prompt()
+
+    let nextText = currentText
+    let selectionTarget: number | null = null
+
+    if (placeholder) {
+      const placeholderIndex = currentText.indexOf(placeholder)
+      if (placeholderIndex !== -1) {
+        nextText =
+          currentText.substring(0, placeholderIndex) +
+          value +
+          currentText.substring(placeholderIndex + placeholder.length)
+        selectionTarget = placeholderIndex + value.length
+      }
+    }
+
+    if (nextText === currentText) {
+      if (textarea) {
+        const start = textarea.selectionStart
+        const end = textarea.selectionEnd
+        nextText = currentText.substring(0, start) + value + currentText.substring(end)
+        selectionTarget = start + value.length
+      } else {
+        nextText = currentText + value
+      }
+    }
+
+    setPrompt(nextText)
+    removeAttachment(props.instanceId, props.sessionId, attachment.id)
+
+    if (textarea) {
+      setTimeout(() => {
+        textarea.focus()
+        if (selectionTarget !== null) {
+          textarea.setSelectionRange(selectionTarget, selectionTarget)
+        }
+      }, 0)
+    }
+  }
+
   async function handlePaste(e: ClipboardEvent) {
     const items = e.clipboardData?.items
     if (!items) return
@@ -813,13 +860,18 @@ export default function PromptInput(props: PromptInputProps) {
               <For each={attachments()}>
                 {(attachment) => {
                   const isImage = attachment.mediaType.startsWith("image/")
+                  const textValue = attachment.source.type === "text" ? attachment.source.value : undefined
+                  const isTextAttachment = typeof textValue === "string"
                   return (
-                    <div class={`attachment-chip ${isImage ? "attachment-chip-image" : ""}`}>
+                    <div
+                      class={`attachment-chip ${isImage ? "attachment-chip-image" : ""}`}
+                      title={textValue}
+                    >
                       <Show
                         when={isImage}
                         fallback={
                           <Show
-                            when={attachment.source.type === "text"}
+                            when={isTextAttachment}
                             fallback={
                               <Show
                                 when={attachment.source.type === "agent"}
@@ -858,7 +910,20 @@ export default function PromptInput(props: PromptInputProps) {
                       >
                         <img src={attachment.url} alt={attachment.filename} class="h-5 w-5 rounded object-cover" />
                       </Show>
-                      <span>{attachment.source.type === "text" ? attachment.display : attachment.filename}</span>
+                      <span>{isTextAttachment ? attachment.display : attachment.filename}</span>
+                      <Show when={isTextAttachment}>
+                        <button
+                          onClick={() => handleExpandTextAttachment(attachment)}
+                          class="attachment-expand"
+                          aria-label="Expand pasted text"
+                          title="Insert pasted text"
+                        >
+                          <svg class="h-3 w-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h6v6H7z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4h12v12" />
+                          </svg>
+                        </button>
+                      </Show>
                       <button
                         onClick={() => handleRemoveAttachment(attachment.id)}
                         class="attachment-remove"
