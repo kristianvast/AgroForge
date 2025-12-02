@@ -40,7 +40,22 @@ function ensurePartId(messageId: string, part: ClientPart, index: number): strin
   if (typeof part.id === "string" && part.id.length > 0) {
     return part.id
   }
-  return `${messageId}-part-${index}`
+
+  const toolCallId =
+    (part as any).callID ??
+    (part as any).callId ??
+    (part as any).toolCallID ??
+    (part as any).toolCallId ??
+    undefined
+
+  if (part.type === "tool" && typeof toolCallId === "string" && toolCallId.length > 0) {
+    part.id = toolCallId
+    return toolCallId
+  }
+
+  const fallbackId = `${messageId}-part-${index}`
+  part.id = fallbackId
+  return fallbackId
 }
 
 const PENDING_PART_MAX_AGE_MS = 30_000

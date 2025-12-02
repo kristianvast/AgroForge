@@ -1,8 +1,6 @@
 import { createSignal } from "solid-js"
-import { produce } from "solid-js/store"
 import type { Instance, LogEntry } from "../types/instance"
 import type { LspStatus, Permission } from "@opencode-ai/sdk"
-import type { ClientPart } from "../types/message"
 import { sdkManager } from "../lib/sdk-manager"
 import { sseManager } from "../lib/sse-manager"
 import { serverApi } from "../lib/api-client"
@@ -21,10 +19,9 @@ import { setSessionPendingPermission } from "./session-state"
 import { setHasInstances } from "./ui"
 import { messageStoreBus } from "./message-v2/bus"
 import { clearCacheForInstance } from "../lib/global-cache"
-import type { MessageRecord } from "./message-v2/types"
-
 
 const [instances, setInstances] = createSignal<Map<string, Instance>>(new Map())
+
 const [activeInstanceId, setActiveInstanceId] = createSignal<string | null>(null)
 const [instanceLogs, setInstanceLogs] = createSignal<Map<string, LogEntry[]>>(new Map())
 const [logStreamingState, setLogStreamingState] = createSignal<Map<string, boolean>>(new Map())
@@ -461,17 +458,6 @@ function addPermissionToQueue(instanceId: string, permission: Permission): void 
   const sessionId = getPermissionSessionId(permission)
   incrementSessionPendingCount(instanceId, sessionId)
   setSessionPendingPermission(instanceId, sessionId, true)
-
-  const isActive = getActivePermission(instanceId)?.id === permission.id
-  attachPermissionToToolPart(instanceId, permission, isActive)
-}
-
-function getActivePermission(instanceId: string): Permission | null {
-  const activeId = activePermissionId().get(instanceId)
-  if (!activeId) return null
-
-  const queue = getPermissionQueue(instanceId)
-  return queue.find(p => p.id === activeId) ?? null
 }
 
 function removePermissionFromQueue(instanceId: string, permissionId: string): void {
@@ -512,15 +498,9 @@ function removePermissionFromQueue(instanceId: string, permissionId: string): vo
 
   const removed = removedPermission
   if (removed) {
-    clearPermissionFromToolPart(instanceId, removed)
     const removedSessionId = getPermissionSessionId(removed)
     const remaining = decrementSessionPendingCount(instanceId, removedSessionId)
     setSessionPendingPermission(instanceId, removedSessionId, remaining > 0)
-  }
-
-  const nextActivePermission = getActivePermission(instanceId)
-  if (nextActivePermission) {
-    attachPermissionToToolPart(instanceId, nextActivePermission, true)
   }
 }
 
@@ -540,131 +520,6 @@ function clearPermissionQueue(instanceId: string): void {
 
 function getPermissionSessionId(permission: Permission): string {
   return (permission as any).sessionID
-}
-
-function getPermissionMessageId(permission: Permission): string | undefined {
-  return (permission as any).messageID ?? (permission as any).messageId ?? undefined
-}
-
-function getPermissionCallIdentifier(permission: Permission): string | undefined {
-  return (
-    (permission as any).callID ??
-    (permission as any).callId ??
-    (permission as any).toolCallID ??
-    (permission as any).toolCallId ??
-    undefined
-  )
-}
-
-function findToolPartForPermission(record: MessageRecord, permission: Permission): { partId: string; part: ClientPart } | null {
-  const expectedCallId = getPermissionCallIdentifier(permission)
-  const permissionId = permission.id
-  const permissionMessageId = getPermissionMessageId(permission)
-
-  for (const partId of record.partIds) {
-    const entry = record.parts[partId]
-    if (!entry) continue
-    const part = entry.data
-    if (!part || part.type !== "tool") continue
-    const toolCallId = (part as any).callID ?? (part as any).callId
-    const partMessageId = (part as any).messageID ?? (part as any).messageId
-
-    if (expectedCallId) {
-      if (toolCallId === expectedCallId) {
-        return { partId, part }
-      }
-      if (!toolCallId && (part.id === expectedCallId || (permissionMessageId && partMessageId === permissionMessageId))) {
-        return { partId, part }
-      }
-      continue
-    }
-
-    if (
-      (toolCallId && toolCallId === permissionId) ||
-      part.id === permissionId ||
-      (permissionMessageId && partMessageId === permissionMessageId)
-    ) {
-      return { partId, part }
-    }
-  }
-  return null
-}
-
-function mutateToolPartPermission(
-  instanceId: string,
-  permission: Permission,
-  mutator: (part: ClientPart) => boolean,
-): void {
-  const messageId = getPermissionMessageId(permission)
-  if (!messageId) return
-  const store = messageStoreBus.getOrCreate(instanceId)
-  const messageRecord = store.getMessage(messageId)
-  if (!messageRecord) return
-  const targetPart = findToolPartForPermission(messageRecord, permission)
-  if (!targetPart) return
-
-  store.setState(
-    "messages",
-    messageId,
-    produce((draft: MessageRecord) => {
-      const partRecord = draft.parts[targetPart.partId]
-      if (!partRecord) return
-      const changed = mutator(partRecord.data)
-      if (!changed) return
-      const nextVersion = typeof partRecord.data.version === "number" ? partRecord.data.version + 1 : 1
-      partRecord.data.version = nextVersion
-      partRecord.revision += 1
-      draft.revision += 1
-      draft.updatedAt = Date.now()
-    }),
-  )
-
-  // Permission attachment/removal can change the rendered height of the
-  // message list (e.g., permission blocks or diffs), so bump the
-  // session revision to ensure auto-scroll reacts.
-  if (messageRecord.sessionId) {
-    store.setState("sessionRevisions", messageRecord.sessionId, (value: number = 0) => value + 1)
-  }
-}
-
-function attachPermissionToToolPart(instanceId: string, permission: Permission, active: boolean): void {
-  mutateToolPartPermission(instanceId, permission, (part) => {
-    const existing = part.pendingPermission
-    if (existing && existing.permission.id === permission.id && existing.active === active) {
-      return false
-    }
-    part.pendingPermission = { permission, active }
-    return true
-  })
-}
-
-function clearPermissionFromToolPart(instanceId: string, permission: Permission): void {
-  mutateToolPartPermission(instanceId, permission, (part) => {
-    if (!part.pendingPermission || part.pendingPermission.permission.id !== permission.id) {
-      return false
-    }
-    delete part.pendingPermission
-    return true
-  })
-}
-
-function refreshPermissionsForSession(instanceId: string, sessionId: string): void {
-  const queue = getPermissionQueue(instanceId)
-  if (queue.length === 0) {
-    setSessionPendingPermission(instanceId, sessionId, false)
-    return
-  }
-
-  const activeId = activePermissionId().get(instanceId)
-
-  for (const permission of queue) {
-    if (getPermissionSessionId(permission) !== sessionId) continue
-    const isActive = permission.id === activeId
-    attachPermissionToToolPart(instanceId, permission, isActive)
-  }
-
-  const pendingCount = permissionSessionCounts.get(instanceId)?.get(sessionId) ?? 0
-  setSessionPendingPermission(instanceId, sessionId, pendingCount > 0)
 }
 
 async function sendPermissionResponse(
@@ -768,10 +623,8 @@ export {
   getPermissionQueue,
   getPermissionQueueLength,
   addPermissionToQueue,
-  getActivePermission,
   removePermissionFromQueue,
   clearPermissionQueue,
-  refreshPermissionsForSession,
   sendPermissionResponse,
   disconnectedInstance,
   acknowledgeDisconnectedInstance,

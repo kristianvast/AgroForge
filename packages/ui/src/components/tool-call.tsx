@@ -208,17 +208,19 @@ export default function ToolCall(props: ToolCallProps) {
   const { isDark } = useTheme()
   const toolCallMemo = createMemo(() => props.toolCall)
   const toolName = createMemo(() => toolCallMemo()?.tool || "")
-  const toolCallId = () => props.toolCallId || toolCallMemo()?.id || ""
+  const toolCallIdentifier = createMemo(() => toolCallMemo()?.callID || props.toolCallId || toolCallMemo()?.id || "")
   const toolState = createMemo(() => toolCallMemo()?.state)
-  const store = createMemo(() => messageStoreBus.getOrCreate(props.instanceId))
 
   const cacheContext = createMemo(() => ({
-    toolCallId: toolCallId(),
+    toolCallId: toolCallIdentifier(),
     messageId: props.messageId,
     partId: toolCallMemo()?.id ?? null,
   }))
 
+  const store = createMemo(() => messageStoreBus.getOrCreate(props.instanceId))
+
   const createVariantCache = (variant: string) =>
+
     useGlobalCache({
       instanceId: () => props.instanceId,
       sessionId: () => props.sessionId,
@@ -232,7 +234,7 @@ export default function ToolCall(props: ToolCallProps) {
   const diffCache = createVariantCache("diff")
   const permissionDiffCache = createVariantCache("permission-diff")
   const markdownCache = createVariantCache("markdown")
-  const permissionState = createMemo(() => store().getPermissionState(props.messageId, toolCallMemo()?.id))
+  const permissionState = createMemo(() => store().getPermissionState(props.messageId, toolCallIdentifier()))
   const pendingPermission = createMemo(() => {
     const state = permissionState()
     if (state) {

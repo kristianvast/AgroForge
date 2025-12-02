@@ -1,7 +1,7 @@
 import type { Session } from "../types/session"
 import type { Message } from "../types/message"
 
-import { instances, refreshPermissionsForSession } from "./instances"
+import { instances } from "./instances"
 import { preferences, setAgentModelPreference } from "./preferences"
 import { setSessionCompactionState } from "./session-compaction"
 import {
@@ -618,7 +618,6 @@ async function loadMessages(instanceId: string, sessionId: string, force = false
   }
 
   updateSessionInfo(instanceId, sessionId)
-  refreshPermissionsForSession(instanceId, sessionId)
 }
 
 export {

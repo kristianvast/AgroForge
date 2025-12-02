@@ -16,7 +16,7 @@ import type {
 import type { MessageStatus } from "./message-v2/types"
 
 import { showToastNotification, ToastVariant } from "../lib/notifications"
-import { instances, addPermissionToQueue, removePermissionFromQueue, refreshPermissionsForSession } from "./instances"
+import { instances, addPermissionToQueue, removePermissionFromQueue } from "./instances"
 import { showAlertDialog } from "./alerts"
 import {
   sessions,
@@ -129,7 +129,6 @@ function handleMessageUpdate(instanceId: string, event: MessageUpdateEvent | Mes
 
 
     updateSessionInfo(instanceId, sessionId)
-    refreshPermissionsForSession(instanceId, sessionId)
   } else if (event.type === "message.updated") {
     const info = event.properties?.info
     if (!info) return
@@ -171,13 +170,12 @@ function handleMessageUpdate(instanceId: string, event: MessageUpdateEvent | Mes
     upsertMessageInfoV2(instanceId, info, { status, bumpRevision: true })
 
     updateSessionInfo(instanceId, sessionId)
-    refreshPermissionsForSession(instanceId, sessionId)
   }
- }
-
+}
 
 function handleSessionUpdate(instanceId: string, event: EventSessionUpdated): void {
   const info = event.properties?.info
+
   if (!info) return
 
   const compactingFlag = info.time?.compacting
