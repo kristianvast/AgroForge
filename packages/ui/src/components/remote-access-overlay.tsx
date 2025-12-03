@@ -24,6 +24,13 @@ export function RemoteAccessOverlay(props: RemoteAccessOverlayProps) {
   const addresses = createMemo<NetworkAddress[]>(() => meta()?.addresses ?? [])
   const currentMode = createMemo(() => meta()?.listeningMode ?? preferences().listeningMode)
   const allowExternalConnections = createMemo(() => currentMode() === "all")
+  const displayAddresses = createMemo(() => {
+    const list = addresses()
+    if (allowExternalConnections()) {
+      return list.filter((address) => address.scope !== "loopback")
+    }
+    return list.filter((address) => address.scope === "loopback")
+  })
 
   const refreshMeta = async () => {
     setLoading(true)
@@ -177,9 +184,9 @@ export function RemoteAccessOverlay(props: RemoteAccessOverlayProps) {
 
                 <Show when={!loading()} fallback={<div class="remote-card">Loading addresses…</div>}>
                   <Show when={!error()} fallback={<div class="remote-error">{error()}</div>}>
-                    <Show when={addresses().length > 0} fallback={<div class="remote-card">No addresses available yet.</div>}>
+                    <Show when={displayAddresses().length > 0} fallback={<div class="remote-card">No addresses available yet.</div>}>
                       <div class="remote-address-list">
-                        <For each={addresses()}>
+                        <For each={displayAddresses()}>
                           {(address) => {
                             const expandedState = () => expandedUrl() === address.url
                             const qr = () => qrCodes()[address.url]
