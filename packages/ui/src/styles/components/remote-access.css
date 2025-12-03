@@ -55,9 +55,11 @@
   border: 1px solid var(--border-base);
   background: var(--surface-secondary);
   color: var(--text-primary);
-  border-radius: 10px;
-  padding: 8px 12px;
+  border-radius: 999px;
+  padding: 6px 10px;
   cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .remote-body {
@@ -118,6 +120,16 @@
   cursor: pointer;
 }
 
+.remote-refresh-label {
+  display: inline-block;
+}
+
+@media (max-width: 640px) {
+  .remote-refresh-label {
+    display: none;
+  }
+}
+
 .remote-toggle {
   position: relative;
   display: flex;
@@ -150,6 +162,7 @@
 
 .remote-toggle-state {
   pointer-events: none;
+  white-space: nowrap;
 }
 
 .remote-toggle-thumb {

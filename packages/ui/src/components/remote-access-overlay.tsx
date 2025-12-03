@@ -126,7 +126,7 @@ export function RemoteAccessOverlay(props: RemoteAccessOverlayProps) {
                 <p class="remote-subtitle">Use the addresses below to open CodeNomad from another device.</p>
               </div>
               <button type="button" class="remote-close" onClick={props.onClose} aria-label="Close remote access">
-                Close
+                ×
               </button>
             </header>
 
@@ -142,7 +142,7 @@ export function RemoteAccessOverlay(props: RemoteAccessOverlayProps) {
                   </div>
                   <button class="remote-refresh" type="button" onClick={() => void refreshMeta()} disabled={loading()}>
                     <RefreshCw class={`remote-icon ${loading() ? "remote-spin" : ""}`} />
-                    Refresh
+                    <span class="remote-refresh-label">Refresh</span>
                   </button>
                 </div>
 
