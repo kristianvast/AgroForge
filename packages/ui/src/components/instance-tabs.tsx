@@ -2,7 +2,7 @@ import { Component, For, Show } from "solid-js"
 import type { Instance } from "../types/instance"
 import InstanceTab from "./instance-tab"
 import KeyboardHint from "./keyboard-hint"
-import { Plus, Cast } from "lucide-solid"
+import { Plus, MonitorUp } from "lucide-solid"
 import { keyboardRegistry } from "../lib/keyboard-registry"
 
 interface InstanceTabsProps {
@@ -56,8 +56,9 @@ const InstanceTabs: Component<InstanceTabsProps> = (props) => {
                 title="Remote connect"
                 aria-label="Remote connect"
               >
-                <Cast class="w-4 h-4" />
+                <MonitorUp class="w-4 h-4" />
               </button>
+
             </Show>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { Component, createSignal, Show, For, onMount, onCleanup, createEffect } from "solid-js"
-import { Folder, Clock, Trash2, FolderPlus, Settings, ChevronRight, Cast } from "lucide-solid"
+import { Folder, Clock, Trash2, FolderPlus, Settings, ChevronRight, MonitorUp } from "lucide-solid"
 import { useConfig } from "../stores/preferences"
 import AdvancedSettingsModal from "./advanced-settings-modal"
 import DirectoryBrowserDialog from "./directory-browser-dialog"
@@ -237,7 +237,7 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
                 class="selector-button selector-button-secondary inline-flex items-center justify-center"
                 onClick={() => props.onOpenRemoteAccess?.()}
               >
-                <Cast class="w-4 h-4" />
+                <MonitorUp class="w-4 h-4" />
               </button>
             </div>
           </Show>
