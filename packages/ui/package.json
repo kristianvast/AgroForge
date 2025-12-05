@@ -12,7 +12,7 @@
   "dependencies": {
     "@git-diff-view/solid": "^0.0.8",
     "@kobalte/core": "0.13.11",
-    "@opencode-ai/sdk": "1.0.68",
+    "@opencode-ai/sdk": "^1.0.133",
     "@solidjs/router": "^0.13.0",
     "github-markdown-css": "^5.8.1",
     "lucide-solid": "^0.300.0",
