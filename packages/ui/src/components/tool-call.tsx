@@ -18,6 +18,9 @@ const log = getLogger("session")
 type ToolState = import("@opencode-ai/sdk").ToolState
 
 const TOOL_CALL_CACHE_SCOPE = "tool-call"
+const TOOL_SCROLL_SENTINEL_MARGIN_PX = 48
+const TOOL_SCROLL_INTENT_WINDOW_MS = 600
+const TOOL_SCROLL_INTENT_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ", "Spacebar"])
 
 function makeRenderCacheKey(
   toolCallId?: string | null,
@@ -284,26 +287,177 @@ export default function ToolCall(props: ToolCallProps) {
     if (override !== undefined) return override
     return diagnosticsDefaultExpanded()
   }
-
   const diagnosticsEntries = createMemo(() => {
     const state = toolState()
     if (!state) return []
     return extractDiagnostics(state)
   })
 
+  const [scrollContainer, setScrollContainer] = createSignal<HTMLDivElement | undefined>()
+  const [bottomSentinel, setBottomSentinel] = createSignal<HTMLDivElement | null>(null)
+  const [autoScroll, setAutoScroll] = createSignal(true)
+  const [bottomSentinelVisible, setBottomSentinelVisible] = createSignal(true)
 
-  let scrollContainerRef: HTMLDivElement | undefined
   let toolCallRootRef: HTMLDivElement | undefined
+  let scrollContainerRef: HTMLDivElement | undefined
+  let detachScrollIntentListeners: (() => void) | undefined
 
-  const persistScrollSnapshot = (_element?: HTMLElement | null) => {}
- 
-  const handleScrollRendered = () => {}
- 
+  let pendingScrollFrame: number | null = null
+  let pendingAnchorScroll: number | null = null
+  let userScrollIntentUntil = 0
+  let lastKnownScrollTop = 0
+
+  function restoreScrollPosition(forceBottom = false) {
+    const container = scrollContainerRef
+    if (!container) return
+    if (forceBottom) {
+      container.scrollTop = container.scrollHeight
+      lastKnownScrollTop = container.scrollTop
+    } else {
+      container.scrollTop = lastKnownScrollTop
+    }
+  }
+
+  const persistScrollSnapshot = (element?: HTMLElement | null) => {
+    if (!element) return
+    lastKnownScrollTop = element.scrollTop
+  }
+
+  const handleScrollRendered = () => {
+    requestAnimationFrame(() => {
+      restoreScrollPosition(autoScroll())
+      if (!expanded()) return
+      scheduleAnchorScroll()
+    })
+  }
+
   const initializeScrollContainer = (element: HTMLDivElement | null | undefined) => {
     scrollContainerRef = element || undefined
+    setScrollContainer(scrollContainerRef)
+    if (scrollContainerRef) {
+      restoreScrollPosition(autoScroll())
+    }
   }
 
 
+  function markUserScrollIntent() {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now()
+    userScrollIntentUntil = now + TOOL_SCROLL_INTENT_WINDOW_MS
+  }
+
+  function hasUserScrollIntent() {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now()
+    return now <= userScrollIntentUntil
+  }
+
+  function attachScrollIntentListeners(element: HTMLDivElement) {
+    if (detachScrollIntentListeners) {
+      detachScrollIntentListeners()
+      detachScrollIntentListeners = undefined
+    }
+    const handlePointerIntent = () => markUserScrollIntent()
+    const handleKeyIntent = (event: KeyboardEvent) => {
+      if (TOOL_SCROLL_INTENT_KEYS.has(event.key)) {
+        markUserScrollIntent()
+      }
+    }
+    element.addEventListener("wheel", handlePointerIntent, { passive: true })
+    element.addEventListener("pointerdown", handlePointerIntent)
+    element.addEventListener("touchstart", handlePointerIntent, { passive: true })
+    element.addEventListener("keydown", handleKeyIntent)
+    detachScrollIntentListeners = () => {
+      element.removeEventListener("wheel", handlePointerIntent)
+      element.removeEventListener("pointerdown", handlePointerIntent)
+      element.removeEventListener("touchstart", handlePointerIntent)
+      element.removeEventListener("keydown", handleKeyIntent)
+    }
+  }
+
+  function scheduleAnchorScroll(immediate = false) {
+    if (!autoScroll()) return
+    const sentinel = bottomSentinel()
+    const container = scrollContainerRef
+    if (!sentinel || !container) return
+    if (pendingAnchorScroll !== null) {
+      cancelAnimationFrame(pendingAnchorScroll)
+      pendingAnchorScroll = null
+    }
+    pendingAnchorScroll = requestAnimationFrame(() => {
+      pendingAnchorScroll = null
+      const containerRect = container.getBoundingClientRect()
+      const sentinelRect = sentinel.getBoundingClientRect()
+      const delta = sentinelRect.bottom - containerRect.bottom + TOOL_SCROLL_SENTINEL_MARGIN_PX
+      if (Math.abs(delta) > 1) {
+        container.scrollBy({ top: delta, behavior: immediate ? "auto" : "smooth" })
+      }
+      lastKnownScrollTop = container.scrollTop
+    })
+  }
+
+  function handleScroll() {
+    const container = scrollContainer()
+    if (!container) return
+    if (pendingScrollFrame !== null) {
+      cancelAnimationFrame(pendingScrollFrame)
+    }
+    const isUserScroll = hasUserScrollIntent()
+    pendingScrollFrame = requestAnimationFrame(() => {
+      pendingScrollFrame = null
+      const atBottom = bottomSentinelVisible()
+      if (isUserScroll) {
+        if (atBottom) {
+          if (!autoScroll()) setAutoScroll(true)
+        } else if (autoScroll()) {
+          setAutoScroll(false)
+        }
+      }
+    })
+  }
+
+  const handleScrollEvent = (event: Event & { currentTarget: HTMLDivElement }) => {
+    handleScroll()
+    persistScrollSnapshot(event.currentTarget)
+  }
+
+  createEffect(() => {
+    const container = scrollContainer()
+    if (!container) return
+
+    attachScrollIntentListeners(container)
+    onCleanup(() => {
+      if (detachScrollIntentListeners) {
+        detachScrollIntentListeners()
+        detachScrollIntentListeners = undefined
+      }
+    })
+  })
+
+  createEffect(() => {
+    const container = scrollContainer()
+    const sentinel = bottomSentinel()
+    if (!container || !sentinel) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target === sentinel) {
+            setBottomSentinelVisible(entry.isIntersecting)
+          }
+        })
+      },
+      { root: container, threshold: 0, rootMargin: `0px 0px ${TOOL_SCROLL_SENTINEL_MARGIN_PX}px 0px` },
+    )
+    observer.observe(sentinel)
+    onCleanup(() => observer.disconnect())
+  })
+
+  createEffect(() => {
+    if (!expanded()) {
+      setScrollContainer(undefined)
+      scrollContainerRef = undefined
+      setBottomSentinel(null)
+      setAutoScroll(true)
+    }
+  })
 
   createEffect(() => {
     const permission = permissionDetails()
@@ -314,7 +468,6 @@ export default function ToolCall(props: ToolCallProps) {
       setPermissionError(null)
     }
   })
-
 
   createEffect(() => {
     const activeKey = activePermissionKey()
@@ -343,11 +496,6 @@ export default function ToolCall(props: ToolCallProps) {
     onCleanup(() => document.removeEventListener("keydown", handler))
   })
 
-  createEffect(() => {
-    if (!expanded()) {
-      scrollContainerRef = undefined
-    }
-  })
 
   const statusIcon = () => {
     const status = toolState()?.status || ""
@@ -421,7 +569,7 @@ export default function ToolCall(props: ToolCallProps) {
           if (options?.disableScrollTracking) return
           initializeScrollContainer(element)
         }}
-        onScroll={options?.disableScrollTracking ? undefined : (event) => persistScrollSnapshot(event.currentTarget)}
+        onScroll={options?.disableScrollTracking ? undefined : handleScrollEvent}
       >
         <div class="tool-call-diff-toolbar" role="group" aria-label="Diff view mode">
           <span class="tool-call-diff-toolbar-label">{toolbarLabel}</span>
@@ -453,6 +601,9 @@ export default function ToolCall(props: ToolCallProps) {
           cacheEntryParams={cacheHandle.params()}
           onRendered={handleDiffRendered}
         />
+        <Show when={!options?.disableScrollTracking}>
+          <div ref={setBottomSentinel} aria-hidden="true" class="tool-call-scroll-sentinel" style={{ height: "1px" }} />
+        </Show>
       </div>
     )
   }
@@ -479,20 +630,18 @@ export default function ToolCall(props: ToolCallProps) {
     }
 
     return (
-      <div
-        class={messageClass}
-        ref={(element) => initializeScrollContainer(element)}
-        onScroll={(event) => persistScrollSnapshot(event.currentTarget)}
-      >
+      <div class={messageClass} ref={(element) => initializeScrollContainer(element)} onScroll={handleScrollEvent}>
         <Markdown
           part={markdownPart}
           isDark={isDark()}
           disableHighlight={disableHighlight}
           onRendered={handleMarkdownRendered}
         />
+        <div ref={setBottomSentinel} aria-hidden="true" class="tool-call-scroll-sentinel" style={{ height: "1px" }} />
       </div>
     )
   }
+
 
   const messageVersionAccessor = createMemo(() => props.messageVersion)
   const partVersionAccessor = createMemo(() => props.partVersion)
@@ -507,7 +656,30 @@ export default function ToolCall(props: ToolCallProps) {
     renderDiff: renderDiffContent,
   }
 
+  let previousPartVersion: number | undefined
+  createEffect(() => {
+    const version = partVersionAccessor()
+    if (!expanded()) {
+      return
+    }
+    if (version === undefined) {
+      return
+    }
+    if (previousPartVersion !== undefined && version === previousPartVersion) {
+      return
+    }
+    previousPartVersion = version
+    scheduleAnchorScroll()
+  })
+
+  createEffect(() => {
+    if (expanded() && autoScroll()) {
+      scheduleAnchorScroll(true)
+    }
+  })
+
   const getRendererAction = () => renderer().getAction?.(rendererContext) ?? getDefaultToolAction(toolName())
+
 
   const renderToolTitle = () => {
     const state = toolState()
@@ -653,8 +825,24 @@ export default function ToolCall(props: ToolCallProps) {
 
   const status = () => toolState()?.status || ""
 
+  onCleanup(() => {
+    if (pendingScrollFrame !== null) {
+      cancelAnimationFrame(pendingScrollFrame)
+      pendingScrollFrame = null
+    }
+    if (pendingAnchorScroll !== null) {
+      cancelAnimationFrame(pendingAnchorScroll)
+      pendingAnchorScroll = null
+    }
+    if (detachScrollIntentListeners) {
+      detachScrollIntentListeners()
+      detachScrollIntentListeners = undefined
+    }
+  })
+
   return (
     <div
+
       ref={(element) => {
         toolCallRootRef = element || undefined
       }}
