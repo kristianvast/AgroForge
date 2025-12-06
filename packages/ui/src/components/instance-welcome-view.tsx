@@ -21,6 +21,9 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
   const [selectedIndex, setSelectedIndex] = createSignal(0)
   const [focusMode, setFocusMode] = createSignal<"sessions" | "new-session" | null>("sessions")
   const [showInstanceInfoOverlay, setShowInstanceInfoOverlay] = createSignal(false)
+  const [isDesktopLayout, setIsDesktopLayout] = createSignal(
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : false,
+  )
 
   const parentSessions = () => getParentSessions(props.instance.id)
   const isSessionDeleting = (sessionId: string) => {
@@ -56,7 +59,10 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
     }
   })
 
-  const openInstanceInfoOverlay = () => setShowInstanceInfoOverlay(true)
+  const openInstanceInfoOverlay = () => {
+    if (isDesktopLayout()) return
+    setShowInstanceInfoOverlay(true)
+  }
   const closeInstanceInfoOverlay = () => setShowInstanceInfoOverlay(false)
 
   function scrollToIndex(index: number) {
@@ -174,6 +180,7 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
   onMount(() => {
     const mediaQuery = window.matchMedia("(min-width: 1024px)")
     const handleMediaChange = (matches: boolean) => {
+      setIsDesktopLayout(matches)
       if (matches) {
         closeInstanceInfoOverlay()
       }
@@ -261,7 +268,7 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
                 </div>
                 <p class="panel-empty-state-title">No Previous Sessions</p>
                 <p class="panel-empty-state-description">Create a new session below to get started</p>
-                <Show when={!showInstanceInfoOverlay()}>
+                <Show when={!isDesktopLayout() && !showInstanceInfoOverlay()}>
                   <button type="button" class="button-tertiary mt-4 lg:hidden" onClick={openInstanceInfoOverlay}>
                     View Instance Info
                   </button>
@@ -278,7 +285,7 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
                       {parentSessions().length} {parentSessions().length === 1 ? "session" : "sessions"} available
                     </p>
                   </div>
-                  <Show when={!showInstanceInfoOverlay()}>
+                  <Show when={!isDesktopLayout() && !showInstanceInfoOverlay()}>
                     <button
                       type="button"
                       class="button-tertiary lg:hidden flex-shrink-0"
@@ -416,7 +423,7 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
         </div>
       </div>
 
-      <Show when={showInstanceInfoOverlay()}>
+      <Show when={!isDesktopLayout() && showInstanceInfoOverlay()}>
         <div
           class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={closeInstanceInfoOverlay}
