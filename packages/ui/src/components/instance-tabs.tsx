@@ -20,24 +20,27 @@ const InstanceTabs: Component<InstanceTabsProps> = (props) => {
       <div class="tab-container" role="tablist">
         <div class="tab-scroll">
           <div class="tab-strip">
-            <For each={Array.from(props.instances.entries())}>
-              {([id, instance]) => (
-                <InstanceTab
-                  instance={instance}
-                  active={id === props.activeInstanceId}
-                  onSelect={() => props.onSelect(id)}
-                  onClose={() => props.onClose(id)}
-                />
-              )}
-            </For>
-            <button
-              class="new-tab-button"
-              onClick={props.onNew}
-              title="New instance (Cmd/Ctrl+N)"
-              aria-label="New instance"
-            >
-              <Plus class="w-4 h-4" />
-            </button>
+            <div class="tab-strip-tabs">
+              <For each={Array.from(props.instances.entries())}>
+                {([id, instance]) => (
+                  <InstanceTab
+                    instance={instance}
+                    active={id === props.activeInstanceId}
+                    onSelect={() => props.onSelect(id)}
+                    onClose={() => props.onClose(id)}
+                  />
+                )}
+              </For>
+              <button
+                class="new-tab-button"
+                onClick={props.onNew}
+                title="New instance (Cmd/Ctrl+N)"
+                aria-label="New instance"
+              >
+                <Plus class="w-4 h-4" />
+              </button>
+            </div>
+            <div class="tab-strip-spacer" />
             <Show when={Array.from(props.instances.entries()).length > 1}>
               <div class="tab-shortcuts">
                 <KeyboardHint
@@ -49,7 +52,7 @@ const InstanceTabs: Component<InstanceTabsProps> = (props) => {
             </Show>
             <Show when={Boolean(props.onOpenRemoteAccess)}>
               <button
-                class="new-tab-button"
+                class="new-tab-button tab-remote-button"
                 onClick={() => props.onOpenRemoteAccess?.()}
                 title="Remote connect"
                 aria-label="Remote connect"

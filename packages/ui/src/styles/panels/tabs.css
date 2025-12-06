@@ -17,16 +17,30 @@
 }
 
 .tab-scroll {
-  @apply flex items-center gap-3 w-full;
+  @apply w-full;
   overflow-x: auto;
 }
 
 .tab-strip {
+  @apply flex items-center gap-2 px-1;
+  min-width: 100%;
+}
+
+.tab-strip-tabs {
   @apply flex items-center gap-1 flex-shrink-0;
+}
+
+.tab-strip-spacer {
+  @apply flex-1;
+  min-width: 1px;
 }
 
 .tab-shortcuts {
   @apply flex items-center gap-2 flex-shrink-0;
+}
+
+.tab-remote-button {
+  @apply flex-shrink-0;
 }
 
 .tab-base {
