@@ -1,5 +1,7 @@
 export {}
 
+import type { LoggerControls } from "../lib/logger"
+
 declare global {
   interface ElectronDialogFilter {
     name?: string
@@ -37,10 +39,12 @@ declare global {
   }
 
   interface Window {
-    __CODENOMAD_API_BASE__?: string
-    __CODENOMAD_EVENTS_URL__?: string
-    electronAPI?: ElectronAPI
-    __TAURI__?: TauriBridge
-  }
-}
+     __CODENOMAD_API_BASE__?: string
+     __CODENOMAD_EVENTS_URL__?: string
+     electronAPI?: ElectronAPI
+     __TAURI__?: TauriBridge
+     codenomadLogger?: LoggerControls
+   }
+ }
+
 

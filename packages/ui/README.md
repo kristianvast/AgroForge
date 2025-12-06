@@ -41,14 +41,13 @@ The UI now routes all logging through a lightweight wrapper around [`debug`](htt
 - `session` – Session/model state, prompt handling, tool calls
 - `actions` – User-driven interactions in UI components
 
-You can enable or disable namespaces inside DevTools by importing the helpers:
+You can enable or disable namespaces from DevTools (in dev or production builds) via the global `window.codenomadLogger` helpers:
 
-```ts
-import { listLoggerNamespaces, enableLogger, disableLogger } from "./src/lib/logger"
-
-listLoggerNamespaces() // => [{ name: "sse", enabled: false }, ...]
-enableLogger("sse") // turn on SSE logs
-disableLogger("sse") // turn them off again
+```js
+window.codenomadLogger?.listLoggerNamespaces() // => [{ name: "sse", enabled: false }, ...]
+window.codenomadLogger?.enableLogger("sse") // turn on SSE logs
+window.codenomadLogger?.disableLogger("sse") // turn them off again
+window.codenomadLogger?.enableAllLoggers() // optional helper
 ```
 
 Enabled namespaces are persisted in `localStorage` under `opencode:logger:namespaces`, so your preference survives reloads.

@@ -9,9 +9,17 @@ interface Logger {
   error: (...args: unknown[]) => void
 }
 
-interface NamespaceState {
+export interface NamespaceState {
   name: LoggerNamespace
   enabled: boolean
+}
+
+export interface LoggerControls {
+  listLoggerNamespaces: () => NamespaceState[]
+  enableLogger: (namespace: LoggerNamespace) => void
+  disableLogger: (namespace: LoggerNamespace) => void
+  enableAllLoggers: () => void
+  disableAllLoggers: () => void
 }
 
 const KNOWN_NAMESPACES: LoggerNamespace[] = ["sse", "api", "session", "actions"]
@@ -117,6 +125,21 @@ function enableAllLoggers(): void {
   persistEnabledNamespaces()
   applyEnabledNamespaces()
 }
+
+const loggerControls: LoggerControls = {
+  listLoggerNamespaces,
+  enableLogger,
+  disableLogger,
+  enableAllLoggers,
+  disableAllLoggers,
+}
+
+function exposeLoggerControls(): void {
+  if (typeof window === "undefined") return
+  window.codenomadLogger = loggerControls
+}
+
+exposeLoggerControls()
 
 export {
   getLogger,
