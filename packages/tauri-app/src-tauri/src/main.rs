@@ -5,7 +5,11 @@ mod cli_manager;
 use cli_manager::{CliProcessManager, CliStatus};
 use serde_json::json;
 use tauri::menu::Menu;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::plugin::Builder as PluginBuilder;
+use tauri::webview::Webview;
+use tauri::{AppHandle, Emitter, Manager, Runtime};
+use tauri_plugin_opener::OpenerExt;
+use url::Url;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -32,9 +36,38 @@ fn is_dev_mode() -> bool {
     cfg!(debug_assertions) || std::env::var("TAURI_DEV").is_ok()
 }
 
+fn should_allow_internal(url: &Url) -> bool {
+    match url.scheme() {
+        "tauri" | "asset" | "file" => true,
+        "http" | "https" => matches!(url.host_str(), Some("127.0.0.1" | "localhost")),
+        _ => false,
+    }
+}
+
+fn intercept_navigation<R: Runtime>(webview: &Webview<R>, url: &Url) -> bool {
+    if should_allow_internal(url) {
+        return true;
+    }
+
+    if let Err(err) = webview
+        .app_handle()
+        .opener()
+        .open_url(url.as_str(), None::<&str>)
+    {
+        eprintln!("[tauri] failed to open external link {}: {}", url, err);
+    }
+    false
+}
+
 fn main() {
+    let navigation_guard = PluginBuilder::new("external-link-guard")
+        .on_navigation(|webview, url| intercept_navigation(webview, url))
+        .build();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
+        .plugin(navigation_guard)
         .manage(AppState {
             manager: CliProcessManager::new(),
         })
@@ -45,10 +78,7 @@ fn main() {
             let manager = app.state::<AppState>().manager.clone();
             std::thread::spawn(move || {
                 if let Err(err) = manager.start(app_handle.clone(), dev_mode) {
-                    let _ = app_handle.emit(
-                        "cli:error",
-                        json!({"message": err.to_string()}),
-                    );
+                    let _ = app_handle.emit("cli:error", json!({"message": err.to_string()}));
                 }
             });
             Ok(())
@@ -59,9 +89,21 @@ fn main() {
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|app_handle, event| {
-            match event {
-                tauri::RunEvent::ExitRequested { .. } => {
+        .run(|app_handle, event| match event {
+            tauri::RunEvent::ExitRequested { .. } => {
+                let app = app_handle.clone();
+                std::thread::spawn(move || {
+                    if let Some(state) = app.try_state::<AppState>() {
+                        let _ = state.manager.stop();
+                    }
+                    app.exit(0);
+                });
+            }
+            tauri::RunEvent::WindowEvent {
+                event: tauri::WindowEvent::Destroyed,
+                ..
+            } => {
+                if app_handle.webview_windows().len() <= 1 {
                     let app = app_handle.clone();
                     std::thread::spawn(move || {
                         if let Some(state) = app.try_state::<AppState>() {
@@ -70,19 +112,8 @@ fn main() {
                         app.exit(0);
                     });
                 }
-                tauri::RunEvent::WindowEvent { event: tauri::WindowEvent::Destroyed, .. } => {
-                    if app_handle.webview_windows().len() <= 1 {
-                        let app = app_handle.clone();
-                        std::thread::spawn(move || {
-                            if let Some(state) = app.try_state::<AppState>() {
-                                let _ = state.manager.stop();
-                            }
-                            app.exit(0);
-                        });
-                    }
-                }
-                _ => {}
             }
+            _ => {}
         });
 }
 

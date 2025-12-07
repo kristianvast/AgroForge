@@ -1,4 +1,4 @@
-import { app, BrowserView, BrowserWindow, nativeImage, session } from "electron"
+import { app, BrowserView, BrowserWindow, nativeImage, session, shell } from "electron"
 import { existsSync } from "fs"
 import { dirname, join } from "path"
 import { fileURLToPath } from "url"
@@ -89,6 +89,56 @@ function loadLoadingScreen(window: BrowserWindow) {
   })
 }
 
+function getAllowedRendererOrigins(): string[] {
+  const origins = new Set<string>()
+  const rendererCandidates = [currentCliUrl, process.env.VITE_DEV_SERVER_URL, process.env.ELECTRON_RENDERER_URL]
+  for (const candidate of rendererCandidates) {
+    if (!candidate) {
+      continue
+    }
+    try {
+      origins.add(new URL(candidate).origin)
+    } catch (error) {
+      console.warn("[cli] failed to parse origin for", candidate, error)
+    }
+  }
+  return Array.from(origins)
+}
+
+function shouldOpenExternally(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return true
+    }
+    const allowedOrigins = getAllowedRendererOrigins()
+    return !allowedOrigins.includes(parsed.origin)
+  } catch {
+    return false
+  }
+}
+
+function setupNavigationGuards(window: BrowserWindow) {
+  const handleExternal = (url: string) => {
+    shell.openExternal(url).catch((error) => console.error("[cli] failed to open external URL", url, error))
+  }
+
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    if (shouldOpenExternally(url)) {
+      handleExternal(url)
+      return { action: "deny" }
+    }
+    return { action: "allow" }
+  })
+
+  window.webContents.on("will-navigate", (event, url) => {
+    if (shouldOpenExternally(url)) {
+      event.preventDefault()
+      handleExternal(url)
+    }
+  })
+}
+
 let cachedPreloadPath: string | null = null
 function getPreloadPath() {
   if (cachedPreloadPath && existsSync(cachedPreloadPath)) {
@@ -152,6 +202,8 @@ function createWindow() {
       spellcheck: !isMac,
     },
   })
+
+  setupNavigationGuards(mainWindow)
 
   if (isMac) {
     mainWindow.webContents.session.setSpellCheckerEnabled(false)

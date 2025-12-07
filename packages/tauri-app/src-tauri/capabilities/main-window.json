@@ -11,6 +11,7 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "opener:allow-default-urls"
   ]
 }
