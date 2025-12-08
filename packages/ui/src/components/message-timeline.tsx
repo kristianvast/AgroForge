@@ -45,6 +45,7 @@ interface PendingSegment {
   texts: string[]
   reasoningTexts: string[]
   toolTitles: string[]
+  toolTypeLabels: string[]
   hasPrimaryText: boolean
 }
 
@@ -117,6 +118,13 @@ function getToolTitle(part: ToolCallPart): string {
   return TOOL_FALLBACK_LABEL
 }
 
+function getToolTypeLabel(part: ToolCallPart): string {
+  if (typeof part.tool === "string" && part.tool.trim().length > 0) {
+    return part.tool.trim().slice(0, 4)
+  }
+  return TOOL_FALLBACK_LABEL.slice(0, 4)
+}
+
 function formatTextsTooltip(texts: string[], fallback: string): string {
   const combined = texts
     .map((text) => text.trim())
@@ -151,7 +159,9 @@ export function buildTimelineSegments(instanceId: string, record: MessageRecord)
       pending = null
       return
     }
-    const label = pending.type === "tool" ? (pending.toolTitles[0] || SEGMENT_LABELS[pending.type]) : SEGMENT_LABELS[pending.type]
+    const label = pending.type === "tool"
+      ? pending.toolTypeLabels[0] || TOOL_FALLBACK_LABEL.slice(0, 4)
+      : SEGMENT_LABELS[pending.type]
     const tooltip = pending.type === "tool"
       ? formatToolTooltip(pending.toolTitles)
       : formatTextsTooltip(
@@ -170,12 +180,12 @@ export function buildTimelineSegments(instanceId: string, record: MessageRecord)
     pending = null
   }
  
-  const ensureSegment = (type: TimelineSegmentType) => {
+  const ensureSegment = (type: TimelineSegmentType): PendingSegment => {
     if (!pending || pending.type !== type) {
       flushPending()
-      pending = { type, texts: [], reasoningTexts: [], toolTitles: [], hasPrimaryText: type !== "assistant" }
+      pending = { type, texts: [], reasoningTexts: [], toolTitles: [], toolTypeLabels: [], hasPrimaryText: type !== "assistant" }
     }
-    return pending
+    return pending!
   }
 
 
@@ -186,7 +196,9 @@ export function buildTimelineSegments(instanceId: string, record: MessageRecord)
 
     if (part.type === "tool") {
       const target = ensureSegment("tool")
-      target.toolTitles.push(getToolTitle(part as ToolCallPart))
+      const toolPart = part as ToolCallPart
+      target.toolTitles.push(getToolTitle(toolPart))
+      target.toolTypeLabels.push(getToolTypeLabel(toolPart))
       continue
     }
 
