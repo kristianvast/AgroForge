@@ -227,6 +227,7 @@ export default function VirtualItem(props: VirtualItemProps) {
       cleanupResizeObserver()
     }
   }
+
  
   createEffect(() => {
     if (shouldHideContent()) {
@@ -283,9 +284,6 @@ export default function VirtualItem(props: VirtualItemProps) {
   const placeholderClass = () => ["virtual-item-placeholder", props.placeholderClass].filter(Boolean).join(" ")
   const lazyContent = createMemo<JSX.Element | null>(() => {
     if (shouldHideContent()) return null
-    if (import.meta.env?.DEV) {
-      console.debug("rendering virtual item", props.cacheKey)
-    }
     return resolved()
   })
 

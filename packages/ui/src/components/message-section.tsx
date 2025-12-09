@@ -30,6 +30,8 @@ export interface MessageSectionProps {
   onRevert?: (messageId: string) => void
   onFork?: (messageId?: string) => void
   registerScrollToBottom?: (fn: () => void) => void
+  requestScrollToBottom?: () => void
+  isActive: boolean
   showSidebarToggle?: boolean
   onSidebarToggle?: () => void
   forceCompactStatusLayout?: boolean
@@ -134,7 +136,12 @@ export default function MessageSection(props: MessageSectionProps) {
 
   const [scrollElement, setScrollElement] = createSignal<HTMLDivElement | undefined>()
   const [topSentinel, setTopSentinel] = createSignal<HTMLDivElement | null>(null)
-  const [bottomSentinel, setBottomSentinel] = createSignal<HTMLDivElement | null>(null)
+  const [bottomSentinelSignal, setBottomSentinelSignal] = createSignal<HTMLDivElement | null>(null)
+  const bottomSentinel = () => bottomSentinelSignal()
+  const setBottomSentinel = (element: HTMLDivElement | null) => {
+    setBottomSentinelSignal(element)
+  }
+  const [scrollToBottomRequest, setScrollToBottomRequest] = createSignal(false)
   const [autoScroll, setAutoScroll] = createSignal(true)
   const [showScrollTopButton, setShowScrollTopButton] = createSignal(false)
   const [showScrollBottomButton, setShowScrollBottomButton] = createSignal(false)
@@ -190,6 +197,9 @@ export default function MessageSection(props: MessageSectionProps) {
 
   function setContainerRef(element: HTMLDivElement | null) {
     containerRef = element || undefined
+    if (import.meta.env?.DEV) {
+      console.debug("[MessageSection] setContainerRef", props.sessionId, Boolean(containerRef))
+    }
     setScrollElement(containerRef)
     attachScrollIntentListeners(containerRef)
     if (!containerRef) {
@@ -207,8 +217,13 @@ export default function MessageSection(props: MessageSectionProps) {
   function updateScrollIndicatorsFromVisibility() {
 
     const hasItems = messageIds().length > 0
-    setShowScrollBottomButton(hasItems && !bottomSentinelVisible())
-    setShowScrollTopButton(hasItems && !topSentinelVisible())
+    const bottomVisible = bottomSentinelVisible()
+    const topVisible = topSentinelVisible()
+    if (import.meta.env?.DEV) {
+      console.debug("[MessageSection] sentinel visibility", props.sessionId, { bottomVisible, topVisible })
+    }
+    setShowScrollBottomButton(hasItems && !bottomVisible)
+    setShowScrollTopButton(hasItems && !topVisible)
   }
 
   function scheduleScrollPersist() {
@@ -216,13 +231,20 @@ export default function MessageSection(props: MessageSectionProps) {
     pendingScrollPersist = requestAnimationFrame(() => {
       pendingScrollPersist = null
       if (!containerRef) return
-      scrollCache.persist(containerRef, { atBottomOffset: SCROLL_SENTINEL_MARGIN_PX })
+      // scrollCache.persist(containerRef, { atBottomOffset: SCROLL_SENTINEL_MARGIN_PX })
     })
   }
  
   function scrollToBottom(immediate = false) {
     if (!containerRef) return
     const sentinel = bottomSentinel()
+    if (import.meta.env?.DEV) {
+      console.debug("[MessageSection] scrollToBottom", props.sessionId, {
+        immediate,
+        hasSentinel: Boolean(sentinel),
+        bottomVisible: bottomSentinelVisible(),
+      })
+    }
     const behavior = immediate ? "auto" : "smooth"
     if (!immediate) {
       suppressAutoScrollOnce = true
@@ -235,6 +257,9 @@ export default function MessageSection(props: MessageSectionProps) {
   function scrollToTop(immediate = false) {
     if (!containerRef) return
     const behavior = immediate ? "auto" : "smooth"
+    if (import.meta.env?.DEV) {
+      console.debug("[MessageSection] scrollToTop", props.sessionId, { immediate })
+    }
     setAutoScroll(false)
     topSentinel()?.scrollIntoView({ block: "start", inline: "nearest", behavior })
     scheduleScrollPersist()
@@ -358,6 +383,17 @@ export default function MessageSection(props: MessageSectionProps) {
   })
 
   createEffect(() => {
+    const active = props.isActive
+    const container = containerRef
+    if (!container) return
+    if (active) {
+      requestAnimationFrame(() => requestAnimationFrame(() => scrollToBottom(true)))
+    } else {
+      requestAnimationFrame(() => container.scrollTo({ top: 0, behavior: "auto" }))
+    }
+  })
+
+  createEffect(() => {
     if (!props.onQuoteSelection) {
       clearQuoteSelection()
     }
@@ -392,16 +428,16 @@ export default function MessageSection(props: MessageSectionProps) {
     if (!target || loading || hasRestoredScroll) return
 
 
-    scrollCache.restore(target, {
-      onApplied: (snapshot) => {
-        if (snapshot) {
-          setAutoScroll(snapshot.atBottom)
-        } else {
-          setAutoScroll(bottomSentinelVisible())
-        }
-        updateScrollIndicatorsFromVisibility()
-      },
-    })
+    // scrollCache.restore(target, {
+    //   onApplied: (snapshot) => {
+    //     if (snapshot) {
+    //       setAutoScroll(snapshot.atBottom)
+    //     } else {
+    //       setAutoScroll(bottomSentinelVisible())
+    //     }
+    //     updateScrollIndicatorsFromVisibility()
+    //   },
+    // })
 
     hasRestoredScroll = true
   })
@@ -522,7 +558,7 @@ export default function MessageSection(props: MessageSectionProps) {
       detachScrollIntentListeners()
     }
     if (containerRef) {
-      scrollCache.persist(containerRef, { atBottomOffset: SCROLL_SENTINEL_MARGIN_PX })
+      // scrollCache.persist(containerRef, { atBottomOffset: SCROLL_SENTINEL_MARGIN_PX })
     }
     clearQuoteSelection()
   })
@@ -591,6 +627,8 @@ export default function MessageSection(props: MessageSectionProps) {
               onContentRendered={handleContentRendered}
               setBottomSentinel={setBottomSentinel}
             />
+
+
           </div>
  
           <Show when={showScrollTopButton() || showScrollBottomButton()}>
