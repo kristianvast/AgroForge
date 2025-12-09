@@ -167,6 +167,18 @@ export default function VirtualItem(props: VirtualItemProps) {
       return
     }
     const normalized = nextHeight
+    const previous = sizeCache.get(props.cacheKey) ?? measuredHeight()
+    const shouldKeepPrevious = previous > 0 && (normalized === 0 || (normalized > 0 && normalized < previous))
+    if (shouldKeepPrevious) {
+      if (!hasReportedMeasurement) {
+        hasReportedMeasurement = true
+        props.onMeasured?.()
+      }
+      setHasMeasured(true)
+      sizeCache.set(props.cacheKey, previous)
+      setMeasuredHeight(previous)
+      return
+    }
     if (normalized > 0) {
       sizeCache.set(props.cacheKey, normalized)
       setHasMeasured(true)
@@ -262,6 +274,7 @@ export default function VirtualItem(props: VirtualItemProps) {
   })
 
   createEffect(() => {
+    measurementsSuspended()
     const root = props.scrollContainer ? props.scrollContainer() : null
     refreshIntersectionObserver(root ?? null)
   })

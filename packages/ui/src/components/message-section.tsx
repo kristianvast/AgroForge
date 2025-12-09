@@ -125,6 +125,7 @@ export default function MessageSection(props: MessageSectionProps) {
   const [activeMessageId, setActiveMessageId] = createSignal<string | null>(null)
  
   const changeToken = createMemo(() => String(sessionRevision()))
+  const isActive = createMemo(() => props.isActive !== false)
 
 
   const scrollCache = useScrollCache({
@@ -236,11 +237,12 @@ export default function MessageSection(props: MessageSectionProps) {
     })
   }
  
-  function scrollToBottom(immediate = false) {
+  function scrollToBottom(immediate = false, options?: { suppressAutoAnchor?: boolean }) {
     if (!containerRef) return
     const sentinel = bottomSentinel()
     const behavior = immediate ? "auto" : "smooth"
-    if (!immediate) {
+    const suppressAutoAnchor = options?.suppressAutoAnchor ?? !immediate
+    if (suppressAutoAnchor) {
       suppressAutoScrollOnce = true
     }
     sentinel?.scrollIntoView({ block: "end", inline: "nearest", behavior })
@@ -260,6 +262,10 @@ export default function MessageSection(props: MessageSectionProps) {
   }
 
   function requestScrollToBottom(immediate = true) {
+    if (!isActive()) {
+      pendingActiveScroll = true
+      return
+    }
     if (!containerRef || !bottomSentinel()) {
       pendingActiveScroll = true
       return
@@ -277,7 +283,7 @@ export default function MessageSection(props: MessageSectionProps) {
 
   function resolvePendingActiveScroll() {
     if (!pendingActiveScroll) return
-    if (!props.isActive) return
+    if (!isActive()) return
     requestScrollToBottom(true)
   }
  
@@ -292,8 +298,15 @@ export default function MessageSection(props: MessageSectionProps) {
 
   function scheduleAnchorScroll(immediate = false) {
     if (!autoScroll()) return
+    if (!isActive()) {
+      pendingActiveScroll = true
+      return
+    }
     const sentinel = bottomSentinel()
-    if (!sentinel) return
+    if (!sentinel) {
+      pendingActiveScroll = true
+      return
+    }
     if (pendingAnchorScroll !== null) {
       cancelAnimationFrame(pendingAnchorScroll)
       pendingAnchorScroll = null
@@ -415,9 +428,14 @@ export default function MessageSection(props: MessageSectionProps) {
 
   let lastActiveState = false
   createEffect(() => {
-    const active = Boolean(props.isActive)
-    if (active && !lastActiveState) {
-      requestScrollToBottom(true)
+    const active = isActive()
+    if (active) {
+      resolvePendingActiveScroll()
+      if (!lastActiveState && autoScroll()) {
+        requestScrollToBottom(true)
+      }
+    } else if (autoScroll()) {
+      pendingActiveScroll = true
     }
     lastActiveState = active
   })
@@ -670,7 +688,7 @@ export default function MessageSection(props: MessageSectionProps) {
               onFork={props.onFork}
               onContentRendered={handleContentRendered}
               setBottomSentinel={setBottomSentinel}
-              suspendMeasurements={() => props.isActive === false}
+              suspendMeasurements={() => !isActive()}
               onInitialRenderComplete={handleInitialRenderComplete}
             />
 
@@ -688,7 +706,7 @@ export default function MessageSection(props: MessageSectionProps) {
                 <button
                   type="button"
                   class="message-scroll-button"
-                  onClick={() => scrollToBottom()}
+                  onClick={() => scrollToBottom(false, { suppressAutoAnchor: false })}
                   aria-label="Scroll to latest message"
                 >
                   <span class="message-scroll-icon" aria-hidden="true">↓</span>
