@@ -11,13 +11,7 @@ interface MessagePreviewProps {
 
 const MessagePreview: Component<MessagePreviewProps> = (props) => {
   const indexMap = createMemo(() => new Map([[props.messageId, 0]]))
-  const lastAssistantIndex = createMemo(() => {
-    const record = props.store().getMessage(props.messageId)
-    if (record?.role === "assistant") {
-      return 0
-    }
-    return -1
-  })
+  const lastAssistantIndex = createMemo(() => 0)
 
   return (
     <div class="message-preview message-stream">
