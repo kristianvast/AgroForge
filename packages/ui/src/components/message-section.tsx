@@ -30,12 +30,11 @@ export interface MessageSectionProps {
   onRevert?: (messageId: string) => void
   onFork?: (messageId?: string) => void
   registerScrollToBottom?: (fn: () => void) => void
-  requestScrollToBottom?: () => void
-  isActive: boolean
   showSidebarToggle?: boolean
   onSidebarToggle?: () => void
   forceCompactStatusLayout?: boolean
   onQuoteSelection?: (text: string, mode: "quote" | "code") => void
+  isActive?: boolean
 }
 
 export default function MessageSection(props: MessageSectionProps) {
@@ -140,8 +139,8 @@ export default function MessageSection(props: MessageSectionProps) {
   const bottomSentinel = () => bottomSentinelSignal()
   const setBottomSentinel = (element: HTMLDivElement | null) => {
     setBottomSentinelSignal(element)
+    resolvePendingActiveScroll()
   }
-  const [scrollToBottomRequest, setScrollToBottomRequest] = createSignal(false)
   const [autoScroll, setAutoScroll] = createSignal(true)
   const [showScrollTopButton, setShowScrollTopButton] = createSignal(false)
   const [showScrollBottomButton, setShowScrollBottomButton] = createSignal(false)
@@ -160,6 +159,9 @@ export default function MessageSection(props: MessageSectionProps) {
   let detachScrollIntentListeners: (() => void) | undefined
   let hasRestoredScroll = false
   let suppressAutoScrollOnce = false
+  let pendingActiveScroll = false
+  let scrollToBottomFrame: number | null = null
+  let scrollToBottomDelayedFrame: number | null = null
 
   function markUserScrollIntent() {
     const now = typeof performance !== "undefined" ? performance.now() : Date.now()
@@ -197,14 +199,13 @@ export default function MessageSection(props: MessageSectionProps) {
 
   function setContainerRef(element: HTMLDivElement | null) {
     containerRef = element || undefined
-    if (import.meta.env?.DEV) {
-      console.debug("[MessageSection] setContainerRef", props.sessionId, Boolean(containerRef))
-    }
     setScrollElement(containerRef)
     attachScrollIntentListeners(containerRef)
     if (!containerRef) {
       clearQuoteSelection()
+      return
     }
+    resolvePendingActiveScroll()
   }
 
   function setShellElement(element: HTMLDivElement | null) {
@@ -219,9 +220,6 @@ export default function MessageSection(props: MessageSectionProps) {
     const hasItems = messageIds().length > 0
     const bottomVisible = bottomSentinelVisible()
     const topVisible = topSentinelVisible()
-    if (import.meta.env?.DEV) {
-      console.debug("[MessageSection] sentinel visibility", props.sessionId, { bottomVisible, topVisible })
-    }
     setShowScrollBottomButton(hasItems && !bottomVisible)
     setShowScrollTopButton(hasItems && !topVisible)
   }
@@ -238,13 +236,6 @@ export default function MessageSection(props: MessageSectionProps) {
   function scrollToBottom(immediate = false) {
     if (!containerRef) return
     const sentinel = bottomSentinel()
-    if (import.meta.env?.DEV) {
-      console.debug("[MessageSection] scrollToBottom", props.sessionId, {
-        immediate,
-        hasSentinel: Boolean(sentinel),
-        bottomVisible: bottomSentinelVisible(),
-      })
-    }
     const behavior = immediate ? "auto" : "smooth"
     if (!immediate) {
       suppressAutoScrollOnce = true
@@ -253,13 +244,43 @@ export default function MessageSection(props: MessageSectionProps) {
     setAutoScroll(true)
     scheduleScrollPersist()
   }
+
+  function clearScrollToBottomFrames() {
+    if (scrollToBottomFrame !== null) {
+      cancelAnimationFrame(scrollToBottomFrame)
+      scrollToBottomFrame = null
+    }
+    if (scrollToBottomDelayedFrame !== null) {
+      cancelAnimationFrame(scrollToBottomDelayedFrame)
+      scrollToBottomDelayedFrame = null
+    }
+  }
+
+  function requestScrollToBottom(immediate = true) {
+    if (!containerRef || !bottomSentinel()) {
+      pendingActiveScroll = true
+      return
+    }
+    pendingActiveScroll = false
+    clearScrollToBottomFrames()
+    scrollToBottomFrame = requestAnimationFrame(() => {
+      scrollToBottomFrame = null
+      scrollToBottomDelayedFrame = requestAnimationFrame(() => {
+        scrollToBottomDelayedFrame = null
+        scrollToBottom(immediate)
+      })
+    })
+  }
+
+  function resolvePendingActiveScroll() {
+    if (!pendingActiveScroll) return
+    if (!props.isActive) return
+    requestScrollToBottom(true)
+  }
  
   function scrollToTop(immediate = false) {
     if (!containerRef) return
     const behavior = immediate ? "auto" : "smooth"
-    if (import.meta.env?.DEV) {
-      console.debug("[MessageSection] scrollToTop", props.sessionId, { immediate })
-    }
     setAutoScroll(false)
     topSentinel()?.scrollIntoView({ block: "start", inline: "nearest", behavior })
     scheduleScrollPersist()
@@ -378,19 +399,17 @@ export default function MessageSection(props: MessageSectionProps) {
 
   createEffect(() => {
     if (props.registerScrollToBottom) {
-      props.registerScrollToBottom(() => scrollToBottom(true))
+      props.registerScrollToBottom(() => requestScrollToBottom(true))
     }
   })
 
+  let lastActiveState = false
   createEffect(() => {
-    const active = props.isActive
-    const container = containerRef
-    if (!container) return
-    if (active) {
-      requestAnimationFrame(() => requestAnimationFrame(() => scrollToBottom(true)))
-    } else {
-      requestAnimationFrame(() => container.scrollTo({ top: 0, behavior: "auto" }))
+    const active = Boolean(props.isActive)
+    if (active && !lastActiveState) {
+      requestScrollToBottom(true)
     }
+    lastActiveState = active
   })
 
   createEffect(() => {
@@ -554,6 +573,7 @@ export default function MessageSection(props: MessageSectionProps) {
     if (pendingAnchorScroll !== null) {
       cancelAnimationFrame(pendingAnchorScroll)
     }
+    clearScrollToBottomFrames()
     if (detachScrollIntentListeners) {
       detachScrollIntentListeners()
     }
@@ -626,6 +646,7 @@ export default function MessageSection(props: MessageSectionProps) {
               onFork={props.onFork}
               onContentRendered={handleContentRendered}
               setBottomSentinel={setBottomSentinel}
+              suspendMeasurements={() => props.isActive === false}
             />
 
 

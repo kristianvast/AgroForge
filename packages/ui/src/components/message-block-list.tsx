@@ -26,6 +26,7 @@ interface MessageBlockListProps {
   onFork?: (messageId?: string) => void
   onContentRendered?: () => void
   setBottomSentinel: (element: HTMLDivElement | null) => void
+  suspendMeasurements?: () => boolean
 }
 
 export default function MessageBlockList(props: MessageBlockListProps) {
@@ -41,6 +42,7 @@ export default function MessageBlockList(props: MessageBlockListProps) {
                threshold={VIRTUAL_ITEM_MARGIN_PX}
                placeholderClass="message-stream-placeholder"
                virtualizationEnabled={() => !props.loading}
+               suspendMeasurements={props.suspendMeasurements}
              >
 
               <MessageBlock

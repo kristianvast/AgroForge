@@ -1,4 +1,4 @@
-import { Show, createMemo, createEffect, createSignal, type Component } from "solid-js"
+import { Show, createMemo, createEffect, type Component } from "solid-js"
 import type { Session } from "../../types/session"
 import type { Attachment } from "../../types/attachment"
 import type { ClientPart } from "../../types/message"
@@ -26,24 +26,28 @@ interface SessionViewProps {
   showSidebarToggle?: boolean
   onSidebarToggle?: () => void
   forceCompactStatusLayout?: boolean
-  isActive: boolean
+  isActive?: boolean
 }
 
 export const SessionView: Component<SessionViewProps> = (props) => {
   const session = () => props.activeSessions.get(props.sessionId)
   const messagesLoading = createMemo(() => isSessionMessagesLoading(props.instanceId, props.sessionId))
   const messageStore = createMemo(() => messageStoreBus.getOrCreate(props.instanceId))
-  const [scrollToBottomHandle, setScrollToBottomHandle] = createSignal<(() => void) | null>(null)
-  createEffect(() => {
-    if (!props.isActive) return
-    const handler = scrollToBottomHandle()
-    if (!handler) return
-    requestAnimationFrame(() => requestAnimationFrame(() => handler()))
-  })
   const sessionBusy = createMemo(() => {
     const currentSession = session()
     if (!currentSession) return false
     return getSessionBusyStatus(props.instanceId, currentSession.id)
+  })
+  let scrollToBottomHandle: (() => void) | undefined
+  function scheduleScrollToBottom() {
+    if (!scrollToBottomHandle) return
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => scrollToBottomHandle?.())
+    })
+  }
+  createEffect(() => {
+    if (!props.isActive) return
+    scheduleScrollToBottom()
   })
   let quoteHandler: ((text: string, mode: "quote" | "code") => void) | null = null
  
@@ -70,10 +74,10 @@ export const SessionView: Component<SessionViewProps> = (props) => {
   }
  
   async function handleSendMessage(prompt: string, attachments: Attachment[]) {
-    const handler = scrollToBottomHandle()
-    if (handler) {
-      handler()
+    if (scrollToBottomHandle && import.meta.env?.DEV) {
+      console.debug("[SessionView] handleSendMessage scroll", props.sessionId)
     }
+    scheduleScrollToBottom()
     await sendMessage(props.instanceId, props.sessionId, prompt, attachments)
   }
 
@@ -201,12 +205,13 @@ export const SessionView: Component<SessionViewProps> = (props) => {
                onRevert={handleRevert}
                onFork={handleFork}
                isActive={props.isActive}
-               registerScrollToBottom={(fn) => {
-                 setScrollToBottomHandle(() => fn)
-                 if (props.isActive) {
-                   requestAnimationFrame(() => requestAnimationFrame(() => fn()))
-                 }
-               }}
+                registerScrollToBottom={(fn) => {
+                  scrollToBottomHandle = fn
+                  if (props.isActive) {
+                    scheduleScrollToBottom()
+                  }
+                }}
+
 
 
 
