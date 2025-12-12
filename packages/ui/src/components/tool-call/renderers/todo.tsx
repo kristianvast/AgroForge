@@ -58,7 +58,7 @@ function getTodoStatusLabel(status: TodoViewStatus): string {
   }
 }
 
-function getTodoTitle(state?: ToolState): string {
+export function getTodoTitle(state?: ToolState): string {
   if (!state) return "Plan"
 
   const todos = extractTodosFromState(state)
