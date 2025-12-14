@@ -352,7 +352,7 @@ const App: Component = () => {
                   const isActiveInstance = () => activeInstanceId() === instance.id
                   const isVisible = () => isActiveInstance() && !showFolderSelection()
                   return (
-                    <div class="flex-1 min-h-0" style={{ display: isVisible() ? "flex" : "none" }}>
+                    <div class="flex-1 min-h-0 overflow-hidden" style={{ display: isVisible() ? "flex" : "none" }}>
                       <InstanceShell
                         instance={instance}
                         escapeInDebounce={escapeInDebounce()}
