@@ -10,6 +10,7 @@ import {
   type Accessor,
   type Component,
 } from "solid-js"
+import type { ToolState } from "@opencode-ai/sdk"
 import { Accordion } from "@kobalte/core"
 import { ChevronDown } from "lucide-solid"
 import AppBar from "@suid/material/AppBar"
@@ -49,6 +50,7 @@ import AgentSelector from "../agent-selector"
 import ModelSelector from "../model-selector"
 import CommandPalette from "../command-palette"
 import Kbd from "../kbd"
+import { TodoListView } from "../tool-call/renderers/todo"
 import ContextUsagePanel from "../session/context-usage-panel"
 import SessionView from "../session/session-view"
 import { formatTokenTotal } from "../../lib/formatters"
@@ -271,6 +273,30 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
       used: usage?.actualUsageTokens ?? info?.actualUsageTokens ?? 0,
       avail: info?.contextAvailableTokens ?? null,
     }
+  })
+
+  const latestTodoSnapshot = createMemo(() => {
+    const sessionId = activeSessionIdForInstance()
+    if (!sessionId || sessionId === "info") return null
+    const store = messageStore()
+    if (!store) return null
+    const snapshot = store.state.latestTodos[sessionId]
+    return snapshot ?? null
+  })
+
+  const latestTodoState = createMemo<ToolState | null>(() => {
+    const snapshot = latestTodoSnapshot()
+    if (!snapshot) return null
+    const store = messageStore()
+    if (!store) return null
+    const message = store.getMessage(snapshot.messageId)
+    if (!message) return null
+    const partRecord = message.parts?.[snapshot.partId]
+    const part = partRecord?.data as { type?: string; tool?: string; state?: ToolState }
+    if (!part || part.type !== "tool" || part.tool !== "todowrite") return null
+    const state = part.state
+    if (!state || state.status !== "completed") return null
+    return state
   })
 
   const connectionStatus = () => sseManager.getStatus(props.instance.id)
@@ -709,11 +735,23 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
   )
 
   const RightDrawerContent = () => {
+    const renderPlanSectionContent = () => {
+      const sessionId = activeSessionIdForInstance()
+      if (!sessionId || sessionId === "info") {
+        return <p class="text-xs text-secondary">Select a session to view plan.</p>
+      }
+      const todoState = latestTodoState()
+      if (!todoState) {
+        return <p class="text-xs text-secondary">Nothing planned yet.</p>
+      }
+      return <TodoListView state={todoState} emptyLabel="Nothing planned yet." />
+    }
+
     const sections = [
       {
         id: "lsp",
         label: "LSP Servers",
-        content: (
+        render: () => (
           <InstanceServiceStatus
             instanceId={props.instance.id}
             initialInstance={props.instance}
@@ -726,7 +764,7 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
       {
         id: "mcp",
         label: "MCP Servers",
-        content: (
+        render: () => (
           <InstanceServiceStatus
             instanceId={props.instance.id}
             initialInstance={props.instance}
@@ -736,7 +774,18 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
           />
         ),
       },
+      {
+        id: "plan",
+        label: "Plan",
+        render: renderPlanSectionContent,
+      },
     ]
+
+    createEffect(() => {
+      const currentExpanded = new Set(rightPanelExpandedItems())
+      if (sections.every((section) => currentExpanded.has(section.id))) return
+      setRightPanelExpandedItems(sections.map((section) => section.id))
+    })
 
     const handleAccordionChange = (values: string[]) => {
       setRightPanelExpandedItems(values)
@@ -786,7 +835,7 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
                     </Accordion.Trigger>
                   </Accordion.Header>
                   <Accordion.Content class="w-full px-3 pb-3 text-sm text-primary">
-                    {section.content}
+                    {section.render()}
                   </Accordion.Content>
                 </Accordion.Item>
               )}

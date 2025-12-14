@@ -5,7 +5,7 @@ import { readToolStatePayload } from "../utils"
 
 export type TodoViewStatus = "pending" | "in_progress" | "completed" | "cancelled"
 
-interface TodoViewItem {
+export interface TodoViewItem {
   id: string
   content: string
   status: TodoViewStatus
@@ -58,6 +58,51 @@ function getTodoStatusLabel(status: TodoViewStatus): string {
   }
 }
 
+interface TodoListViewProps {
+  state?: ToolState
+  emptyLabel?: string
+}
+
+export function TodoListView(props: TodoListViewProps) {
+  const todos = extractTodosFromState(props.state)
+  const counts = summarizeTodos(todos)
+
+  if (counts.total === 0) {
+    return <div class="tool-call-todo-empty">{props.emptyLabel ?? "No plan items yet."}</div>
+  }
+
+  return (
+    <div class="tool-call-todo-region">
+      <div class="tool-call-todos" role="list">
+        <For each={todos}>
+          {(todo) => {
+            const label = getTodoStatusLabel(todo.status)
+            return (
+              <div
+                class="tool-call-todo-item"
+                classList={{
+                  "tool-call-todo-item-completed": todo.status === "completed",
+                  "tool-call-todo-item-cancelled": todo.status === "cancelled",
+                  "tool-call-todo-item-active": todo.status === "in_progress",
+                }}
+                role="listitem"
+              >
+                <span class="tool-call-todo-checkbox" data-status={todo.status} aria-label={label}></span>
+                <div class="tool-call-todo-body">
+                  <div class="tool-call-todo-heading">
+                    <span class="tool-call-todo-text">{todo.content}</span>
+                    <span class={`tool-call-todo-status tool-call-todo-status-${todo.status}`}>{label}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          }}
+        </For>
+      </div>
+    </div>
+  )
+}
+
 export function getTodoTitle(state?: ToolState): string {
   if (!state) return "Plan"
 
@@ -80,42 +125,6 @@ export const todoRenderer: ToolRenderer = {
     const state = toolState()
     if (!state) return null
 
-    const todos = extractTodosFromState(state)
-    const counts = summarizeTodos(todos)
-
-    if (counts.total === 0) {
-      return <div class="tool-call-todo-empty">No plan items yet.</div>
-    }
-
-    return (
-      <div class="tool-call-todo-region">
-        <div class="tool-call-todos" role="list">
-          <For each={todos}>
-            {(todo) => {
-              const label = getTodoStatusLabel(todo.status)
-              return (
-                <div
-                  class="tool-call-todo-item"
-                  classList={{
-                    "tool-call-todo-item-completed": todo.status === "completed",
-                    "tool-call-todo-item-cancelled": todo.status === "cancelled",
-                    "tool-call-todo-item-active": todo.status === "in_progress",
-                  }}
-                  role="listitem"
-                >
-                  <span class="tool-call-todo-checkbox" data-status={todo.status} aria-label={label}></span>
-                  <div class="tool-call-todo-body">
-                    <div class="tool-call-todo-heading">
-                      <span class="tool-call-todo-text">{todo.content}</span>
-                      <span class={`tool-call-todo-status tool-call-todo-status-${todo.status}`}>{label}</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            }}
-          </For>
-        </div>
-      </div>
-    )
+    return <TodoListView state={state} />
   },
 }
