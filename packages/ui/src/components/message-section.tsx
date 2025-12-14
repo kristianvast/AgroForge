@@ -1,15 +1,11 @@
 import { Show, createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
 import Kbd from "./kbd"
 import MessageBlockList, { getMessageAnchorId } from "./message-block-list"
-import MessageListHeader from "./message-list-header"
 import MessageTimeline, { buildTimelineSegments, type TimelineSegment } from "./message-timeline"
 import { useConfig } from "../stores/preferences"
 import { getSessionInfo } from "../stores/sessions"
-import { showCommandPalette } from "../stores/command-palette"
 import { messageStoreBus } from "../stores/message-v2/bus"
 import { useScrollCache } from "../lib/hooks/use-scroll-cache"
-import { sseManager } from "../lib/sse-manager"
-import { formatTokenTotal } from "../lib/formatters"
 import type { InstanceMessageStore } from "../stores/message-v2/instance-store"
 
 const SCROLL_SCOPE = "session"
@@ -18,10 +14,6 @@ const USER_SCROLL_INTENT_WINDOW_MS = 600
 const SCROLL_INTENT_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ", "Spacebar"])
 const QUOTE_SELECTION_MAX_LENGTH = 2000
 const codeNomadLogo = new URL("../images/CodeNomad-Icon.png", import.meta.url).href
-
-function formatTokens(tokens: number): string {
-  return formatTokenTotal(tokens)
-}
 
 export interface MessageSectionProps {
   instanceId: string
@@ -77,11 +69,6 @@ export default function MessageSection(props: MessageSectionProps) {
     return `${showThinking}|${thinkingExpansion}|${showUsage}`
   })
 
-  const connectionStatus = () => sseManager.getStatus(props.instanceId)
-  const handleCommandPaletteClick = () => {
-    showCommandPalette(props.instanceId)
-  }
- 
   const handleTimelineSegmentClick = (segment: TimelineSegment) => {
     if (typeof document === "undefined") return
     const anchor = document.getElementById(getMessageAnchorId(segment.messageId))
@@ -757,17 +744,6 @@ export default function MessageSection(props: MessageSectionProps) {
 
   return (
     <div class="message-stream-container">
-      <MessageListHeader
-        usedTokens={tokenStats().used}
-        availableTokens={tokenStats().avail}
-        connectionStatus={connectionStatus()}
-        onCommandPalette={handleCommandPaletteClick}
-        formatTokens={formatTokens}
-        showSidebarToggle={props.showSidebarToggle}
-        onSidebarToggle={props.onSidebarToggle}
-        forceCompactStatusLayout={props.forceCompactStatusLayout}
-      />
-
       <div class={`message-layout${hasTimelineSegments() ? " message-layout--with-timeline" : ""}`}>
         <div class="message-stream-shell" ref={setShellElement}>
           <div class="message-stream" ref={setContainerRef} onScroll={handleScroll} onMouseUp={handleStreamMouseUp}>
