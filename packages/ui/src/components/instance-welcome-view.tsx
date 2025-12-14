@@ -314,8 +314,8 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
 
   return (
     <div class="flex-1 flex flex-col overflow-hidden bg-surface-secondary">
-      <div class="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-auto">
-        <div class="flex-1 flex flex-col gap-4 min-h-0">
+      <div class="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-auto min-w-0">
+        <div class="flex-1 flex flex-col gap-4 min-h-0 min-w-0">
           <Show
             when={parentSessions().length > 0}
             fallback={

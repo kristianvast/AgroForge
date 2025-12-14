@@ -702,7 +702,7 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
             when={!isPhoneLayout()}
             fallback={
               <div class="flex flex-col w-full gap-1.5">
-                <div class="flex items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center justify-between gap-2 w-full">
                   <IconButton
                     ref={setLeftToggleButtonEl}
                     color="inherit"
@@ -715,7 +715,7 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
                     {leftAppBarButtonIcon()}
                   </IconButton>
 
-                  <div class="flex items-center gap-2 justify-center">
+                  <div class="flex flex-wrap items-center gap-1 justify-center">
                     <button
                       type="button"
                       class="connection-status-button px-2 py-0.5 text-xs"
@@ -749,7 +749,7 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
                   </IconButton>
                 </div>
 
-                <div class="flex items-center justify-center gap-2 pb-1">
+                <div class="flex flex-wrap items-center justify-center gap-2 pb-1">
                   <div class="inline-flex items-center gap-1 rounded-full border border-base px-2 py-0.5 text-xs text-primary">
                     <span class="uppercase text-[10px] tracking-wide text-primary/70">Used</span>
                     <span class="font-semibold text-primary">{formattedUsedTokens()}</span>
