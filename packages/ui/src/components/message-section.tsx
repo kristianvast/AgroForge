@@ -423,6 +423,7 @@ export default function MessageSection(props: MessageSectionProps) {
       clearQuoteSelection()
       scheduleScrollPersist()
     })
+
   }
 
 

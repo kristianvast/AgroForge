@@ -3,6 +3,7 @@ import { JSX, Accessor, children as resolveChildren, createEffect, createMemo, c
 const sizeCache = new Map<string, number>()
 const DEFAULT_MARGIN_PX = 600
 const MIN_PLACEHOLDER_HEIGHT = 32
+const VISIBILITY_BUFFER_PX = 48
 
 type ObserverRoot = Element | Document | null
 
@@ -46,6 +47,19 @@ function createSharedObserver(root: ObserverRoot, margin: number): SharedObserve
     },
   )
   return { observer, listeners }
+}
+
+function shouldRenderEntry(entry: IntersectionObserverEntry) {
+  const rootBounds = entry.rootBounds
+  if (!rootBounds) {
+    return entry.isIntersecting
+  }
+  const distanceAbove = rootBounds.top - entry.boundingClientRect.bottom
+  const distanceBelow = entry.boundingClientRect.top - rootBounds.bottom
+  if (distanceAbove > VISIBILITY_BUFFER_PX || distanceBelow > VISIBILITY_BUFFER_PX) {
+    return false
+  }
+  return true
 }
 
 function subscribeToSharedObserver(
@@ -224,7 +238,8 @@ export default function VirtualItem(props: VirtualItemProps) {
     }
     const margin = props.threshold ?? DEFAULT_MARGIN_PX
     intersectionCleanup = subscribeToSharedObserver(wrapperRef, targetRoot, margin, (entry) => {
-      queueVisibility(entry.isIntersecting)
+      const nextVisible = shouldRenderEntry(entry)
+      queueVisibility(nextVisible)
     })
   }
 
