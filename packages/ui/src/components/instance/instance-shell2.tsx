@@ -490,7 +490,6 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
 
       append(parentId)
       append(activeId)
-      current.forEach((id) => append(id))
 
       const limit = parentId ? SESSION_CACHE_LIMIT + 1 : SESSION_CACHE_LIMIT
       const trimmed = next.length > limit ? next.slice(0, limit) : next
