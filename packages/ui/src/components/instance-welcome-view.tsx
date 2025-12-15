@@ -506,7 +506,7 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
         </div>
 
         <div class="hidden lg:block lg:w-80 flex-shrink-0">
-          <div class="sticky top-0">
+          <div class="sticky top-0 max-h-full overflow-y-auto pr-1">
             <InstanceInfo instance={props.instance} />
           </div>
         </div>
