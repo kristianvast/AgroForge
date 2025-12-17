@@ -1,5 +1,6 @@
 import path from "path"
 import { spawnSync } from "child_process"
+import { connect } from "net"
 import { EventBus } from "../events/bus"
 import { ConfigStore } from "../config/store"
 import { BinaryRegistry } from "../config/binaries"
@@ -7,9 +8,11 @@ import { FileSystemBrowser } from "../filesystem/browser"
 import { searchWorkspaceFiles, WorkspaceFileSearchOptions } from "../filesystem/search"
 import { clearWorkspaceSearchCache } from "../filesystem/search-cache"
 import { WorkspaceDescriptor, WorkspaceFileResponse, FileSystemEntry } from "../api-types"
-import { WorkspaceRuntime } from "./runtime"
+import { WorkspaceRuntime, ProcessExitInfo } from "./runtime"
 import { Logger } from "../logger"
 import { getOpencodeConfigDir } from "../opencode-config"
+
+const STARTUP_STABILITY_DELAY_MS = 1500
 
 interface WorkspaceManagerOptions {
   rootDir: string
@@ -108,13 +111,15 @@ export class WorkspaceManager {
     }
 
     try {
-      const { pid, port } = await this.runtime.launch({
+      const { pid, port, exitPromise, getLastOutput } = await this.runtime.launch({
         workspaceId: id,
         folder: workspacePath,
         binaryPath: resolvedBinaryPath,
         environment,
         onExit: (info) => this.handleProcessExit(info.workspaceId, info),
       })
+
+      await this.waitForWorkspaceReadiness({ workspaceId: id, port, exitPromise, getLastOutput })
 
       descriptor.pid = pid
       descriptor.port = port
@@ -239,6 +244,159 @@ export class WorkspaceManager {
     }
 
     return undefined
+  }
+
+  private async waitForWorkspaceReadiness(params: {
+    workspaceId: string
+    port: number
+    exitPromise: Promise<ProcessExitInfo>
+    getLastOutput: () => string
+  }) {
+
+    await Promise.race([
+      this.waitForPortAvailability(params.port),
+      params.exitPromise.then((info) => {
+        throw this.buildStartupError(
+          params.workspaceId,
+          "exited before becoming ready",
+          info,
+          params.getLastOutput(),
+        )
+      }),
+    ])
+
+    await this.waitForInstanceHealth(params)
+
+    await Promise.race([
+      this.delay(STARTUP_STABILITY_DELAY_MS),
+      params.exitPromise.then((info) => {
+        throw this.buildStartupError(
+          params.workspaceId,
+          "exited shortly after start",
+          info,
+          params.getLastOutput(),
+        )
+      }),
+    ])
+  }
+
+  private async waitForInstanceHealth(params: {
+    workspaceId: string
+    port: number
+    exitPromise: Promise<ProcessExitInfo>
+    getLastOutput: () => string
+  }) {
+    const probeResult = await Promise.race([
+      this.probeInstance(params.workspaceId, params.port),
+      params.exitPromise.then((info) => {
+        throw this.buildStartupError(
+          params.workspaceId,
+          "exited during health checks",
+          info,
+          params.getLastOutput(),
+        )
+      }),
+    ])
+
+    if (probeResult.ok) {
+      return
+    }
+
+    const latestOutput = params.getLastOutput().trim()
+    const outputDetails = latestOutput ? ` Last output: ${latestOutput}` : ""
+    const reason = probeResult.reason ?? "Health check failed"
+    throw new Error(`Workspace ${params.workspaceId} failed health check: ${reason}.${outputDetails}`)
+  }
+
+  private async probeInstance(workspaceId: string, port: number): Promise<{ ok: boolean; reason?: string }> {
+    const url = `http://127.0.0.1:${port}/project/current`
+
+    try {
+      const response = await fetch(url)
+      if (!response.ok) {
+        const reason = `health probe returned HTTP ${response.status}`
+        this.options.logger.debug({ workspaceId, status: response.status }, "Health probe returned server error")
+        return { ok: false, reason }
+      }
+      return { ok: true }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      this.options.logger.debug({ workspaceId, err: error }, "Health probe failed")
+      return { ok: false, reason }
+    }
+  }
+
+  private buildStartupError(
+    workspaceId: string,
+    phase: string,
+    exitInfo: ProcessExitInfo,
+    lastOutput: string,
+  ): Error {
+    const exitDetails = this.describeExit(exitInfo)
+    const trimmedOutput = lastOutput.trim()
+    const outputDetails = trimmedOutput ? ` Last output: ${trimmedOutput}` : ""
+    return new Error(`Workspace ${workspaceId} ${phase} (${exitDetails}).${outputDetails}`)
+  }
+
+  private waitForPortAvailability(port: number, timeoutMs = 5000): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const deadline = Date.now() + timeoutMs
+      let settled = false
+      let retryTimer: NodeJS.Timeout | null = null
+
+      const cleanup = () => {
+        settled = true
+        if (retryTimer) {
+          clearTimeout(retryTimer)
+          retryTimer = null
+        }
+      }
+
+      const tryConnect = () => {
+        if (settled) {
+          return
+        }
+        const socket = connect({ port, host: "127.0.0.1" }, () => {
+          cleanup()
+          socket.end()
+          resolve()
+        })
+        socket.once("error", () => {
+          socket.destroy()
+          if (settled) {
+            return
+          }
+          if (Date.now() >= deadline) {
+            cleanup()
+            reject(new Error(`Workspace port ${port} did not become ready within ${timeoutMs}ms`))
+          } else {
+            retryTimer = setTimeout(() => {
+              retryTimer = null
+              tryConnect()
+            }, 100)
+          }
+        })
+      }
+
+      tryConnect()
+    })
+  }
+
+  private delay(durationMs: number): Promise<void> {
+    if (durationMs <= 0) {
+      return Promise.resolve()
+    }
+    return new Promise((resolve) => setTimeout(resolve, durationMs))
+  }
+
+  private describeExit(info: ProcessExitInfo): string {
+    if (info.signal) {
+      return `signal ${info.signal}`
+    }
+    if (info.code !== null) {
+      return `code ${info.code}`
+    }
+    return "unknown reason"
   }
 
   private handleProcessExit(workspaceId: string, info: { code: number | null; requested: boolean }) {

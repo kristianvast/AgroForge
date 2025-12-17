@@ -34,6 +34,11 @@ const [logStreamingState, setLogStreamingState] = createSignal<Map<string, boole
 const [permissionQueues, setPermissionQueues] = createSignal<Map<string, Permission[]>>(new Map())
 const [activePermissionId, setActivePermissionId] = createSignal<Map<string, string | null>>(new Map())
 const permissionSessionCounts = new Map<string, Map<string, number>>()
+
+function syncHasInstancesFlag() {
+  const readyExists = Array.from(instances().values()).some((instance) => instance.status === "ready")
+  setHasInstances(readyExists)
+}
 interface DisconnectedInstanceInfo {
   id: string
   folder: string
@@ -68,7 +73,6 @@ function upsertWorkspace(descriptor: WorkspaceDescriptor) {
     updateInstance(descriptor.id, mapped)
   } else {
     addInstance(mapped)
-    setHasInstances(true)
   }
 
   if (descriptor.status === "ready") {
@@ -135,9 +139,6 @@ void (async function initializeWorkspaces() {
   try {
     const workspaces = await serverApi.fetchWorkspaces()
     workspaces.forEach((workspace) => upsertWorkspace(workspace))
-    if (workspaces.length === 0) {
-      setHasInstances(false)
-    }
   } catch (error) {
     log.error("Failed to load workspaces", error)
   }
@@ -159,9 +160,6 @@ function handleWorkspaceEvent(event: WorkspaceEventPayload) {
     case "workspace.stopped":
       releaseInstanceResources(event.workspaceId)
       removeInstance(event.workspaceId)
-      if (instances().size === 0) {
-        setHasInstances(false)
-      }
       break
     case "workspace.log":
       handleWorkspaceLog(event.entry)
@@ -249,6 +247,7 @@ function addInstance(instance: Instance) {
   })
   ensureLogContainer(instance.id)
   ensureLogStreamingState(instance.id)
+  syncHasInstancesFlag()
 }
 
 function updateInstance(id: string, updates: Partial<Instance>) {
@@ -260,6 +259,7 @@ function updateInstance(id: string, updates: Partial<Instance>) {
     }
     return next
   })
+  syncHasInstancesFlag()
 }
 
 function removeInstance(id: string) {
@@ -301,6 +301,7 @@ function removeInstance(id: string) {
   clearCacheForInstance(id)
   messageStoreBus.unregisterInstance(id)
   clearInstanceDraftPrompts(id)
+  syncHasInstancesFlag()
 }
 
 async function createInstance(folder: string, _binaryPath?: string): Promise<string> {
@@ -328,9 +329,6 @@ async function stopInstance(id: string) {
   }
 
   removeInstance(id)
-  if (instances().size === 0) {
-    setHasInstances(false)
-  }
 }
 
 async function fetchLspStatus(instanceId: string): Promise<LspStatus[] | undefined> {
@@ -590,9 +588,6 @@ async function acknowledgeDisconnectedInstance(): Promise<void> {
     log.error("Failed to stop disconnected instance", error)
   } finally {
     setDisconnectedInstance(null)
-    if (instances().size === 0) {
-      setHasInstances(false)
-    }
   }
 }
 
