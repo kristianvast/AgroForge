@@ -18,6 +18,7 @@ import { registerFilesystemRoutes } from "./routes/filesystem"
 import { registerMetaRoutes } from "./routes/meta"
 import { registerEventRoutes } from "./routes/events"
 import { registerStorageRoutes } from "./routes/storage"
+import { registerPluginRoutes } from "./routes/plugin"
 import { ServerMeta } from "../api-types"
 import { InstanceStore } from "../storage/instance-store"
 
@@ -110,6 +111,7 @@ export function createHttpServer(deps: HttpServerDeps) {
     eventBus: deps.eventBus,
     workspaceManager: deps.workspaceManager,
   })
+  registerPluginRoutes(app, { workspaceManager: deps.workspaceManager, eventBus: deps.eventBus, logger: proxyLogger })
   registerInstanceProxyRoutes(app, { workspaceManager: deps.workspaceManager, logger: proxyLogger })
 
 

@@ -20,6 +20,7 @@ interface WorkspaceManagerOptions {
   binaryRegistry: BinaryRegistry
   eventBus: EventBus
   logger: Logger
+  getServerBaseUrl: () => string
 }
 
 interface WorkspaceRecord extends WorkspaceDescriptor {}
@@ -108,6 +109,8 @@ export class WorkspaceManager {
     const environment = {
       ...userEnvironment,
       OPENCODE_CONFIG_DIR: this.opencodeConfigDir,
+      CODENOMAD_INSTANCE_ID: id,
+      CODENOMAD_BASE_URL: this.options.getServerBaseUrl(),
     }
 
     try {
