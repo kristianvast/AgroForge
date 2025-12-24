@@ -10,7 +10,7 @@ import { clearWorkspaceSearchCache } from "../filesystem/search-cache"
 import { WorkspaceDescriptor, WorkspaceFileResponse, FileSystemEntry } from "../api-types"
 import { WorkspaceRuntime, ProcessExitInfo } from "./runtime"
 import { Logger } from "../logger"
-import { getOpencodeConfigDir } from "../opencode-config"
+import { getOpencodeConfigDir } from "../opencode-config.js"
 
 const STARTUP_STABILITY_DELAY_MS = 1500
 

@@ -43,8 +43,16 @@ export class WorkspaceRuntime {
     let lastOutput = ""
 
     return new Promise((resolve, reject) => {
+      const commandLine = [options.binaryPath, ...args].join(" ")
       this.logger.info(
-        { workspaceId: options.workspaceId, folder: options.folder, binary: options.binaryPath },
+        {
+          workspaceId: options.workspaceId,
+          folder: options.folder,
+          binary: options.binaryPath,
+          args,
+          commandLine,
+          env,
+        },
         "Launching OpenCode process",
       )
       const child = spawn(options.binaryPath, args, {
