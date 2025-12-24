@@ -41,7 +41,11 @@ export async function loadInstanceMetadata(instance: Instance, options?: { force
     const mcpStatus = mcpResult.status === "fulfilled" ? (mcpResult.value.data as RawMcpStatus) : undefined
     const lspStatus = lspResult.status === "fulfilled" ? lspResult.value ?? [] : undefined
     const config = configResult.status === "fulfilled" ? (configResult.value.data as { plugin?: unknown } | undefined) : undefined
-    const plugins = Array.isArray(config?.plugin) ? (config?.plugin as string[]) : undefined
+    const plugins = Array.isArray(config?.plugin)
+      ? (config?.plugin as string[]).map((plugin) =>
+          plugin.startsWith("file://") ? plugin.slice("file://".length) : plugin,
+        )
+      : undefined
 
     const updates: Instance["metadata"] = { ...(currentMetadata ?? {}) }
 
