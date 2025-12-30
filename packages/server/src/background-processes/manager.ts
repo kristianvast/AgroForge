@@ -166,7 +166,7 @@ export class BackgroundProcessManager {
   async readOutput(
     workspaceId: string,
     processId: string,
-    options: { method?: "full" | "tail" | "head" | "grep"; pattern?: string; lines?: number },
+    options: { method?: "full" | "tail" | "head" | "grep"; pattern?: string; lines?: number; maxBytes?: number },
   ) {
     const outputPath = this.getOutputPath(workspaceId, processId)
     if (!existsSync(outputPath)) {
@@ -178,7 +178,7 @@ export class BackgroundProcessManager {
     const method = options.method ?? "full"
     const lineCount = options.lines ?? 10
 
-    const raw = await this.readOutputBytes(outputPath, sizeBytes)
+    const raw = await this.readOutputBytes(outputPath, sizeBytes, options.maxBytes)
     let content = raw
 
     switch (method) {
@@ -198,10 +198,11 @@ export class BackgroundProcessManager {
         content = raw
     }
 
+    const effectiveMaxBytes = options.maxBytes
     return {
       id: processId,
       content,
-      truncated: sizeBytes > MAX_OUTPUT_BYTES,
+      truncated: effectiveMaxBytes !== undefined && sizeBytes > effectiveMaxBytes,
       sizeBytes,
     }
   }
@@ -280,12 +281,12 @@ export class BackgroundProcessManager {
     return "error"
   }
 
-  private async readOutputBytes(outputPath: string, sizeBytes: number): Promise<string> {
-    if (sizeBytes <= MAX_OUTPUT_BYTES) {
+  private async readOutputBytes(outputPath: string, sizeBytes: number, maxBytes?: number): Promise<string> {
+    if (maxBytes === undefined || sizeBytes <= maxBytes) {
       return await fs.readFile(outputPath, "utf-8")
     }
 
-    const start = Math.max(0, sizeBytes - MAX_OUTPUT_BYTES)
+    const start = Math.max(0, sizeBytes - maxBytes)
     const file = await fs.open(outputPath, "r")
     const buffer = Buffer.alloc(sizeBytes - start)
     await file.read(buffer, 0, buffer.length, start)

@@ -247,7 +247,7 @@ export const serverApi = {
   fetchBackgroundProcessOutput(
     instanceId: string,
     processId: string,
-    options?: { method?: "full" | "tail" | "head" | "grep"; pattern?: string; lines?: number },
+    options?: { method?: "full" | "tail" | "head" | "grep"; pattern?: string; lines?: number; maxBytes?: number },
   ): Promise<BackgroundProcessOutputResponse> {
     const params = new URLSearchParams()
     if (options?.method) {
@@ -258,6 +258,9 @@ export const serverApi = {
     }
     if (options?.lines) {
       params.set("lines", String(options.lines))
+    }
+    if (options?.maxBytes !== undefined) {
+      params.set("maxBytes", String(options.maxBytes))
     }
     const query = params.toString()
     const suffix = query ? `?${query}` : ""

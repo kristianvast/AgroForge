@@ -16,6 +16,7 @@ const OutputQuerySchema = z.object({
   mode: z.enum(["full", "tail", "head", "grep"]).optional(),
   pattern: z.string().optional(),
   lines: z.coerce.number().int().positive().max(2000).optional(),
+  maxBytes: z.coerce.number().int().positive().optional(),
 })
 
 export function registerBackgroundProcessRoutes(app: FastifyInstance, deps: RouteDeps) {
@@ -66,6 +67,7 @@ export function registerBackgroundProcessRoutes(app: FastifyInstance, deps: Rout
           method,
           pattern: query.pattern,
           lines: query.lines,
+          maxBytes: query.maxBytes,
         })
       } catch (error) {
         reply.code(400)

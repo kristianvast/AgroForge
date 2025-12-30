@@ -26,7 +26,7 @@ export function BackgroundProcessOutputDialog(props: BackgroundProcessOutputDial
 
     setLoading(true)
     serverApi
-      .fetchBackgroundProcessOutput(props.instanceId, process.id, { method: "full" })
+      .fetchBackgroundProcessOutput(props.instanceId, process.id, { method: "full", maxBytes: undefined })
       .then((response) => {
         if (!active) return
         setOutput(response.content)
@@ -65,18 +65,20 @@ export function BackgroundProcessOutputDialog(props: BackgroundProcessOutputDial
         <Dialog.Overlay class="modal-overlay" />
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
           <Dialog.Content class="modal-surface w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-base">
-            <div class="flex flex-col">
-              <Dialog.Title class="text-lg font-semibold text-primary">Background Output</Dialog.Title>
-              <Show when={props.process}>
-                <span class="text-xs text-secondary">
-                  {props.process?.title} · {props.process?.id}
-                </span>
-                <span class="text-xs text-secondary mt-1 break-words">{props.process?.command}</span>
-              </Show>
-            </div>
+            <div class="flex items-start justify-between px-6 py-4 border-b border-base gap-4">
+              <div class="flex-1 min-w-0">
+                <Dialog.Title class="text-lg font-semibold text-primary">Background Output</Dialog.Title>
+                <Show when={props.process}>
+                  <span class="text-xs text-secondary block">
+                    {props.process?.title} · {props.process?.id}
+                  </span>
+                  <span class="text-xs text-secondary mt-1 block truncate" title={props.process?.command}>
+                    {props.process?.command}
+                  </span>
+                </Show>
+              </div>
 
-              <button type="button" class="button-tertiary" onClick={props.onClose}>
+              <button type="button" class="button-tertiary flex-shrink-0" onClick={props.onClose}>
                 Close
               </button>
             </div>
@@ -88,7 +90,7 @@ export function BackgroundProcessOutputDialog(props: BackgroundProcessOutputDial
                 <Show when={truncated()}>
                   <p class="text-xs text-secondary mb-2">Output truncated for display.</p>
                 </Show>
-                <pre class="text-xs whitespace-pre-wrap break-words text-primary bg-surface-secondary border border-base rounded-md p-4">
+                <pre class="text-xs whitespace-pre-wrap break-all text-primary bg-surface-secondary border border-base rounded-md p-4 font-mono">
                   {output()}
                 </pre>
               </Show>
