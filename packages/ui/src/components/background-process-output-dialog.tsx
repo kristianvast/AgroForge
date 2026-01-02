@@ -2,8 +2,7 @@ import { Dialog } from "@kobalte/core/dialog"
 import { Show, createEffect, createSignal, onCleanup } from "solid-js"
 import type { BackgroundProcess } from "../../../server/src/api-types"
 import { buildBackgroundProcessStreamUrl, serverApi } from "../lib/api-client"
-import { ansiChunkToHtml, ansiToHtml, computeAnsiSgrState, createAnsiSgrState, hasAnsi, isAnsiSgrStateEmpty } from "../lib/ansi"
-import { escapeHtml } from "../lib/markdown"
+import { createAnsiStreamRenderer, hasAnsi } from "../lib/ansi"
 
 interface BackgroundProcessOutputDialogProps {
   open: boolean
@@ -18,6 +17,7 @@ export function BackgroundProcessOutputDialog(props: BackgroundProcessOutputDial
   const [ansiEnabled, setAnsiEnabled] = createSignal(false)
   const [truncated, setTruncated] = createSignal(false)
   const [loading, setLoading] = createSignal(false)
+  let ansiRenderer = createAnsiStreamRenderer()
 
   createEffect(() => {
     const process = props.process
@@ -29,7 +29,6 @@ export function BackgroundProcessOutputDialog(props: BackgroundProcessOutputDial
     let active = true
 
     let rawOutput = ""
-    let sgrState = createAnsiSgrState()
 
     const setRawOutput = (next: string) => {
       rawOutput = next
@@ -44,6 +43,7 @@ export function BackgroundProcessOutputDialog(props: BackgroundProcessOutputDial
     setAnsiEnabled(false)
     setOutputHtml("")
     setRawOutput("")
+    ansiRenderer.reset()
 
     setLoading(true)
     serverApi
@@ -57,12 +57,12 @@ export function BackgroundProcessOutputDialog(props: BackgroundProcessOutputDial
         const detectedAnsi = hasAnsi(response.content)
         if (detectedAnsi) {
           setAnsiEnabled(true)
-          setOutputHtml(ansiToHtml(response.content))
-          sgrState = computeAnsiSgrState(response.content)
+          ansiRenderer.reset()
+          setOutputHtml(ansiRenderer.render(response.content))
         } else {
           setAnsiEnabled(false)
           setOutputHtml("")
-          sgrState = createAnsiSgrState()
+          ansiRenderer.reset()
         }
       })
       .catch(() => {
@@ -88,29 +88,20 @@ export function BackgroundProcessOutputDialog(props: BackgroundProcessOutputDial
         const wasAnsiEnabled = ansiEnabled()
 
         if (!wasAnsiEnabled) {
-          const before = rawOutput
           appendRawOutput(chunk)
 
           if (hasAnsi(chunk)) {
             setAnsiEnabled(true)
-
-            const initialHtml = escapeHtml(before)
-            const result = ansiChunkToHtml(chunk, createAnsiSgrState())
-            setOutputHtml(initialHtml + result.html)
-            sgrState = result.nextState
+            ansiRenderer.reset()
+            setOutputHtml(ansiRenderer.render(rawOutput))
           }
 
           return
         }
 
         appendRawOutput(chunk)
-        const result = ansiChunkToHtml(chunk, sgrState)
-        setOutputHtml((prev) => `${prev}${result.html}`)
-        sgrState = result.nextState
-
-        if (isAnsiSgrStateEmpty(sgrState)) {
-          // keep streaming normally; state can legitimately be empty
-        }
+        const htmlChunk = ansiRenderer.render(chunk)
+        setOutputHtml((prev) => `${prev}${htmlChunk}`)
       } catch {
         // ignore parse errors
       }
