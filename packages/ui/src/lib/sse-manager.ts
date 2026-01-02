@@ -13,6 +13,7 @@ import type {
   EventSessionError,
   EventSessionIdle,
   EventSessionUpdated,
+  EventSessionStatus,
 } from "@opencode-ai/sdk"
 import { serverEvents } from "./server-events"
 import type {
@@ -134,6 +135,9 @@ class SSEManager {
       case "session.idle":
         this.onSessionIdle?.(instanceId, event as EventSessionIdle)
         break
+      case "session.status":
+        this.onSessionStatus?.(instanceId, event as EventSessionStatus)
+        break
       case "permission.updated":
         this.onPermissionUpdated?.(instanceId, event as EventPermissionUpdated)
         break
@@ -171,6 +175,7 @@ class SSEManager {
   onSessionError?: (instanceId: string, event: EventSessionError) => void
   onTuiToast?: (instanceId: string, event: TuiToastEvent) => void
   onSessionIdle?: (instanceId: string, event: EventSessionIdle) => void
+  onSessionStatus?: (instanceId: string, event: EventSessionStatus) => void
   onPermissionUpdated?: (instanceId: string, event: EventPermissionUpdated) => void
   onPermissionReplied?: (instanceId: string, event: EventPermissionReplied) => void
   onLspUpdated?: (instanceId: string, event: EventLspUpdated) => void

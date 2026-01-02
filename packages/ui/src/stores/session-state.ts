@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js"
 
-import type { Session, Agent, Provider } from "../types/session"
+import type { Session, SessionStatus, Agent, Provider } from "../types/session"
 import { deleteSession, loadMessages } from "./session-api"
 import { showToastNotification } from "../lib/notifications"
 import { messageStoreBus } from "./message-v2/bus"
@@ -157,6 +157,11 @@ function setSessionCompactionState(instanceId: string, sessionId: string, isComp
     const time = { ...(session.time ?? {}) }
     time.compacting = isCompacting ? Date.now() : 0
     session.time = time
+    if (isCompacting) {
+      session.status = "compacting"
+    } else if (session.status === "compacting") {
+      session.status = "idle"
+    }
   })
 }
 
@@ -196,6 +201,12 @@ function clearActiveParentSession(instanceId: string): void {
     const next = new Map(prev)
     next.delete(instanceId)
     return next
+  })
+}
+
+function setSessionStatus(instanceId: string, sessionId: string, status: SessionStatus): void {
+  withSession(instanceId, sessionId, (session) => {
+    session.status = status
   })
 }
 
@@ -380,6 +391,7 @@ export {
   withSession,
   setSessionCompactionState,
   setSessionPendingPermission,
+  setSessionStatus,
   setActiveSession,
  
   setActiveParentSession,

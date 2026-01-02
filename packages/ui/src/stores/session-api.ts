@@ -19,6 +19,7 @@ import {
   setProviders,
   setSessionInfoByInstance,
   setSessions,
+  setSessionStatus,
   sessions,
   loading,
   setLoading,
@@ -27,6 +28,7 @@ import {
 import { DEFAULT_MODEL_OUTPUT_LIMIT, getDefaultModel, isModelValid } from "./session-models"
 import { normalizeMessagePart } from "./message-v2/normalizers"
 import { updateSessionInfo } from "./message-v2/session-info"
+import { deriveSessionStatusFromMessages } from "./session-status"
 import { seedSessionMessagesV2 } from "./message-v2/bridge"
 import { messageStoreBus } from "./message-v2/bus"
 import { clearCacheForSession } from "../lib/global-cache"
@@ -82,6 +84,10 @@ async function fetchSessions(instanceId: string): Promise<void> {
     for (const apiSession of response.data) {
       const existingSession = existingSessions?.get(apiSession.id)
 
+      const compactingFlag = (apiSession.time as (Session["time"] & { compacting?: number | boolean }) | undefined)?.compacting
+      const isCompacting = typeof compactingFlag === "number" ? compactingFlag > 0 : Boolean(compactingFlag)
+      const existingStatus = existingSession?.status
+
       sessionMap.set(apiSession.id, {
         id: apiSession.id,
         instanceId,
@@ -89,6 +95,7 @@ async function fetchSessions(instanceId: string): Promise<void> {
         parentId: apiSession.parentID || null,
         agent: existingSession?.agent ?? "",
         model: existingSession?.model ?? { providerId: "", modelId: "" },
+        status: isCompacting ? "compacting" : (existingStatus ?? "idle"),
         version: apiSession.version,
         time: {
           ...apiSession.time,
@@ -183,6 +190,7 @@ async function createSession(instanceId: string, agent?: string): Promise<Sessio
       parentId: null,
       agent: selectedAgent,
       model: defaultModel,
+      status: "idle",
       version: response.data.version,
       time: {
         ...response.data.time,
@@ -290,6 +298,7 @@ async function forkSession(
       providerId: info.model?.providerID || "",
       modelId: info.model?.modelID || "",
     },
+    status: "idle",
     version: "0",
     time: info.time ? { ...info.time } : { created: Date.now(), updated: Date.now() },
     revert: info.revert
@@ -605,6 +614,11 @@ async function loadMessages(instanceId: string, sessionId: string, force = false
       revert: session?.revert,
     }
     seedSessionMessagesV2(instanceId, sessionForV2, messages, messagesInfo)
+
+    if (!alreadyLoaded) {
+      const nextStatus = deriveSessionStatusFromMessages(instanceId, sessionId)
+      setSessionStatus(instanceId, sessionId, nextStatus)
+    }
 
   } catch (error) {
     log.error("Failed to load messages:", error)
