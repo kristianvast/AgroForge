@@ -5,7 +5,10 @@
   "description": "CodeNomad monorepo workspace",
   "workspaces": {
     "packages": [
-      "packages/*"
+      "packages/server",
+      "packages/ui",
+      "packages/electron-app",
+      "packages/tauri-app"
     ]
   },
   "scripts": {
