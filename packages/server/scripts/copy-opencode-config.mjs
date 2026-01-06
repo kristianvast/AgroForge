@@ -23,6 +23,8 @@ if (!existsSync(nodeModulesDir)) {
 
   const npmArgs = [
     "install",
+    "--prefix",
+    sourceDir,
     "--omit=dev",
     "--ignore-scripts",
     "--fund=false",
