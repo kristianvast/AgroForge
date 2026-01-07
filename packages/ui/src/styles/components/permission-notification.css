@@ -55,9 +55,12 @@
 }
 
 @keyframes permission-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 2px 4px color-mix(in srgb, var(--status-warning) 30%, transparent);
   }
+
   50% {
     box-shadow: 0 2px 8px color-mix(in srgb, var(--status-warning) 60%, transparent), 0 0 16px color-mix(in srgb, var(--status-warning) 30%, transparent);
   }
@@ -113,9 +116,12 @@
 }
 
 @keyframes web-permission-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-warning) 40%, transparent);
   }
+
   50% {
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-warning) 20%, transparent);
   }
@@ -151,6 +157,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -174,6 +181,7 @@
     opacity: 0;
     transform: translateY(-20px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -390,6 +398,302 @@
   box-shadow: inset 0 -2px 0 color-mix(in srgb, #000 10%, transparent);
 }
 
-/* Dark theme adjustments - already handled by CSS tokens above */
-/* The token system automatically applies correct colors for dark mode via
-   :root @media (prefers-color-scheme: dark) definitions */
+/* Enhanced Header Layout */
+.permission-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border-base);
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.permission-modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1;
+  min-width: 0;
+}
+
+.permission-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.permission-modal-go-to-session {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.permission-modal-go-to-session:hover {
+  background: var(--surface-base);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.permission-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.permission-modal-close:hover {
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+}
+
+/* Tool Details Section */
+.permission-modal-tool-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-md);
+}
+
+.permission-modal-tool-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.permission-modal-tool-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.permission-modal-tool-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.permission-modal-tool-path {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  background: var(--surface-base);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-xs);
+}
+
+.permission-modal-tool-command {
+  padding: var(--space-sm);
+  background: var(--surface-base);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+
+.permission-modal-tool-command code {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Queue Navigation */
+.permission-modal-nav {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+.permission-modal-nav-button {
+  padding: var(--space-xs) var(--space-md);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.permission-modal-nav-button:hover:not(:disabled) {
+  background: var(--surface-base);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.permission-modal-nav-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.permission-modal-tool-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-base);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+/* ===== RESPONSIVE STYLES ===== */
+
+/* Portrait phone - near full screen with safe margins */
+@media (max-width: 480px) and (orientation: portrait) {
+  .permission-approval-modal {
+    width: 95vw;
+    max-height: 90vh;
+    max-height: calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    border-radius: var(--radius-md);
+    margin: 5vh auto;
+  }
+
+  .permission-approval-modal-backdrop {
+    padding: var(--space-md);
+  }
+
+  .permission-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: 50vh;
+  }
+
+  .permission-modal-buttons {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .permission-modal-button {
+    min-height: 48px;
+    font-size: var(--font-size-md);
+  }
+
+  .permission-modal-shortcuts {
+    display: none;
+  }
+
+  .permission-modal-footer {
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    background: var(--surface-secondary);
+    border-top: 1px solid var(--border-base);
+  }
+
+  .permission-modal-go-to-session {
+    font-size: var(--font-size-xs);
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .permission-modal-diff-viewer {
+    max-height: 40vh;
+  }
+}
+
+/* Landscape phone */
+@media (max-width: 812px) and (orientation: landscape) {
+  .permission-approval-modal {
+    width: 95vw;
+    max-height: 95vh;
+    margin: auto;
+  }
+
+  .permission-modal-body {
+    overflow-y: auto;
+    max-height: 50vh;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .permission-modal-buttons {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+
+  .permission-modal-button {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .permission-modal-shortcuts {
+    display: none;
+  }
+
+  .permission-modal-diff-viewer {
+    max-height: 30vh;
+  }
+
+  .permission-modal-footer {
+    flex-shrink: 0;
+  }
+}
+
+/* Small tablets portrait */
+@media (min-width: 481px) and (max-width: 768px) and (orientation: portrait) {
+  .permission-approval-modal {
+    width: 95vw;
+    max-height: 90vh;
+  }
+
+  .permission-modal-body {
+    overflow-y: auto;
+    max-height: 60vh;
+  }
+
+  .permission-modal-button {
+    min-height: 44px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .permission-modal-button {
+    min-height: 44px;
+  }
+
+  .permission-modal-nav-button {
+    min-height: 40px;
+    padding: var(--space-sm) var(--space-lg);
+  }
+
+  .permission-modal-go-to-session {
+    min-height: 36px;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .permission-modal-close {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: var(--font-size-lg);
+  }
+}
