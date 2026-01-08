@@ -120,6 +120,13 @@ const PermissionApprovalModal: Component<PermissionApprovalModalProps> = (props)
     onCleanup(() => document.removeEventListener("keydown", closeOnEscape))
   })
 
+  createEffect(() => {
+    if (!props.isOpen) return
+    if (queue().length === 0) {
+      props.onClose()
+    }
+  })
+
   function handleBackdropClick(event: MouseEvent) {
     if (event.target === event.currentTarget) {
       props.onClose()
