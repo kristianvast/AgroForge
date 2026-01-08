@@ -1222,6 +1222,10 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
                   </IconButton>
 
                   <div class="flex flex-wrap items-center gap-1 justify-center">
+                    <PermissionNotificationBanner
+                      instanceId={props.instance.id}
+                      onClick={() => setPermissionModalOpen(true)}
+                    />
                     <button
                       type="button"
                       class="connection-status-button px-2 py-0.5 text-xs"
@@ -1241,12 +1245,7 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
                       <span class="status-dot" />
                     </span>
 
-                    <div style={{ flex: "0 0 auto", display: "flex", "align-items": "center" }}>
-                      <PermissionNotificationBanner
-                        instanceId={props.instance.id}
-                        onClick={() => setPermissionModalOpen(true)}
-                      />
-                    </div>
+
                   </div>
 
                   <IconButton
@@ -1302,6 +1301,10 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
 
 
             <div class="session-toolbar-center flex-1 flex items-center justify-center gap-2 min-w-[160px]">
+              <PermissionNotificationBanner
+                instanceId={props.instance.id}
+                onClick={() => setPermissionModalOpen(true)}
+              />
               <button
                 type="button"
                 class="connection-status-button px-2 py-0.5 text-xs"
@@ -1315,12 +1318,7 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
                 <Kbd shortcut="cmd+shift+p" />
               </span>
 
-              <div style={{ flex: "0 0 auto", display: "flex", "align-items": "center" }}>
-                <PermissionNotificationBanner
-                  instanceId={props.instance.id}
-                  onClick={() => setPermissionModalOpen(true)}
-                />
-              </div>
+
             </div>
 
 
