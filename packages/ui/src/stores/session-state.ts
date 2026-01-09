@@ -23,6 +23,12 @@ export interface SessionInfo {
   contextAvailableTokens: number | null
 }
 
+export type SessionThread = {
+  parent: Session
+  children: Session[]
+  latestUpdated: number
+}
+
 const [sessions, setSessions] = createSignal<Map<string, Map<string, Session>>>(new Map())
 const [activeSessionId, setActiveSessionId] = createSignal<Map<string, string>>(new Map())
 const [activeParentSessionId, setActiveParentSessionId] = createSignal<Map<string, string>>(new Map())
@@ -375,6 +381,55 @@ function getSessionFamily(instanceId: string, parentId: string): Session[] {
   return [parent, ...children]
 }
 
+function getSessionThreads(instanceId: string): SessionThread[] {
+  const instanceSessions = sessions().get(instanceId)
+  if (!instanceSessions || instanceSessions.size === 0) return []
+
+  const parents: Session[] = []
+  const childrenByParent = new Map<string, Session[]>()
+
+  for (const session of instanceSessions.values()) {
+    if (session.parentId === null) {
+      parents.push(session)
+      continue
+    }
+
+    const parentId = session.parentId
+    if (!parentId) continue
+    const children = childrenByParent.get(parentId)
+    if (children) {
+      children.push(session)
+    } else {
+      childrenByParent.set(parentId, [session])
+    }
+  }
+
+  const threads: SessionThread[] = []
+
+  for (const parent of parents) {
+    const children = childrenByParent.get(parent.id) ?? []
+    if (children.length > 1) {
+      children.sort((a, b) => (b.time.updated ?? 0) - (a.time.updated ?? 0))
+    }
+
+    const parentUpdated = parent.time.updated ?? 0
+    const latestChild = children[0]?.time.updated ?? 0
+    const latestUpdated = Math.max(parentUpdated, latestChild)
+
+    threads.push({ parent, children, latestUpdated })
+  }
+
+  threads.sort((a, b) => {
+    if (b.latestUpdated !== a.latestUpdated) return b.latestUpdated - a.latestUpdated
+    const bParentUpdated = b.parent.time.updated ?? 0
+    const aParentUpdated = a.parent.time.updated ?? 0
+    if (bParentUpdated !== aParentUpdated) return bParentUpdated - aParentUpdated
+    return b.parent.id.localeCompare(a.parent.id)
+  })
+
+  return threads
+}
+
 function isSessionBusy(instanceId: string, sessionId: string): boolean {
   const instanceSessions = sessions().get(instanceId)
   if (!instanceSessions) return false
@@ -530,6 +585,7 @@ export {
   getParentSessions,
   getChildSessions,
   getSessionFamily,
+  getSessionThreads,
   isSessionBusy,
   isSessionMessagesLoading,
   getSessionInfo,

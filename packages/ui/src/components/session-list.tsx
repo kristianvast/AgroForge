@@ -1,7 +1,8 @@
-import { Component, For, Show, createSignal, createMemo, JSX } from "solid-js"
+import { Component, For, Show, createSignal, createMemo, createEffect, JSX } from "solid-js"
 import type { Session, SessionStatus } from "../types/session"
+import type { SessionThread } from "../stores/session-state"
 import { getSessionStatus } from "../stores/session-status"
-import { MessageSquare, Info, X, Copy, Trash2, Pencil, ShieldAlert } from "lucide-solid"
+import { Bot, User, Info, X, Copy, Trash2, Pencil, ShieldAlert, ChevronDown } from "lucide-solid"
 import KeyboardHint from "./keyboard-hint"
 import Kbd from "./kbd"
 import SessionRenameDialog from "./session-rename-dialog"
@@ -18,6 +19,7 @@ const log = getLogger("session")
 interface SessionListProps {
   instanceId: string
   sessions: Map<string, Session>
+  threads: SessionThread[]
   activeSessionId: string | null
   onSelect: (sessionId: string) => void
   onClose: (sessionId: string) => void
@@ -67,7 +69,38 @@ const SessionList: Component<SessionListProps> = (props) => {
     return deleting ? deleting.has(sessionId) : false
   }
  
+  const [expandedParents, setExpandedParents] = createSignal<Set<string>>(new Set())
+
+  const toggleParentExpanded = (parentId: string) => {
+    setExpandedParents((prev) => {
+      const next = new Set(prev)
+      if (next.has(parentId)) {
+        next.delete(parentId)
+      } else {
+        next.add(parentId)
+      }
+      return next
+    })
+  }
+
+  const ensureParentExpanded = (parentId: string) => {
+    setExpandedParents((prev) => {
+      if (prev.has(parentId)) return prev
+      const next = new Set(prev)
+      next.add(parentId)
+      return next
+    })
+  }
+
   const selectSession = (sessionId: string) => {
+    if (sessionId !== "info") {
+      const session = props.sessions.get(sessionId)
+      const parentId = session?.parentId ?? session?.id
+      if (parentId) {
+        ensureParentExpanded(parentId)
+      }
+    }
+
     props.onSelect(sessionId)
   }
  
@@ -127,7 +160,15 @@ const SessionList: Component<SessionListProps> = (props) => {
   }
  
 
-  const SessionRow: Component<{ sessionId: string; canClose?: boolean }> = (rowProps) => {
+  const SessionRow: Component<{
+    sessionId: string
+    canClose?: boolean
+    isChild?: boolean
+    isLastChild?: boolean
+    hasChildren?: boolean
+    expanded?: boolean
+    onToggleExpand?: () => void
+  }> = (rowProps) => {
     const session = () => props.sessions.get(rowProps.sessionId)
     if (!session()) {
       return <></>
@@ -144,16 +185,21 @@ const SessionList: Component<SessionListProps> = (props) => {
        <div class="session-list-item group">
 
         <button
-          class={`session-item-base ${isActive() ? "session-item-active" : "session-item-inactive"}`}
+          class={`session-item-base ${rowProps.isChild ? `session-item-child${rowProps.isLastChild ? " session-item-child-last" : ""} session-item-border-assistant session-item-kind-assistant` : "session-item-border-user session-item-kind-user"} ${isActive() ? "session-item-active" : "session-item-inactive"}`}
           onClick={() => selectSession(rowProps.sessionId)}
           title={title()}
           role="button"
           aria-selected={isActive()}
+          aria-expanded={rowProps.hasChildren ? Boolean(rowProps.expanded) : undefined}
         >
           <div class="session-item-row session-item-header">
             <div class="session-item-title-row">
-              <MessageSquare class="w-4 h-4 flex-shrink-0" />
-              <span class="session-item-title truncate">{title()}</span>
+              {rowProps.isChild ? (
+                <Bot class="w-4 h-4 flex-shrink-0" />
+              ) : (
+                <User class="w-4 h-4 flex-shrink-0" />
+              )}
+              <span class="session-item-title session-item-title--clamp">{title()}</span>
             </div>
             <Show when={rowProps.canClose}>
               <span
@@ -171,14 +217,36 @@ const SessionList: Component<SessionListProps> = (props) => {
             </Show>
           </div>
           <div class="session-item-row session-item-meta">
-            <span class={`status-indicator session-status session-status-list ${statusClassName()}`}>
-              {pendingPermission() ? (
-                <ShieldAlert class="w-3.5 h-3.5" aria-hidden="true" />
-              ) : (
-                <span class="status-dot" />
-              )}
-              {statusText()}
-            </span>
+            <div class="flex items-center gap-2 min-w-0">
+              <Show
+                when={rowProps.hasChildren && !rowProps.isChild}
+                fallback={
+                  rowProps.isChild ? null : <span class="session-item-expander session-item-expander--spacer" aria-hidden="true" />
+                }
+              >
+                <span
+                  class={`session-item-expander opacity-80 hover:opacity-100 ${isActive() ? "hover:bg-white/20" : "hover:bg-surface-hover"}`}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    rowProps.onToggleExpand?.()
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={rowProps.expanded ? "Collapse session" : "Expand session"}
+                  title={rowProps.expanded ? "Collapse" : "Expand"}
+                >
+                  <ChevronDown class={`w-3.5 h-3.5 transition-transform ${rowProps.expanded ? "" : "-rotate-90"}`} />
+                </span>
+              </Show>
+              <span class={`status-indicator session-status session-status-list ${statusClassName()}`}>
+                {pendingPermission() ? (
+                  <ShieldAlert class="w-3.5 h-3.5" aria-hidden="true" />
+                ) : (
+                  <span class="status-dot" />
+                )}
+                {statusText()}
+              </span>
+            </div>
             <div class="session-item-actions">
               <span
                 class={`session-item-close opacity-80 hover:opacity-100 ${isActive() ? "hover:bg-white/20" : "hover:bg-surface-hover"}`}
@@ -234,37 +302,21 @@ const SessionList: Component<SessionListProps> = (props) => {
     )
   }
  
-  const userSessionIds = createMemo(
-    () => {
-      const ids: string[] = []
-      for (const session of props.sessions.values()) {
-        if (session.parentId === null) {
-          ids.push(session.id)
-        }
-      }
-      return ids
-    },
-    undefined,
-    { equals: arraysEqual },
-  )
- 
-  const childSessionIds = createMemo(
-    () => {
-      const children: { id: string; updated: number }[] = []
-      for (const session of props.sessions.values()) {
-        if (session.parentId !== null) {
-          children.push({ id: session.id, updated: session.time.updated ?? 0 })
-        }
-      }
-      if (children.length <= 1) {
-        return children.map((entry) => entry.id)
-      }
-      children.sort((a, b) => b.updated - a.updated)
-      return children.map((entry) => entry.id)
-    },
-    undefined,
-    { equals: arraysEqual },
-  )
+  const activeParentId = createMemo(() => {
+    const activeId = props.activeSessionId
+    if (!activeId || activeId === "info") return null
+
+    const activeSession = props.sessions.get(activeId)
+    if (!activeSession) return null
+
+    return activeSession.parentId ?? activeSession.id
+  })
+
+  createEffect(() => {
+    const parentId = activeParentId()
+    if (!parentId) return
+    ensureParentExpanded(parentId)
+  })
  
   return (
     <div
@@ -299,7 +351,7 @@ const SessionList: Component<SessionListProps> = (props) => {
                 <div class="session-item-row session-item-header">
                   <div class="session-item-title-row">
                     <Info class="w-4 h-4 flex-shrink-0" />
-                    <span class="session-item-title truncate">Instance Info</span>
+                    <span class="session-item-title session-item-title--clamp">Instance Info</span>
                   </div>
                   {infoShortcut && <Kbd shortcut={formatShortcut(infoShortcut)} class="ml-2 not-italic" />}
                 </div>
@@ -308,21 +360,34 @@ const SessionList: Component<SessionListProps> = (props) => {
           </div>
 
 
-        <Show when={userSessionIds().length > 0}>
+        <Show when={props.threads.length > 0}>
           <div class="session-section">
             <div class="session-section-header px-3 py-2 text-xs font-semibold text-primary/70 uppercase tracking-wide">
-              User Session
+              Sessions
             </div>
-            <For each={userSessionIds()}>{(id) => <SessionRow sessionId={id} canClose />}</For>
-          </div>
-        </Show>
-
-        <Show when={childSessionIds().length > 0}>
-          <div class="session-section">
-            <div class="session-section-header px-3 py-2 text-xs font-semibold text-primary/70 uppercase tracking-wide">
-              Agent Sessions
-            </div>
-            <For each={childSessionIds()}>{(id) => <SessionRow sessionId={id} />}</For>
+            <For each={props.threads}>
+              {(thread) => {
+                const expanded = () => expandedParents().has(thread.parent.id)
+                return (
+                  <>
+                    <SessionRow
+                      sessionId={thread.parent.id}
+                      canClose
+                      hasChildren={thread.children.length > 0}
+                      expanded={expanded()}
+                      onToggleExpand={() => toggleParentExpanded(thread.parent.id)}
+                    />
+                    <Show when={expanded() && thread.children.length > 0}>
+                      <For each={thread.children}>
+                        {(child, index) => (
+                          <SessionRow sessionId={child.id} isChild isLastChild={index() === thread.children.length - 1} />
+                        )}
+                      </For>
+                    </Show>
+                  </>
+                )
+              }}
+            </For>
           </div>
         </Show>
       </div>
