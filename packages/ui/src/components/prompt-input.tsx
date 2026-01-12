@@ -2,7 +2,6 @@ import { createSignal, Show, onMount, For, onCleanup, createEffect, on, untrack,
 import { ArrowBigUp, ArrowBigDown } from "lucide-solid"
 import UnifiedPicker from "./unified-picker"
 import ExpandButton from "./expand-button"
-import { isElectronHost } from "../lib/runtime-env"
 import { addToHistory, getHistory } from "../stores/message-history"
 import { getAttachments, addAttachment, clearAttachments, removeAttachment } from "../stores/attachments"
 import { resolvePastedPlaceholders } from "../lib/prompt-placeholders"
@@ -48,13 +47,12 @@ export default function PromptInput(props: PromptInputProps) {
   const [pasteCount, setPasteCount] = createSignal(0)
   const [imageCount, setImageCount] = createSignal(0)
   const [mode, setMode] = createSignal<"normal" | "shell">("normal")
-  const [expandState, setExpandState] = createSignal<"normal" | "fifty" | "eighty" | "expanded">("normal")
+  const [expandState, setExpandState] = createSignal<"normal" | "expanded">("normal")
   const SELECTION_INSERT_MAX_LENGTH = 2000
   let textareaRef: HTMLTextAreaElement | undefined
   let containerRef: HTMLDivElement | undefined
 
-  // Check if we're in Electron (desktop app with 3-state support)
-  const isDesktopApp = isElectronHost()
+  // Fixed line height for expanded state (15 lines as suggested by dev)
 
   // Fixed line height for web/mobile expanded state (15 lines as suggested)
   const EXPANDED_LINES = 15
@@ -85,21 +83,11 @@ export default function PromptInput(props: PromptInputProps) {
     const state = expandState()
     if (state === "normal") return "auto"
 
+    // Use fixed height, but cap at available space
+    // This prevents overflow in landscape or small screens
     const availableHeight = calculateExpandedHeight()
-
-    if (isDesktopApp) {
-      // Electron: Use percentage-based heights (50% / 80%)
-      if (state === "fifty") {
-        return `${availableHeight * 0.5}px`
-      }
-      // state === "eighty"
-      return `${availableHeight * 0.8}px`
-    } else {
-      // Web/Mobile: Use fixed height, but cap at available space
-      // This prevents overflow in landscape or small screens
-      const maxHeight = Math.min(FIXED_EXPANDED_HEIGHT, availableHeight * 0.6)
-      return `${Math.max(maxHeight, 150)}px` // Minimum 150px to be useful
-    }
+    const maxHeight = Math.min(FIXED_EXPANDED_HEIGHT, availableHeight * 0.6)
+    return `${Math.max(maxHeight, 150)}px` // Minimum 150px to be useful
   })
 
   // Responsive placeholder text - shorter on mobile to avoid overlap with expand button
@@ -782,7 +770,7 @@ export default function PromptInput(props: PromptInputProps) {
     void props.onAbortSession()
   }
 
-  function handleExpandToggle(nextState: "normal" | "fifty" | "eighty" | "expanded") {
+  function handleExpandToggle(nextState: "normal" | "expanded") {
     setExpandState(nextState)
     // Keep focus on textarea
     textareaRef?.focus()
@@ -1276,8 +1264,12 @@ export default function PromptInput(props: PromptInputProps) {
                 autoCapitalize="off"
                 autocomplete="off"
               />
-              <Show when={hasHistory()}>
-                <div class="prompt-history-top">
+              <div class="prompt-nav-buttons">
+                <ExpandButton
+                  expandState={expandState}
+                  onToggleExpand={handleExpandToggle}
+                />
+                <Show when={hasHistory()}>
                   <button
                     type="button"
                     class="prompt-history-button"
@@ -1287,8 +1279,6 @@ export default function PromptInput(props: PromptInputProps) {
                   >
                     <ArrowBigUp class="h-5 w-5" aria-hidden="true" />
                   </button>
-                </div>
-                <div class="prompt-history-bottom">
                   <button
                     type="button"
                     class="prompt-history-button"
@@ -1298,13 +1288,7 @@ export default function PromptInput(props: PromptInputProps) {
                   >
                     <ArrowBigDown class="h-5 w-5" aria-hidden="true" />
                   </button>
-                </div>
-              </Show>
-              <div class="prompt-expand-top">
-                <ExpandButton
-                  expandState={expandState}
-                  onToggleExpand={handleExpandToggle}
-                />
+                </Show>
               </div>
               <Show when={shouldShowOverlay()}>
                 <div class={`prompt-input-overlay ${mode() === "shell" ? "shell-mode" : ""}`}>
