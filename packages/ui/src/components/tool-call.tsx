@@ -206,8 +206,9 @@ function QuestionToolBlock(props: QuestionToolBlockProps) {
 
   const toggleFromCustomInput = (questionIndex: number, input: HTMLInputElement | null) => {
     if (!props.active()) return
-    const value = input?.value?.trim() ?? ""
-    if (!value) return
+    const rawValue = input?.value ?? ""
+    const value = rawValue
+    if (value.trim().length === 0) return
 
     const info = questions()[questionIndex]
     const multi = info?.multiple === true
@@ -230,12 +231,13 @@ function QuestionToolBlock(props: QuestionToolBlockProps) {
   const handleCustomTyping = (questionIndex: number, input: HTMLInputElement) => {
     if (!props.active()) return
 
-    const value = input.value.trim()
+    const value = input.value
+    const trimmed = value.trim()
     const info = questions()[questionIndex]
     const multi = info?.multiple === true
 
     if (!multi) {
-      updateAnswer(questionIndex, value ? [value] : [])
+      updateAnswer(questionIndex, trimmed.length > 0 ? [value] : [])
       return
     }
 
@@ -245,10 +247,11 @@ function QuestionToolBlock(props: QuestionToolBlockProps) {
 
     let next = existing.filter((item) => item !== last)
 
-    if (value) {
-      if (!optionLabels.has(value) && !next.includes(value)) {
+    if (trimmed.length > 0) {
+      // Only treat it as custom if it doesn't match an existing option label.
+      if (!optionLabels.has(trimmed) && !next.includes(value)) {
         next = [...next, value]
-      } else if (optionLabels.has(value)) {
+      } else if (optionLabels.has(trimmed)) {
         // If they typed an existing option label, don't treat it as custom.
       } else if (!next.includes(value)) {
         next = [...next, value]
@@ -897,7 +900,10 @@ export default function ToolCall(props: ToolCallProps) {
       return
     }
     const answers = (questionDraftAnswers()[request.id] ?? []).map((x) => (Array.isArray(x) ? x : []))
-    const normalized = request.questions.map((_, index) => answers[index] ?? [])
+    const normalized = request.questions.map((_, index) => {
+      const row = answers[index] ?? []
+      return row.map((value) => value.trim()).filter((value) => value.length > 0)
+    })
     if (normalized.some((item) => (item?.length ?? 0) === 0)) {
       setQuestionError("Please answer all questions before submitting.")
       return
