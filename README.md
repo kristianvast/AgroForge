@@ -1,151 +1,117 @@
-# CodeNomad
+# AgroForge 🌱⚒️
 
-> Your command center for marathon AI coding sessions.
+## A high-performance developer cockpit for AI-assisted coding - cultivating code, one session at a time.
 
-CodeNomad is a desktop environment for developers who spend hours deep in [OpenCode](https://opencode.ai). Not another thin wrapper—a proper cockpit with tabs, keyboard-first navigation, and the performance to handle sessions with thousands of messages.
-
-Built by [Kristian Vastveit](https://github.com/kristianvast) as a personal tool that grew into something worth sharing.
+AgroForge is built for developers who live inside OpenCode for hours on end and need a cockpit, not a kiosk. It delivers a premium, low-latency workspace that favors speed, clarity, and direct control.
 
 ![Multi-instance workspace](docs/screenshots/newSession.png)
+_Manage multiple OpenCode sessions side-by-side._
 
 <details>
-<summary>More screenshots</summary>
+<summary>📸 More Screenshots</summary>
 
-![Command palette](docs/screenshots/command-palette.png)
+![Command palette overlay](docs/screenshots/command-palette.png)
+_Global command palette for keyboard-first control._
 
-![Image previews](docs/screenshots/image-previews.png)
+![Image Previews](docs/screenshots/image-previews.png)
+_Rich media previews for images and assets._
 
-![Browser support](docs/screenshots/browser-support.png)
+![Browser Support](docs/screenshots/browser-support.png)
+_Browser support via AgroForge Server._
 
 </details>
 
----
+## Getting Started
 
-## Why CodeNomad?
+Choose the way that fits your workflow:
 
-I kept running into the same friction: OpenCode is powerful, but managing long sessions across multiple projects felt clunky. I wanted:
+### 🖥️ Desktop App (Recommended)
+The best experience. A native application (Electron-based) with global shortcuts, deeper system integration, and a dedicated window.
 
-- **Tabs** — Jump between projects without losing context
-- **Speed** — Scroll through 10k+ message sessions without lag
-- **Keyboard everything** — Command palette, shortcuts, no mouse required
-- **Remote access** — Code from my laptop while the heavy lifting runs on my workstation
+- **Download**: Grab the latest installer for macOS, Windows, or Linux from the [Releases Page](https://github.com/kristianvast/AgroForge/releases).
+- **Run**: Install and launch like any other app.
 
-So I built it.
+### 🦀 Tauri App (Experimental)
+We are also working on a lightweight, high-performance version built with [Tauri](https://tauri.app). It is currently in active development.
 
----
+- **Download**: Experimental builds are available on the [Releases Page](https://github.com/kristianvast/AgroForge/releases).
+- **Source**: Check out `packages/tauri-app` if you're interested in contributing.
 
-## Quick Start
-
-### Desktop App (Recommended)
-
-Download the latest release for your platform:
-
-- **[Releases Page](https://github.com/kristianvast/CodeNomad/releases)** — macOS, Windows, Linux
-
-### Run as Server
-
-Access CodeNomad from any browser. Great for remote dev or headless setups:
+### 💻 AgroForge Server
+Run AgroForge as a local server and access it via your web browser. Perfect for remote development (SSH/VPN) or running as a service.
 
 ```bash
-npx @neuralnomads/codenomad-server --launch
+npx @agroforge/server --launch
 ```
 
-### Tauri Build (Experimental)
-
-Lighter weight alternative using Rust + WebKitGTK:
+For dev version
 
 ```bash
-# Check releases for Tauri builds
+npx @agroforge/server@dev --launch
 ```
 
----
+This command starts the server and opens the web client in your default browser.
 
-## Features
+## Highlights
 
-| What | Why it matters |
-|------|----------------|
-| **Multi-instance tabs** | Work on multiple projects simultaneously |
-| **Command palette** | `Cmd/Ctrl+K` for everything |
-| **Long-session performance** | Handles massive transcripts without choking |
-| **Background task awareness** | See child sessions and async work at a glance |
-| **File attachments** | Drag, drop, or `@mention` files inline |
-| **Image support** | Paste screenshots, preview assets |
-| **Agent switching** | Swap agents and models mid-session |
-| **Remote access** | Run the server, connect from anywhere |
-
----
+- **Multi-Instance**: Juggle several OpenCode sessions side-by-side with tabs.
+- **Long-Session Native**: Scroll through massive transcripts without hitches.
+- **Command Palette**: A single global palette to jump tabs, launch tools, and control everything.
+- **Deep Task Awareness**: Monitor background tasks and child sessions without losing flow.
 
 ## Requirements
 
-- **[OpenCode CLI](https://opencode.ai)** — installed and in your `PATH`
-- **Node.js 18+** — if running the server or building from source
-
----
-
-## Development
-
-This is a monorepo with npm workspaces:
-
-```
-packages/
-├── electron-app/   # Desktop shell (Electron)
-├── tauri-app/      # Lightweight shell (Tauri, experimental)
-├── server/         # CLI server + workspace management
-└── ui/             # SolidJS frontend
-```
-
-### Build from source
-
-```bash
-git clone https://github.com/kristianvast/CodeNomad.git
-cd CodeNomad
-npm install
-npm run build
-```
-
-### Run in dev mode
-
-```bash
-npm run dev          # Electron app
-npm run dev:tauri    # Tauri app
-```
-
----
+- **[OpenCode CLI](https://opencode.ai)**: Must be installed and available in your `PATH`.
+- **Node.js 18+**: Required if running the CLI server or building from source.
 
 ## Troubleshooting
 
-<details>
-<summary>macOS says the app is damaged</summary>
-
-Gatekeeper quarantines unsigned apps. Clear it:
+### macOS says the app is damaged
+If macOS reports that "AgroForge.app is damaged and can't be opened," Gatekeeper flagged the download because the app is not yet notarized. You can clear the quarantine flag after moving AgroForge into `/Applications`:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/CodeNomad.app
+xattr -l /Applications/AgroForge.app
+xattr -dr com.apple.quarantine /Applications/AgroForge.app
 ```
 
-</details>
+After removing the quarantine attribute, launch the app normally. On Intel Macs you may also need to approve AgroForge from **System Settings → Privacy & Security** the first time you run it.
 
-<details>
-<summary>Linux + Wayland + NVIDIA: Tauri crashes on launch</summary>
+### Linux (Wayland + NVIDIA): Tauri AppImage closes immediately
+On some Wayland compositor + NVIDIA driver setups, WebKitGTK can fail to initialize its DMA-BUF/GBM path and the Tauri build may exit right away.
 
-WebKitGTK can struggle with DMA-BUF on some setups:
+Try running with one of these environment variables:
 
 ```bash
-WEBKIT_DISABLE_DMABUF_RENDERER=1 codenomad
+# Most reliable workaround (can reduce rendering performance)
+WEBKIT_DISABLE_DMABUF_RENDERER=1 agroforge
+
+# Alternative for some Wayland setups
+__NV_DISABLE_EXPLICIT_SYNC=1 agroforge
 ```
 
-See: https://github.com/tauri-apps/tauri/issues/10702
+If you're running the Tauri AppImage and want the workaround applied every time, create a tiny wrapper script on your `PATH`:
 
-</details>
+```bash
+#!/bin/bash
+export WEBKIT_DISABLE_DMABUF_RENDERER=1
+exec ~/.local/share/bauh/appimage/installed/agroforge/AgroForge-Tauri-0.4.0-linux-x64.AppImage "$@"
+```
 
----
+Upstream tracking: https://github.com/tauri-apps/tauri/issues/10702
 
-## Credits
+## Architecture & Development
 
-CodeNomad started as a fork of **[AgroForge](https://github.com/kristianvast/AgroForge)** and has since diverged significantly with custom features, UI improvements, and architectural changes. Thanks to the original project for the foundation.
+AgroForge is a monorepo split into specialized packages. If you want to contribute or build from source, check out the individual package documentation:
 
----
+| Package | Description |
+|---------|-------------|
+| **[packages/electron-app](packages/electron-app/README.md)** | The native desktop application shell. Wraps the UI and Server. |
+| **[packages/server](packages/server/README.md)** | The core logic and CLI. Manages workspaces, proxies OpenCode, and serves the API. |
+| **[packages/ui](packages/ui/README.md)** | The SolidJS-based frontend. Fast, reactive, and beautiful. |
 
-## License
+### Quick Build
+To build the Desktop App from source:
 
-MIT
+1.  Clone the repo.
+2.  Run `npm install` (requires pnpm or npm 7+ for workspaces).
+3.  Run `npm run build --workspace @agroforge/electron-app`.

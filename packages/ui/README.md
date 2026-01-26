@@ -1,10 +1,10 @@
-# CodeNomad UI
+# AgroForge UI
 
-The frontend for CodeNomad, built with [SolidJS](https://www.solidjs.com/) and [Tailwind CSS](https://tailwindcss.com/).
+This package contains the frontend user interface for AgroForge, built with [SolidJS](https://www.solidjs.com/) and [Tailwind CSS](https://tailwindcss.com/).
 
 ## Overview
 
-Fast, reactive interface designed for long coding sessions. Connects to the CodeNomad server (standalone or embedded in the desktop app).
+The UI is designed to be a high-performance, low-latency cockpit for managing OpenCode sessions. It connects to the AgroForge server (either running locally via CLI or embedded in the Electron app).
 
 ## Features
 
@@ -41,14 +41,14 @@ The UI now routes all logging through a lightweight wrapper around [`debug`](htt
 - `session` – Session/model state, prompt handling, tool calls
 - `actions` – User-driven interactions in UI components
 
-You can enable or disable namespaces from DevTools via the global `window.codenomadLogger` helpers:
+You can enable or disable namespaces from DevTools (in dev or production builds) via the global `window.agroforgeLogger` helpers:
 
 ```js
-window.codenomadLogger?.listLoggerNamespaces() // => [{ name: "sse", enabled: false }, ...]
-window.codenomadLogger?.enableLogger("sse")    // turn on SSE logs
-window.codenomadLogger?.disableLogger("sse")   // turn them off
-window.codenomadLogger?.enableAllLoggers()     // enable everything
+window.agroforgeLogger?.listLoggerNamespaces() // => [{ name: "sse", enabled: false }, ...]
+window.agroforgeLogger?.enableLogger("sse") // turn on SSE logs
+window.agroforgeLogger?.disableLogger("sse") // turn them off again
+window.agroforgeLogger?.enableAllLoggers() // optional helper
 ```
 
-Enabled namespaces persist in `localStorage` under `codenomad:logger:namespaces`.
+Enabled namespaces are persisted in `localStorage` under `opencode:logger:namespaces`, so your preference survives reloads.
 
