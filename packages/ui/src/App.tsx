@@ -1,16 +1,18 @@
-import { Component, For, Show, createMemo, createEffect, createSignal, onMount, onCleanup } from "solid-js"
+import { Component, For, Show, createMemo, createEffect, createSignal, onMount, onCleanup, lazy, Suspense } from "solid-js"
 import { Dialog } from "@kobalte/core/dialog"
 import { Toaster } from "solid-toast"
-import AlertDialog from "./components/alert-dialog"
-import FolderSelectionView from "./components/folder-selection-view"
 import { showConfirmDialog } from "./stores/alerts"
 import InstanceTabs from "./components/instance-tabs"
-import InstanceDisconnectedModal from "./components/instance-disconnected-modal"
-import InstanceShell from "./components/instance/instance-shell2"
-import { RemoteAccessOverlay } from "./components/remote-access-overlay"
 import { InstanceMetadataProvider } from "./lib/contexts/instance-metadata-context"
 import { initMarkdown } from "./lib/markdown"
 import { initGithubStars } from "./stores/github-stars"
+
+// Lazy loaded components for better initial load performance
+const AlertDialog = lazy(() => import("./components/alert-dialog"))
+const FolderSelectionView = lazy(() => import("./components/folder-selection-view"))
+const InstanceDisconnectedModal = lazy(() => import("./components/instance-disconnected-modal"))
+const InstanceShell = lazy(() => import("./components/instance/instance-shell2"))
+const RemoteAccessOverlay = lazy(() => import("./components/remote-access-overlay").then(m => ({ default: m.RemoteAccessOverlay })))
 
 import { useTheme } from "./lib/theme"
 import { useCommands } from "./lib/hooks/use-commands"
@@ -49,6 +51,23 @@ import {
 
 const log = getLogger("actions")
 
+// Lightweight loading fallback for lazy components
+const LoadingFallback: Component<{ class?: string }> = (props) => (
+  <div class={`flex items-center justify-center ${props.class || ""}`}>
+    <div class="animate-pulse text-secondary">Loading...</div>
+  </div>
+)
+
+// Shell loading fallback with proper sizing
+const ShellLoadingFallback: Component = () => (
+  <div class="flex-1 min-h-0 overflow-hidden flex items-center justify-center bg-surface">
+    <div class="flex flex-col items-center gap-3">
+      <div class="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <span class="text-sm text-secondary">Loading workspace...</span>
+    </div>
+  </div>
+)
+
 const App: Component = () => {
   const { isDark } = useTheme()
   const {
@@ -80,12 +99,26 @@ const App: Component = () => {
     setInstanceTabBarHeight(element?.offsetHeight ?? 0)
   }
 
+  // Defer markdown initialization until after first paint for smoother loading
   createEffect(() => {
-    void initMarkdown(isDark()).catch((error) => log.error("Failed to initialize markdown", error))
+    // Use requestIdleCallback for non-critical initialization
+    const initMarkdownDeferred = () => {
+      void initMarkdown(isDark()).catch((error) => log.error("Failed to initialize markdown", error))
+    }
+    if ("requestIdleCallback" in window) {
+      ;(window as any).requestIdleCallback(initMarkdownDeferred, { timeout: 2000 })
+    } else {
+      setTimeout(initMarkdownDeferred, 100)
+    }
   })
 
-  createEffect(() => {
-    initReleaseNotifications()
+  // Defer release notifications check - not needed for initial render
+  onMount(() => {
+    if ("requestIdleCallback" in window) {
+      ;(window as any).requestIdleCallback(() => initReleaseNotifications(), { timeout: 5000 })
+    } else {
+      setTimeout(() => initReleaseNotifications(), 1000)
+    }
   })
 
   createEffect(() => {
@@ -95,7 +128,13 @@ const App: Component = () => {
   })
 
   onMount(() => {
-    void initGithubStars()
+    // Defer GitHub stars fetch - purely cosmetic, not needed immediately
+    if ("requestIdleCallback" in window) {
+      ;(window as any).requestIdleCallback(() => void initGithubStars(), { timeout: 5000 })
+    } else {
+      setTimeout(() => void initGithubStars(), 1000)
+    }
+
     updateInstanceTabBarHeight()
     const handleResize = () => updateInstanceTabBarHeight()
     window.addEventListener("resize", handleResize)
@@ -317,12 +356,14 @@ const App: Component = () => {
 
   return (
     <>
-      <InstanceDisconnectedModal
-        open={Boolean(disconnectedInstance())}
-        folder={disconnectedInstance()?.folder}
-        reason={disconnectedInstance()?.reason}
-        onClose={handleDisconnectedInstanceClose}
-      />
+      <Suspense fallback={null}>
+        <InstanceDisconnectedModal
+          open={Boolean(disconnectedInstance())}
+          folder={disconnectedInstance()?.folder}
+          reason={disconnectedInstance()?.reason}
+          onClose={handleDisconnectedInstanceClose}
+        />
+      </Suspense>
 
       <Dialog open={Boolean(launchError())} modal>
         <Dialog.Portal>
@@ -388,17 +429,19 @@ const App: Component = () => {
                     return (
                       <div class="flex-1 min-h-0 overflow-hidden" style={{ display: isVisible() ? "flex" : "none" }}>
                         <InstanceMetadataProvider instance={instance}>
-                          <InstanceShell
-                            instance={instance}
-                            escapeInDebounce={escapeInDebounce()}
-                            paletteCommands={paletteCommands}
-                            onCloseSession={(sessionId) => handleCloseSession(instance.id, sessionId)}
-                            onNewSession={() => handleNewSession(instance.id)}
-                            handleSidebarAgentChange={(sessionId, agent) => handleSidebarAgentChange(instance.id, sessionId, agent)}
-                            handleSidebarModelChange={(sessionId, model) => handleSidebarModelChange(instance.id, sessionId, model)}
-                            onExecuteCommand={executeCommand}
-                            tabBarOffset={instanceTabBarHeight()}
-                          />
+                          <Suspense fallback={<ShellLoadingFallback />}>
+                            <InstanceShell
+                              instance={instance}
+                              escapeInDebounce={escapeInDebounce()}
+                              paletteCommands={paletteCommands}
+                              onCloseSession={(sessionId) => handleCloseSession(instance.id, sessionId)}
+                              onNewSession={() => handleNewSession(instance.id)}
+                              handleSidebarAgentChange={(sessionId, agent) => handleSidebarAgentChange(instance.id, sessionId, agent)}
+                              handleSidebarModelChange={(sessionId, model) => handleSidebarModelChange(instance.id, sessionId, model)}
+                              onExecuteCommand={executeCommand}
+                              tabBarOffset={instanceTabBarHeight()}
+                            />
+                          </Suspense>
                         </InstanceMetadataProvider>
 
                       </div>
@@ -410,14 +453,16 @@ const App: Component = () => {
             </>
           }
         >
-          <FolderSelectionView
-            onSelectFolder={handleSelectFolder}
-            isLoading={isSelectingFolder()}
-            advancedSettingsOpen={isAdvancedSettingsOpen()}
-            onAdvancedSettingsOpen={() => setIsAdvancedSettingsOpen(true)}
-            onAdvancedSettingsClose={() => setIsAdvancedSettingsOpen(false)}
-            onOpenRemoteAccess={() => setRemoteAccessOpen(true)}
-          />
+          <Suspense fallback={<LoadingFallback class="h-screen w-screen" />}>
+            <FolderSelectionView
+              onSelectFolder={handleSelectFolder}
+              isLoading={isSelectingFolder()}
+              advancedSettingsOpen={isAdvancedSettingsOpen()}
+              onAdvancedSettingsOpen={() => setIsAdvancedSettingsOpen(true)}
+              onAdvancedSettingsClose={() => setIsAdvancedSettingsOpen(false)}
+              onOpenRemoteAccess={() => setRemoteAccessOpen(true)}
+            />
+          </Suspense>
         </Show>
 
         <Show when={showFolderSelection()}>
@@ -436,20 +481,26 @@ const App: Component = () => {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <FolderSelectionView
-                onSelectFolder={handleSelectFolder}
-                isLoading={isSelectingFolder()}
-                advancedSettingsOpen={isAdvancedSettingsOpen()}
-                onAdvancedSettingsOpen={() => setIsAdvancedSettingsOpen(true)}
-                onAdvancedSettingsClose={() => setIsAdvancedSettingsOpen(false)}
-              />
+              <Suspense fallback={<LoadingFallback class="h-full w-full" />}>
+                <FolderSelectionView
+                  onSelectFolder={handleSelectFolder}
+                  isLoading={isSelectingFolder()}
+                  advancedSettingsOpen={isAdvancedSettingsOpen()}
+                  onAdvancedSettingsOpen={() => setIsAdvancedSettingsOpen(true)}
+                  onAdvancedSettingsClose={() => setIsAdvancedSettingsOpen(false)}
+                />
+              </Suspense>
             </div>
           </div>
         </Show>
- 
-        <RemoteAccessOverlay open={remoteAccessOpen()} onClose={() => setRemoteAccessOpen(false)} />
- 
-        <AlertDialog />
+
+        <Suspense fallback={null}>
+          <RemoteAccessOverlay open={remoteAccessOpen()} onClose={() => setRemoteAccessOpen(false)} />
+        </Suspense>
+
+        <Suspense fallback={null}>
+          <AlertDialog />
+        </Suspense>
 
         <Toaster
           position="top-right"

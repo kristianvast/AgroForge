@@ -1,0 +1,935 @@
+/* Agent & Model Picker - Creative card-based selection */
+
+/* Overlay */
+.picker-overlay {
+  @apply fixed inset-0 z-50;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  animation: picker-fade-in 0.15s ease-out;
+}
+
+@keyframes picker-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal Container */
+.picker-modal {
+  @apply relative flex flex-col rounded-xl overflow-hidden shadow-2xl;
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-base);
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(680px, calc(100vh - 64px));
+  animation: picker-slide-up 0.2s ease-out;
+}
+
+@keyframes picker-slide-up {
+  from { 
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header with current selection */
+.picker-header {
+  @apply flex items-center justify-between gap-4 px-4 py-3;
+  background: linear-gradient(
+    to bottom,
+    var(--surface-secondary) 0%,
+    var(--surface-base) 100%
+  );
+  border-bottom: 1px solid var(--border-base);
+}
+
+.picker-current-selection {
+  @apply flex items-center gap-2 flex-1 min-w-0;
+}
+
+.picker-current-item {
+  @apply flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-all;
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+}
+
+.picker-current-item:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--border-base);
+}
+
+.picker-current-icon {
+  @apply flex items-center justify-center w-8 h-8 rounded-lg;
+  transition: all 0.2s ease;
+}
+
+.picker-current-icon--agent {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%);
+  color: var(--text-inverted);
+}
+
+.picker-current-icon--model {
+  background: linear-gradient(135deg, var(--provider-accent, var(--accent-primary)) 0%, color-mix(in srgb, var(--provider-accent, var(--accent-primary)) 80%, black) 100%);
+  color: white;
+}
+
+.picker-current-info {
+  @apply flex flex-col min-w-0;
+}
+
+.picker-current-label {
+  @apply text-[10px] font-medium uppercase tracking-wider;
+  color: var(--text-muted);
+}
+
+.picker-current-value {
+  @apply text-sm font-semibold truncate;
+  color: var(--text-primary);
+}
+
+.picker-current-separator {
+  @apply w-4 h-4 flex-shrink-0;
+  color: var(--text-muted);
+}
+
+.picker-close {
+  @apply p-2 rounded-lg transition-all;
+  color: var(--text-muted);
+}
+
+.picker-close:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+/* Tab Switcher */
+.picker-tabs {
+  @apply relative flex mx-4 mt-3 p-1 rounded-lg;
+  background-color: var(--surface-secondary);
+}
+
+.picker-tab {
+  @apply relative flex items-center justify-center gap-2 flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all z-10;
+  color: var(--text-secondary);
+}
+
+.picker-tab:hover:not(.picker-tab--active) {
+  color: var(--text-primary);
+}
+
+.picker-tab--active {
+  color: var(--text-primary);
+}
+
+.picker-tab-count {
+  @apply px-1.5 py-0.5 rounded-full text-[10px] font-bold;
+  background-color: var(--accent-soft-bg);
+  color: var(--accent-primary);
+}
+
+.picker-tab-indicator {
+  @apply absolute top-1 left-1 bottom-1 w-[calc(50%-4px)] rounded-md transition-transform duration-200 ease-out;
+  background-color: var(--surface-base);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Search Bar */
+.picker-search {
+  @apply relative flex items-center mx-4 mt-3 rounded-lg overflow-hidden;
+  background-color: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+  transition: all 0.15s ease;
+}
+
+.picker-search:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-soft-bg);
+}
+
+.picker-search-icon {
+  @apply w-4 h-4 ml-3 flex-shrink-0;
+  color: var(--text-muted);
+}
+
+.picker-search-input {
+  @apply flex-1 px-3 py-2.5 text-sm bg-transparent outline-none;
+  color: var(--text-primary);
+}
+
+.picker-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.picker-search-clear {
+  @apply p-2 mr-1 rounded transition-colors;
+  color: var(--text-muted);
+}
+
+.picker-search-clear:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.picker-search-hint {
+  @apply mr-3 px-1.5 py-0.5 rounded text-[10px] font-medium;
+  background-color: var(--surface-base);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Content Area */
+.picker-content {
+  @apply flex-1 overflow-y-auto p-4;
+  min-height: 300px;
+}
+
+.picker-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.picker-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.picker-content::-webkit-scrollbar-thumb {
+  background-color: var(--border-base);
+  border-radius: 3px;
+}
+
+/* Empty State */
+.picker-empty {
+  @apply flex flex-col items-center justify-center gap-3 py-12;
+  color: var(--text-muted);
+}
+
+.picker-empty p {
+  @apply text-sm;
+}
+
+/* Agent Grid */
+.picker-agent-grid {
+  @apply grid gap-3;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.picker-agent-card {
+  @apply relative flex flex-col p-4 rounded-xl text-left transition-all;
+  background-color: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.picker-agent-card:hover:not(:disabled) {
+  background-color: var(--surface-hover);
+  border-color: var(--border-base);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.picker-agent-card--selected {
+  background-color: var(--accent-soft-bg);
+  border-color: var(--accent-primary);
+}
+
+.picker-agent-card--selected:hover {
+  border-color: var(--accent-primary);
+}
+
+.picker-agent-card:disabled {
+  @apply opacity-60 cursor-not-allowed;
+}
+
+.picker-agent-card-header {
+  @apply flex items-start justify-between mb-3;
+}
+
+.picker-agent-avatar {
+  @apply flex items-center justify-center w-10 h-10 rounded-xl;
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%);
+  color: var(--text-inverted);
+}
+
+.picker-agent-check {
+  @apply flex items-center justify-center w-5 h-5 rounded-full;
+  background-color: var(--accent-primary);
+  color: var(--text-inverted);
+}
+
+.picker-frequent-badge {
+  @apply flex items-center justify-center w-5 h-5 rounded-full;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #78350f;
+  animation: picker-sparkle 2s ease-in-out infinite;
+}
+
+@keyframes picker-sparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(0.95); }
+}
+
+.picker-agent-card-body {
+  @apply flex-1 min-w-0;
+}
+
+.picker-agent-name {
+  @apply text-sm font-semibold mb-1;
+  color: var(--text-primary);
+}
+
+.picker-agent-description {
+  @apply text-xs leading-relaxed;
+  color: var(--text-secondary);
+}
+
+.picker-agent-card-footer {
+  @apply flex flex-wrap gap-1.5 mt-3 pt-3;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.picker-agent-badge {
+  @apply inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium;
+}
+
+.picker-agent-badge--model {
+  background-color: var(--surface-base);
+  color: var(--text-secondary);
+}
+
+/* Provider Pills */
+.picker-provider-pills {
+  @apply flex flex-wrap gap-2 mb-4 pb-4;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.picker-provider-pill {
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all;
+  background-color: var(--surface-secondary);
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+
+.picker-provider-pill:hover:not(.picker-provider-pill--active) {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.picker-provider-pill--active {
+  background-color: color-mix(in srgb, var(--provider-accent, var(--accent-primary)) 15%, transparent);
+  color: var(--provider-accent, var(--accent-primary));
+  border-color: color-mix(in srgb, var(--provider-accent, var(--accent-primary)) 30%, transparent);
+}
+
+.picker-provider-emoji {
+  @apply text-sm;
+}
+
+.picker-provider-count {
+  @apply px-1.5 py-0.5 rounded-full text-[10px] font-bold ml-0.5;
+  background-color: var(--surface-base);
+  color: var(--text-muted);
+}
+
+.picker-provider-pill--active .picker-provider-count {
+  background-color: color-mix(in srgb, var(--provider-accent, var(--accent-primary)) 20%, transparent);
+  color: var(--provider-accent, var(--accent-primary));
+}
+
+/* Model List */
+.picker-model-list {
+  @apply flex flex-col gap-4;
+}
+
+.picker-model-group {
+  @apply flex flex-col;
+}
+
+.picker-model-group-header {
+  @apply flex items-center gap-2 px-2 py-1.5 mb-2;
+  border-left: 3px solid var(--provider-accent, var(--accent-primary));
+}
+
+.picker-model-group-icon {
+  @apply text-base;
+}
+
+.picker-model-group-name {
+  @apply text-xs font-semibold uppercase tracking-wider flex-1;
+  color: var(--text-secondary);
+}
+
+.picker-model-group-count {
+  @apply text-[10px] font-medium px-1.5 py-0.5 rounded-full;
+  background-color: var(--surface-secondary);
+  color: var(--text-muted);
+}
+
+.picker-model-group-items {
+  @apply flex flex-col gap-1;
+}
+
+.picker-model-item {
+  @apply relative flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-left transition-all;
+  background-color: var(--surface-secondary);
+  border: 1px solid transparent;
+}
+
+.picker-model-item:hover:not(:disabled) {
+  background-color: var(--surface-hover);
+  border-color: var(--border-subtle);
+}
+
+.picker-model-item--selected {
+  background-color: color-mix(in srgb, var(--provider-accent, var(--accent-primary)) 10%, var(--surface-secondary));
+  border-color: color-mix(in srgb, var(--provider-accent, var(--accent-primary)) 30%, transparent);
+}
+
+.picker-model-item:disabled {
+  @apply opacity-60 cursor-not-allowed;
+}
+
+.picker-model-item-main {
+  @apply flex items-center gap-3 min-w-0 flex-1;
+}
+
+.picker-model-item-icon {
+  @apply flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0;
+  background-color: var(--surface-base);
+  color: var(--text-muted);
+}
+
+.picker-model-item--flagship .picker-model-item-icon {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #78350f;
+}
+
+.picker-model-item--efficient .picker-model-item-icon {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  color: #064e3b;
+}
+
+.picker-model-item--selected .picker-model-item-icon {
+  background-color: var(--provider-accent, var(--accent-primary));
+  color: white;
+}
+
+.picker-model-item-info {
+  @apply flex flex-col min-w-0;
+}
+
+.picker-model-item-name {
+  @apply text-sm font-medium truncate;
+  color: var(--text-primary);
+}
+
+.picker-model-item-id {
+  @apply text-xs truncate;
+  color: var(--text-muted);
+}
+
+.picker-model-item-meta {
+  @apply flex items-center gap-2 flex-shrink-0;
+}
+
+.picker-model-badge {
+  @apply inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold;
+}
+
+.picker-model-badge--flagship {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.2) 100%);
+  color: #b45309;
+}
+
+.picker-model-badge--efficient {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%);
+  color: #047857;
+}
+
+.picker-model-check {
+  @apply flex items-center justify-center w-6 h-6 rounded-full;
+  background-color: var(--provider-accent, var(--accent-primary));
+  color: white;
+}
+
+/* Footer */
+.picker-footer {
+  @apply px-4 py-2.5;
+  background-color: var(--surface-secondary);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.picker-footer-hints {
+  @apply flex items-center justify-center gap-4 text-[11px];
+  color: var(--text-muted);
+}
+
+.picker-footer-hints kbd {
+  @apply inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium mr-1;
+  background-color: var(--surface-base);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .picker-modal {
+    width: 100%;
+    max-height: calc(100vh - 32px);
+    border-radius: 16px 16px 0 0;
+    margin-top: auto;
+  }
+
+  .picker-agent-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .picker-current-selection {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1px;
+  }
+
+  .picker-current-item {
+    border-radius: 8px;
+  }
+
+  .picker-current-separator {
+    display: none;
+  }
+
+  .picker-provider-pills {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .picker-provider-pill {
+    flex-shrink: 0;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .picker-model-badge--flagship {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%);
+    color: #fbbf24;
+  }
+
+  .picker-model-badge--efficient {
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%);
+    color: #34d399;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .picker-overlay,
+  .picker-modal,
+  .picker-tab-indicator,
+  .picker-agent-card,
+  .picker-model-item {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE BOTTOM SHEET - Model/Agent Picker (iPhone 13 Pro Max: 428px)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+  /* Bottom sheet container positioning */
+  .picker-modal {
+    position: fixed !important;
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 85vh;
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+    box-shadow: 0 -10px 50px rgba(0, 0, 0, 0.3);
+    animation: picker-mobile-slide-up 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    transform-origin: bottom center;
+  }
+  
+  /* Swipe indicator / drag handle */
+  .picker-modal::before {
+    content: "";
+    display: block;
+    width: 40px;
+    height: 5px;
+    background: var(--border-secondary);
+    border-radius: 3px;
+    margin: 10px auto 6px;
+    flex-shrink: 0;
+  }
+  
+  /* Header - more compact on mobile */
+  .picker-header {
+    @apply px-4 py-2;
+    flex-direction: row;
+    gap: 8px;
+  }
+  
+  .picker-current-selection {
+    flex-direction: row;
+    gap: 4px;
+  }
+  
+  .picker-current-item {
+    @apply px-2 py-1.5;
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .picker-current-icon {
+    @apply w-7 h-7;
+  }
+  
+  .picker-current-label {
+    @apply text-[9px];
+  }
+  
+  .picker-current-value {
+    @apply text-xs;
+  }
+  
+  .picker-current-separator {
+    @apply w-3 h-3;
+  }
+  
+  .picker-close {
+    @apply p-3 -mr-2;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Tab switcher - full width touch targets */
+  .picker-tabs {
+    @apply mx-3 mt-2 mb-1;
+  }
+  
+  .picker-tab {
+    @apply py-3 text-sm;
+    min-height: 48px;
+  }
+  
+  /* Search - sticky, iOS zoom prevention */
+  .picker-search {
+    @apply mx-3 mt-2;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--surface-base);
+  }
+  
+  .picker-search-input {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    @apply py-3 px-3;
+  }
+  
+  .picker-search-hint {
+    display: none; /* Hide keyboard hint on mobile */
+  }
+  
+  .picker-search-clear {
+    @apply p-3;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* Content area - touch scroll with momentum */
+  .picker-content {
+    @apply p-3;
+    min-height: 200px;
+    max-height: calc(85vh - 220px);
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Agent grid - single column on mobile */
+  .picker-agent-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  /* Agent cards - larger touch targets */
+  .picker-agent-card {
+    @apply p-4;
+    min-height: 80px;
+  }
+  
+  .picker-agent-card:active:not(:disabled) {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+  
+  .picker-agent-avatar {
+    @apply w-11 h-11;
+  }
+  
+  .picker-agent-name {
+    @apply text-base;
+  }
+  
+  .picker-agent-description {
+    @apply text-sm leading-snug;
+  }
+  
+  /* Provider pills - horizontal scroll on mobile */
+  .picker-provider-pills {
+    @apply flex-nowrap overflow-x-auto pb-3 mb-3 -mx-3 px-3;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .picker-provider-pills::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .picker-provider-pill {
+    @apply flex-shrink-0 py-2.5 px-4 text-sm;
+    min-height: 44px;
+  }
+  
+  /* Model group headers - sticky */
+  .picker-model-group-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--surface-base);
+    @apply py-2 px-3 -mx-3;
+    margin-top: 4px;
+  }
+  
+  .picker-model-group-name {
+    @apply text-xs;
+  }
+  
+  /* Model items - larger touch targets */
+  .picker-model-item {
+    @apply px-4 py-4;
+    min-height: 64px;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 0;
+    background-color: transparent;
+  }
+  
+  .picker-model-item:last-child {
+    border-bottom: none;
+  }
+  
+  .picker-model-item:active:not(:disabled) {
+    background-color: var(--surface-hover);
+    transition: background-color 0.1s ease;
+  }
+  
+  .picker-model-item--selected {
+    background-color: color-mix(in srgb, var(--provider-accent, var(--accent-primary)) 8%, transparent);
+  }
+  
+  .picker-model-item-icon {
+    @apply w-10 h-10;
+  }
+  
+  .picker-model-item-name {
+    @apply text-base font-medium;
+  }
+  
+  .picker-model-item-id {
+    @apply text-sm;
+  }
+  
+  .picker-model-badge {
+    @apply px-2.5 py-1 text-xs;
+  }
+  
+  .picker-model-check {
+    @apply w-7 h-7;
+  }
+  
+  /* Footer - hidden on mobile, use gestures instead */
+  .picker-footer {
+    display: none;
+  }
+  
+  /* Empty states - adjusted for mobile */
+  .picker-empty {
+    @apply py-16;
+  }
+  
+  .picker-empty p {
+    @apply text-base;
+  }
+}
+
+/* Bottom sheet slide-up animation for mobile */
+@keyframes picker-mobile-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Safe area padding for devices with home indicator (iPhone X+) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 480px) {
+    .picker-modal {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    .picker-content {
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+  }
+}
+
+/* Backdrop enhancement for mobile bottom sheet */
+@media (max-width: 480px) {
+  .picker-overlay {
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+}
+
+/* ============================================
+   Agent/Model Trigger Button (Sidebar)
+   ============================================ */
+
+.agent-model-trigger {
+  @apply flex flex-col gap-2;
+}
+
+.agent-model-trigger-btn {
+  @apply flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all w-full;
+  background-color: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.agent-model-trigger-btn:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--border-base);
+}
+
+.agent-model-trigger-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-soft-bg);
+}
+
+.agent-model-trigger-icon {
+  @apply flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0;
+  transition: all 0.2s ease;
+}
+
+.agent-model-trigger-icon--agent {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%);
+  color: var(--text-inverted);
+}
+
+.agent-model-trigger-icon--model {
+  background: linear-gradient(
+    135deg, 
+    var(--provider-accent, var(--accent-primary)) 0%, 
+    color-mix(in srgb, var(--provider-accent, var(--accent-primary)) 70%, black) 100%
+  );
+  color: white;
+}
+
+.agent-model-trigger-content {
+  @apply flex flex-col min-w-0 flex-1;
+}
+
+.agent-model-trigger-label {
+  @apply text-[10px] font-medium uppercase tracking-wider;
+  color: var(--text-muted);
+}
+
+.agent-model-trigger-value {
+  @apply text-sm font-medium truncate;
+  color: var(--text-primary);
+}
+
+.agent-model-trigger-chevron {
+  @apply w-4 h-4 flex-shrink-0 transition-transform;
+  color: var(--text-muted);
+}
+
+.agent-model-trigger-btn:hover .agent-model-trigger-chevron {
+  transform: translateY(1px);
+  color: var(--text-secondary);
+}
+
+/* Compact variant for tighter spaces */
+.agent-model-trigger--compact .agent-model-trigger-btn {
+  @apply px-2.5 py-2 gap-2;
+}
+
+.agent-model-trigger--compact .agent-model-trigger-icon {
+  @apply w-7 h-7;
+}
+
+.agent-model-trigger--compact .agent-model-trigger-value {
+  @apply text-xs;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE TRIGGER STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+  /* Trigger button - full width, larger touch target */
+  .agent-model-trigger {
+    @apply w-full;
+  }
+  
+  .agent-model-trigger-btn {
+    @apply w-full py-3 px-4;
+    min-height: 56px;
+    border-radius: 14px;
+  }
+  
+  .agent-model-trigger-icon {
+    @apply w-10 h-10;
+  }
+  
+  .agent-model-trigger-label {
+    @apply text-[11px];
+  }
+  
+  .agent-model-trigger-value {
+    @apply text-base;
+  }
+  
+  .agent-model-trigger-chevron {
+    @apply w-5 h-5;
+  }
+  
+  /* Compact variant still respects mobile minimums */
+  .agent-model-trigger--compact .agent-model-trigger-btn {
+    @apply py-3 px-3;
+    min-height: 48px;
+  }
+  
+  .agent-model-trigger--compact .agent-model-trigger-icon {
+    @apply w-9 h-9;
+  }
+  
+  .agent-model-trigger--compact .agent-model-trigger-value {
+    @apply text-sm;
+  }
+}

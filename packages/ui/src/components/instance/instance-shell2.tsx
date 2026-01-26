@@ -51,8 +51,7 @@ import KeyboardHint from "../keyboard-hint"
 import InstanceWelcomeView from "../instance-welcome-view"
 import InfoView from "../info-view"
 import InstanceServiceStatus from "../instance-service-status"
-import AgentSelector from "../agent-selector"
-import ModelSelector from "../model-selector"
+import AgentModelTrigger from "../agent-model-trigger"
 import CommandPalette from "../command-palette"
 import PermissionNotificationBanner from "../permission-notification-banner"
 import PermissionApprovalModal from "../permission-approval-modal"
@@ -839,11 +838,11 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
 
   const LeftDrawerContent = () => (
     <div class="flex flex-col h-full min-h-0" ref={setLeftDrawerContentEl}>
-      <div class="flex items-start justify-between gap-2 px-4 py-3 border-b border-base">
+      <div class="session-sidebar-header flex items-start justify-between gap-2 px-4 py-3 border-b border-base">
         <div class="flex flex-col gap-1">
           <span class="session-sidebar-title text-sm font-semibold uppercase text-primary">Sessions</span>
           <div class="session-sidebar-shortcuts">
-            <Show when={keyboardShortcuts().length}>
+            <Show when={keyboardShortcuts().length && !isPhoneLayout()}>
               <KeyboardHint shortcuts={keyboardShortcuts()} separator=" " showDescription={false} />
             </Show>
           </div>
@@ -858,7 +857,7 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
               }
             }}
             aria-label="New session"
-            title="New session (⌘⇧O / Ctrl+Shift+O)"
+            title="New session (⌘⇧E / Ctrl+Shift+E)"
           >
             <Plus class="w-4 h-4" />
           </button>
@@ -881,8 +880,17 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
               {leftPinned() ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
             </IconButton>
           </Show>
+          <Show when={isPhoneLayout()}>
+            <IconButton
+              size="small"
+              color="inherit"
+              aria-label="Close drawer"
+              onClick={closeLeftDrawer}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Show>
         </div>
-
       </div>
 
       <div class="session-sidebar flex flex-col flex-1 min-h-0">
@@ -906,29 +914,23 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
           {(activeSession) => (
             <>
               <ContextUsagePanel instanceId={props.instance.id} sessionId={activeSession().id} />
-              <div class="session-sidebar-controls px-4 py-4 border-t border-base flex flex-col gap-3">
-                <AgentSelector
+              <div class="session-sidebar-controls px-4 py-4 border-t border-base">
+                <AgentModelTrigger
                   instanceId={props.instance.id}
                   sessionId={activeSession().id}
                   currentAgent={activeSession().agent}
-                  onAgentChange={(agent) => props.handleSidebarAgentChange(activeSession().id, agent)}
+                  currentModel={activeSession().model}
+                  onAgentChange={(agent: string) => props.handleSidebarAgentChange(activeSession().id, agent)}
+                  onModelChange={(model: { providerId: string; modelId: string }) => props.handleSidebarModelChange(activeSession().id, model)}
                 />
-
-                <div class="sidebar-selector-hints" aria-hidden="true">
-                  <span class="hint sidebar-selector-hint sidebar-selector-hint--left">
-                    <Kbd shortcut="cmd+shift+a" />
+                <div class="sidebar-selector-hints mt-2" aria-hidden="true">
+                  <span class="hint sidebar-selector-hint">
+                    <Kbd shortcut="cmd+shift+a" /> Agent
                   </span>
-                  <span class="hint sidebar-selector-hint sidebar-selector-hint--right">
-                    <Kbd shortcut="cmd+shift+m" />
+                  <span class="hint sidebar-selector-hint">
+                    <Kbd shortcut="cmd+shift+m" /> Model
                   </span>
                 </div>
-
-                <ModelSelector
-                  instanceId={props.instance.id}
-                  sessionId={activeSession().id}
-                  currentModel={activeSession().model}
-                  onModelChange={(model) => props.handleSidebarModelChange(activeSession().id, model)}
-                />
               </div>
             </>
           )}
@@ -1070,7 +1072,7 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
 
     return (
       <div class="flex flex-col h-full" ref={setRightDrawerContentEl}>
-        <div class="flex items-center justify-between px-4 py-2 border-b border-base">
+        <div class="session-sidebar-header flex items-center justify-between px-4 py-2 border-b border-base">
           <Typography variant="subtitle2" class="uppercase tracking-wide text-xs font-semibold">
             Status Panel
           </Typography>
@@ -1083,6 +1085,16 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
                 onClick={() => (rightPinned() ? unpinRightDrawer() : pinRightDrawer())}
               >
                 {rightPinned() ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
+              </IconButton>
+            </Show>
+            <Show when={isPhoneLayout()}>
+              <IconButton
+                size="small"
+                color="inherit"
+                aria-label="Close drawer"
+                onClick={closeRightDrawer}
+              >
+                <CloseIcon fontSize="small" />
               </IconButton>
             </Show>
           </div>
@@ -1271,31 +1283,25 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
                     {leftAppBarButtonIcon()}
                   </IconButton>
 
-                  <div class="flex flex-wrap items-center gap-1 justify-center">
+                  <div class="flex flex-nowrap items-center gap-2 justify-center flex-1 min-w-0">
                     <PermissionNotificationBanner
                       instanceId={props.instance.id}
                       onClick={() => setPermissionModalOpen(true)}
                     />
                     <button
                       type="button"
-                      class="connection-status-button px-2 py-0.5 text-xs"
+                      class="connection-status-button"
                       onClick={handleCommandPaletteClick}
                       aria-label="Open command palette"
-                      style={{ flex: "0 0 auto", width: "auto" }}
                     >
-                      Command Palette
+                      <span class="connection-status-button-text">Command Palette</span>
                     </button>
-                    <span class="connection-status-shortcut-hint">
-                      <Kbd shortcut="cmd+shift+p" />
-                    </span>
                     <span
                       class={`status-indicator ${connectionStatusClass()}`}
                       aria-label={`Connection ${connectionStatus()}`}
                     >
                       <span class="status-dot" />
                     </span>
-
-
                   </div>
 
                   <IconButton

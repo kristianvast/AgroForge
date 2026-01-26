@@ -10,7 +10,7 @@ import { DiscordSymbolIcon, GitHubMarkIcon } from "./brand-icons"
 import { githubStars } from "../stores/github-stars"
 import { formatCompactCount } from "../lib/formatters"
 
-const codeNomadLogo = new URL("../images/CodeNomad-Icon.png", import.meta.url).href
+const agroForgeLogo = new URL("../images/CodeNomad-Icon.png", import.meta.url).href
 
 
 interface FolderSelectionViewProps {
@@ -246,69 +246,94 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
   return (
     <>
       <div
-        class="flex h-screen w-full items-start justify-center overflow-hidden py-6 px-4 sm:px-6 relative"
+        class="flex h-screen w-full items-start justify-center overflow-hidden py-6 px-4 sm:px-6 relative particle-container"
         style="background-color: var(--surface-secondary)"
       >
+        {/* Particle Background Effect */}
+        <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+          <div class="particle" style="left: 10%; animation-delay: 0s;" />
+          <div class="particle" style="left: 20%; animation-delay: 0.7s;" />
+          <div class="particle" style="left: 35%; animation-delay: 1.4s;" />
+          <div class="particle" style="left: 50%; animation-delay: 0.3s;" />
+          <div class="particle" style="left: 65%; animation-delay: 2.1s;" />
+          <div class="particle" style="left: 80%; animation-delay: 1.1s;" />
+          <div class="particle" style="left: 90%; animation-delay: 0.5s;" />
+          <div class="particle" style="left: 15%; animation-delay: 1.8s;" />
+          <div class="particle" style="left: 45%; animation-delay: 2.5s;" />
+          <div class="particle" style="left: 75%; animation-delay: 0.9s;" />
+        </div>
+        
+        {/* Subtle scanline overlay */}
+        <div class="absolute inset-0 pointer-events-none opacity-30 scanline-effect" aria-hidden="true" />
+        
         <div
-          class="w-full max-w-5xl h-full px-4 sm:px-8 pb-2 flex flex-col overflow-hidden"
+          class="w-full max-w-5xl h-full px-4 sm:px-8 pb-2 flex flex-col overflow-hidden relative z-10"
           aria-busy={isLoading() ? "true" : "false"}
         >
           <Show when={props.onOpenRemoteAccess}>
             <div class="absolute top-4 right-6">
               <button
                 type="button"
-                class="selector-button selector-button-secondary w-auto p-2 inline-flex items-center justify-center"
+                class="selector-button selector-button-secondary w-auto p-2 inline-flex items-center justify-center hover-lift glass-effect"
                 onClick={() => props.onOpenRemoteAccess?.()}
               >
                 <MonitorUp class="w-4 h-4" />
               </button>
             </div>
           </Show>
-          <div class="mb-6 text-center shrink-0">
+          <div class="mb-6 text-center shrink-0 fade-slide-in">
             <div class="mb-3 flex justify-center">
-              <img src={codeNomadLogo} alt="CodeNomad logo" class="h-32 w-auto sm:h-48" loading="lazy" />
+              <img 
+                src={agroForgeLogo} 
+                alt="AgroForge logo" 
+                class="h-32 w-auto sm:h-48 animate-float drop-shadow-lg" 
+                style="filter: drop-shadow(0 0 20px rgba(0, 255, 204, 0.3))"
+                loading="lazy" 
+              />
             </div>
-            <h1 class="mb-2 text-3xl font-semibold text-primary">CodeNomad</h1>
-            <p class="text-base text-secondary">Select a folder to start coding with AI</p>
-            <div class="mt-3 flex justify-center gap-2">
+            <h1 class="mb-2 text-4xl sm:text-5xl font-bold gradient-text tracking-tight">AgroForge</h1>
+            <p class="text-base sm:text-lg text-secondary max-w-md mx-auto fade-slide-in-delay-1">
+              Agricultural Intelligence for Modern Developers
+            </p>
+            <div class="mt-4 flex justify-center gap-3 fade-slide-in-delay-2">
               <a
                 href="https://github.com/NeuralNomadsAI/CodeNomad"
                 target="_blank"
                 rel="noreferrer"
-                class="selector-button selector-button-secondary w-auto p-2 inline-flex items-center justify-center"
-                aria-label="CodeNomad GitHub"
-                title="CodeNomad GitHub"
+                class="selector-button selector-button-secondary w-auto p-2.5 inline-flex items-center justify-center hover-lift glass-effect rounded-lg"
+                aria-label="AgroForge GitHub"
+                title="AgroForge GitHub"
                 onClick={(event) => {
                   event.preventDefault()
                   openExternalLink("https://github.com/NeuralNomadsAI/CodeNomad")
                 }}
               >
-                <GitHubMarkIcon class="w-4 h-4" />
+                <GitHubMarkIcon class="w-5 h-5" />
               </a>
               <a
                 href="https://github.com/NeuralNomadsAI/CodeNomad"
                 target="_blank"
                 rel="noreferrer"
-                class="selector-button selector-button-secondary w-auto px-3 py-1.5 inline-flex items-center justify-center gap-1.5"
-                aria-label="CodeNomad GitHub Stars"
-                title="CodeNomad GitHub Stars"
+                class="selector-button selector-button-secondary w-auto px-4 py-2 inline-flex items-center justify-center gap-2 hover-lift glass-effect rounded-lg"
+                aria-label="AgroForge GitHub Stars"
+                title="AgroForge GitHub Stars"
                 onClick={(event) => {
                   event.preventDefault()
                   openExternalLink("https://github.com/NeuralNomadsAI/CodeNomad")
                 }}
               >
-                <Star class="w-4 h-4" />
+                <Star class="w-4 h-4 text-accent" />
                 <Show when={githubStars() !== null}>
-                  <span class="text-xs font-medium">{formatCompactCount(githubStars()!)}</span>
+                  <span class="text-sm font-medium">{formatCompactCount(githubStars()!)}</span>
                 </Show>
               </a>
               <a
                 href="https://discord.com/channels/1391832426048651334/1458412028325793887/1464701235683917945"
                 target="_blank"
                 rel="noreferrer"
-                class="selector-button selector-button-secondary w-auto p-2 inline-flex items-center justify-center"
-                aria-label="CodeNomad Discord"
-                title="CodeNomad Discord"
+                class="selector-button selector-button-secondary w-auto p-2.5 inline-flex items-center justify-center hover-lift glass-effect rounded-lg"
+                aria-label="AgroForge Discord"
+                title="AgroForge Discord"
                 onClick={(event) => {
                   event.preventDefault()
                   openExternalLink(
@@ -316,30 +341,30 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
                   )
                 }}
               >
-                <DiscordSymbolIcon class="w-4 h-4" />
+                <DiscordSymbolIcon class="w-5 h-5" />
               </a>
             </div>
           </div>
 
-          <div class="flex-1 min-h-0 overflow-hidden flex flex-col gap-4">
+          <div class="flex-1 min-h-0 overflow-hidden flex flex-col gap-4 fade-slide-in-delay-3">
             <div class="flex-1 min-h-0 overflow-hidden flex flex-col lg:flex-row gap-4">
               {/* Right column: recent folders */}
               <div class="order-1 lg:order-2 flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">
               <Show
                 when={folders().length > 0}
                 fallback={
-                  <div class="panel panel-empty-state flex-1">
-                    <div class="panel-empty-state-icon">
-                      <Clock class="w-12 h-12 mx-auto" />
+                  <div class="panel panel-empty-state flex-1 glass-effect neon-border">
+                    <div class="panel-empty-state-icon animate-glow">
+                      <Clock class="w-12 h-12 mx-auto text-accent" />
                     </div>
-                    <p class="panel-empty-state-title">No Recent Folders</p>
+                    <p class="panel-empty-state-title gradient-text-static">No Recent Folders</p>
                     <p class="panel-empty-state-description">Browse for a folder to get started</p>
                   </div>
                 }
               >
-                <div class="panel flex flex-col flex-1 min-h-0">
+                <div class="panel flex flex-col flex-1 min-h-0 glass-effect" style="border: 1px solid var(--glass-border)">
                   <div class="panel-header">
-                    <h2 class="panel-title">Recent Folders</h2>
+                    <h2 class="panel-title gradient-text-static">Recent Folders</h2>
                     <p class="panel-subtitle">
                       {folders().length} {folders().length === 1 ? "folder" : "folders"} available
                     </p>
@@ -351,16 +376,17 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
                     <For each={folders()}>
                       {(folder, index) => (
                         <div
-                          class="panel-list-item"
+                          class="panel-list-item transition-all duration-200"
                           classList={{
-                            "panel-list-item-highlight": focusMode() === "recent" && selectedIndex() === index(),
+                            "panel-list-item-highlight neon-border-static": focusMode() === "recent" && selectedIndex() === index(),
                             "panel-list-item-disabled": isLoading(),
                           }}
+                          style={focusMode() === "recent" && selectedIndex() === index() ? "box-shadow: var(--glow-primary); border-radius: var(--radius-md)" : ""}
                         >
                           <div class="flex items-center gap-2 w-full px-1">
                             <button
                               data-folder-index={index()}
-                              class="panel-list-item-content flex-1"
+                              class="panel-list-item-content flex-1 hover-lift"
                               disabled={isLoading()}
                               onClick={() => handleFolderSelect(folder.path)}
                               onMouseEnter={() => {
@@ -372,7 +398,7 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
                               <div class="flex items-center justify-between gap-3 w-full">
                                 <div class="flex-1 min-w-0">
                                   <div class="flex items-center gap-2 mb-1">
-                                    <Folder class="w-4 h-4 flex-shrink-0 icon-muted" />
+                                    <Folder class="w-4 h-4 flex-shrink-0 icon-accent" />
                                     <span class="text-sm font-medium truncate text-primary">
                                       {folder.path.split("/").pop()}
                                     </span>
@@ -385,17 +411,18 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
                                   </div>
                                 </div>
                                 <Show when={focusMode() === "recent" && selectedIndex() === index()}>
-                                  <kbd class="kbd">↵</kbd>
+                                  <kbd class="kbd neon-border-static" style="box-shadow: 0 0 8px var(--neon-cyan)">↵</kbd>
                                 </Show>
                               </div>
                             </button>
                             <button
                               onClick={(e) => handleRemove(folder.path, e)}
                               disabled={isLoading()}
-                              class="p-2 transition-all hover:bg-red-100 dark:hover:bg-red-900/30 opacity-70 hover:opacity-100 rounded"
+                              class="p-2 transition-all hover:bg-red-500/20 opacity-70 hover:opacity-100 rounded-lg"
                               title="Remove from recent"
+                              style="transition: all 0.2s ease"
                             >
-                              <Trash2 class="w-3.5 h-3.5 transition-colors icon-muted hover:text-red-600 dark:hover:text-red-400" />
+                              <Trash2 class="w-3.5 h-3.5 transition-colors icon-muted hover:text-red-500" style="filter: drop-shadow(0 0 0 transparent); transition: filter 0.2s ease" />
                             </button>
                           </div>
                         </div>
@@ -409,9 +436,9 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
 
               {/* Left column: version + browse + advanced settings */}
               <div class="order-2 lg:order-1 flex flex-col gap-4 flex-1 min-h-0">
-              <div class="panel shrink-0">
+              <div class="panel shrink-0 glass-effect tech-corners" style="border: 1px solid var(--glass-border)">
                 <div class="panel-header hidden sm:block">
-                  <h2 class="panel-title">Browse for Folder</h2>
+                  <h2 class="panel-title gradient-text-static">Browse for Folder</h2>
                   <p class="panel-subtitle">Select any folder on your computer</p>
                 </div>
 
@@ -419,22 +446,24 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
                   <button
                     onClick={() => void handleBrowse()}
                     disabled={props.isLoading}
-                    class="button-primary w-full flex items-center justify-center text-sm disabled:cursor-not-allowed"
+                    class="button-primary w-full flex items-center justify-center text-sm disabled:cursor-not-allowed hover-lift relative overflow-hidden group"
+                    style="box-shadow: var(--glow-primary); transition: box-shadow 0.3s ease, transform 0.3s ease"
                     onMouseEnter={() => setFocusMode("new")}
                   >
-                    <div class="flex items-center gap-2">
-                      <FolderPlus class="w-4 h-4" />
-                      <span>{props.isLoading ? "Opening..." : "Browse Folders"}</span>
+                    <div class="absolute inset-0 animate-shimmer opacity-50" />
+                    <div class="flex items-center gap-2 relative z-10">
+                      <FolderPlus class="w-5 h-5" />
+                      <span class="font-semibold">{props.isLoading ? "Opening..." : "Browse Folders"}</span>
                     </div>
-                    <Kbd shortcut="cmd+n" class="ml-2" />
+                    <Kbd shortcut="cmd+n" class="ml-3 relative z-10" />
                   </button>
                 </div>
 
                 {/* Advanced settings section */}
                 <div class="panel-section w-full">
-                  <button onClick={() => props.onAdvancedSettingsOpen?.()} class="panel-section-header w-full justify-between">
+                  <button onClick={() => props.onAdvancedSettingsOpen?.()} class="panel-section-header w-full justify-between hover-lift rounded-lg">
                     <div class="flex items-center gap-2">
-                      <Settings class="w-4 h-4 icon-muted" />
+                      <Settings class="w-4 h-4 icon-accent" />
                       <span class="text-sm font-medium text-secondary">Advanced Settings</span>
                     </div>
                     <ChevronRight class="w-4 h-4 icon-muted" />
@@ -442,7 +471,7 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
                 </div>
               </div>
 
-              <div class="panel shrink-0">
+              <div class="panel shrink-0 glass-effect" style="border: 1px solid var(--glass-border)">
                 <div class="panel-body flex items-center justify-center">
                   <VersionPill />
                 </div>
@@ -451,37 +480,38 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
 
             </div>
 
-            <div class="panel panel-footer shrink-0 hidden sm:block">
+            <div class="panel panel-footer shrink-0 hidden sm:block glass-effect" style="border: 1px solid var(--glass-border); border-radius: var(--radius-lg)">
               <div class="panel-footer-hints">
                 <Show when={folders().length > 0}>
                   <div class="flex items-center gap-1.5">
-                    <kbd class="kbd">↑</kbd>
-                    <kbd class="kbd">↓</kbd>
-                    <span>Navigate</span>
+                    <kbd class="kbd neon-border-static" style="box-shadow: 0 0 5px var(--neon-cyan)">↑</kbd>
+                    <kbd class="kbd neon-border-static" style="box-shadow: 0 0 5px var(--neon-cyan)">↓</kbd>
+                    <span class="text-secondary">Navigate</span>
                   </div>
                   <div class="flex items-center gap-1.5">
-                    <kbd class="kbd">Enter</kbd>
-                    <span>Select</span>
+                    <kbd class="kbd neon-border-static" style="box-shadow: 0 0 5px var(--neon-cyan)">Enter</kbd>
+                    <span class="text-secondary">Select</span>
                   </div>
                   <div class="flex items-center gap-1.5">
-                    <kbd class="kbd">Del</kbd>
-                    <span>Remove</span>
+                    <kbd class="kbd neon-border-static" style="box-shadow: 0 0 5px var(--neon-cyan)">Del</kbd>
+                    <span class="text-secondary">Remove</span>
                   </div>
                 </Show>
                 <div class="flex items-center gap-1.5">
                   <Kbd shortcut="cmd+n" />
-                  <span>Browse</span>
+                  <span class="text-secondary">Browse</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
         <Show when={isLoading()}>
-          <div class="folder-loading-overlay">
-            <div class="folder-loading-indicator">
-              <div class="spinner" />
-              <p class="folder-loading-text">Starting instance…</p>
-              <p class="folder-loading-subtext">Hang tight while we prepare your workspace.</p>
+          <div class="folder-loading-overlay" style="backdrop-filter: blur(8px)">
+            <div class="folder-loading-indicator glass-effect-strong neon-border" style="padding: 2rem 3rem; border-radius: var(--radius-xl)">
+              <div class="spinner spin-glow" style="width: 48px; height: 48px; margin-bottom: 1rem" />
+              <p class="folder-loading-text gradient-text text-lg font-semibold">Initializing AgroForge…</p>
+              <p class="folder-loading-subtext text-secondary">Preparing your intelligent workspace</p>
+              <div class="loading-bar mt-4 w-32 mx-auto rounded-full" />
             </div>
           </div>
         </Show>

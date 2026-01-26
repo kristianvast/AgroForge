@@ -1,15 +1,46 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC TAB BAR — Glass-morphism & Neon Glow
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 /* Primary tab strip */
 .tab-bar {
   @apply border-b;
   border-color: var(--border-base);
+  position: relative;
 }
 
+/* Glass-morphism effect for instance tab bar */
 .tab-bar-instance {
-  background-color: var(--surface-secondary);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-border);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle animated gradient line at bottom */
+.tab-bar-instance::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--accent-primary-rgb), 0.3) 20%,
+    rgba(var(--accent-primary-rgb), 0.6) 50%,
+    rgba(var(--accent-primary-rgb), 0.3) 80%,
+    transparent 100%
+  );
+  opacity: 0.5;
 }
 
 .tab-bar-session {
   background-color: var(--surface-base);
+  border-bottom: 1px solid var(--border-muted);
 }
 
 .tab-container {
@@ -43,10 +74,22 @@
   @apply flex-shrink-0;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Instance Tabs — Futuristic with Neon Effects
+   ───────────────────────────────────────────────────────────────────────── */
+
 .tab-base {
-  @apply inline-flex items-center gap-2 px-3 py-2 rounded-t-md max-w-[200px] transition-colors text-sm font-medium;
+  @apply inline-flex items-center gap-2 px-3 py-2 rounded-lg max-w-[200px] text-sm font-medium;
   font-family: var(--font-family-sans);
   outline: none;
+  position: relative;
+  transition: 
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.3s ease,
+    transform 0.15s ease,
+    border-color 0.2s ease;
+  border: 1px solid transparent;
 }
 
 .tab-base:focus-visible {
@@ -55,30 +98,81 @@
   ring-offset-color: var(--surface-base);
 }
 
+/* Active tab with neon glow */
 .tab-active {
-  background-color: var(--tab-active-bg);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-primary-rgb), 0.2) 0%,
+    rgba(var(--accent-primary-rgb), 0.1) 100%
+  );
   color: var(--tab-active-text);
+  border-color: rgba(var(--accent-primary-rgb), 0.4);
+  box-shadow: var(--glow-primary);
 }
 
+/* Active tab accent line */
+.tab-active::before {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: var(--accent-primary);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 8px var(--accent-primary), 0 0 16px rgba(var(--accent-primary-rgb), 0.5);
+}
+
+/* Inactive tab styling */
 .tab-inactive {
   background-color: var(--tab-inactive-bg);
   color: var(--tab-inactive-text);
+  border-color: var(--border-muted);
 }
 
+/* Hover state with subtle glow */
 .tab-inactive:hover {
   background-color: var(--tab-inactive-hover-bg);
+  border-color: rgba(var(--accent-primary-rgb), 0.2);
+  box-shadow: 0 0 12px rgba(var(--accent-primary-rgb), 0.15);
+  color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 .tab-active:hover {
-  background-color: var(--tab-active-hover-bg);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-primary-rgb), 0.25) 0%,
+    rgba(var(--accent-primary-rgb), 0.15) 100%
+  );
+  box-shadow: var(--glow-primary-intense);
 }
 
 .tab-label {
   @apply truncate;
 }
 
+/* Tab close button with subtle tech styling */
 .tab-close {
-  @apply opacity-100 hover:bg-red-500 hover:text-white rounded p-0.5 transition-all cursor-pointer;
+  @apply opacity-80 rounded p-0.5 cursor-pointer;
+  transition: 
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.tab-close:hover {
+  opacity: 1;
+  background-color: rgba(244, 63, 94, 0.2);
+  color: var(--status-error);
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.3);
+  transform: scale(1.1);
+}
+
+.tab-close:active {
+  transform: scale(0.9);
 }
 
 .tab-close:focus-visible {
@@ -87,23 +181,39 @@
   ring-offset-color: inherit;
 }
 
-/* Instance tab wrapper for drag-drop */
+/* ─────────────────────────────────────────────────────────────────────────
+   Instance Tab Wrapper — Drag-drop with Futuristic Feedback
+   ───────────────────────────────────────────────────────────────────────── */
+
 .instance-tab-wrapper {
   position: relative;
   display: inline-flex;
   cursor: grab;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: 
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+    opacity 0.2s ease,
+    filter 0.2s ease;
 }
 
 .instance-tab-wrapper:active {
   cursor: grabbing;
 }
 
+/* Dragging state with holographic effect */
 .instance-tab-wrapper.instance-tab--dragging {
-  opacity: 0.5;
-  transform: scale(0.95);
+  opacity: 0.6;
+  transform: scale(0.95) rotate(-1deg);
+  filter: brightness(1.1);
 }
 
+.instance-tab-wrapper.instance-tab--dragging .tab-base {
+  box-shadow: 
+    var(--glow-primary),
+    0 10px 30px rgba(0, 0, 0, 0.3);
+  border-color: var(--accent-primary);
+}
+
+/* Drop indicator with neon pulse */
 .instance-tab-wrapper.instance-tab--drop-before::before,
 .instance-tab-wrapper.instance-tab--drop-after::after {
   content: "";
@@ -111,50 +221,75 @@
   top: 4px;
   bottom: 4px;
   width: 3px;
-  background-color: var(--accent-primary);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--accent-primary) 20%,
+    var(--accent-primary) 80%,
+    transparent 100%
+  );
   border-radius: var(--radius-full);
-  animation: tab-drop-indicator-pulse 0.8s ease-in-out infinite;
+  animation: tab-drop-indicator-pulse 0.6s ease-in-out infinite;
   z-index: 10;
 }
 
 .instance-tab-wrapper.instance-tab--drop-before::before {
-  left: -3px;
+  left: -4px;
 }
 
 .instance-tab-wrapper.instance-tab--drop-after::after {
-  right: -3px;
+  right: -4px;
 }
 
 @keyframes tab-drop-indicator-pulse {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 4px var(--accent-primary);
+    box-shadow: 
+      0 0 6px var(--accent-primary),
+      0 0 12px rgba(var(--accent-primary-rgb), 0.5),
+      0 0 20px rgba(var(--accent-primary-rgb), 0.3);
   }
   50% {
-    opacity: 0.7;
-    box-shadow: 0 0 8px var(--accent-primary);
+    opacity: 0.8;
+    box-shadow: 
+      0 0 10px var(--accent-primary),
+      0 0 20px rgba(var(--accent-primary-rgb), 0.6),
+      0 0 30px rgba(var(--accent-primary-rgb), 0.4);
   }
 }
 
-/* Drag handle hint on hover */
+/* Futuristic drag handle hint */
 .instance-tab-wrapper:hover::after {
   content: "";
   position: absolute;
-  left: 4px;
+  left: 6px;
   top: 50%;
   transform: translateY(-50%);
-  width: 4px;
-  height: 12px;
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--text-muted) 0px,
-    var(--text-muted) 2px,
-    transparent 2px,
-    transparent 4px
+  width: 3px;
+  height: 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--accent-primary-rgb), 0.4) 0%,
+    rgba(var(--accent-primary-rgb), 0.2) 25%,
+    rgba(var(--accent-primary-rgb), 0.4) 50%,
+    rgba(var(--accent-primary-rgb), 0.2) 75%,
+    rgba(var(--accent-primary-rgb), 0.4) 100%
   );
-  opacity: 0.4;
-  border-radius: 1px;
+  border-radius: var(--radius-full);
+  opacity: 0;
+  animation: drag-handle-appear 0.3s ease forwards;
   pointer-events: none;
+}
+
+@keyframes drag-handle-appear {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scaleY(0.5);
+  }
+  100% {
+    opacity: 0.7;
+    transform: translateY(-50%) scaleY(1);
+  }
 }
 
 .instance-tab-wrapper.instance-tab--dragging::after {
@@ -174,40 +309,181 @@
   }
 }
 
-/* Reduced motion preference */
+/* Mobile tab bar optimization (iPhone 13 Pro Max @ 428px) */
+@media (max-width: 480px) {
+  .tab-bar-instance {
+    padding: 4px 8px;
+  }
+  
+  .tab-container {
+    padding: 4px;
+    gap: 4px;
+  }
+  
+  .tab-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+  
+  .tab-strip {
+    gap: 4px;
+    padding: 0;
+  }
+  
+  .tab-strip-tabs {
+    gap: 4px;
+  }
+  
+  .tab-base {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+    max-width: 140px;
+    min-width: auto;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+  
+  .tab-shortcuts {
+    display: none;
+  }
+  
+  .new-tab-button {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+  
+  .tab-remote-button {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Reduced Motion — Accessibility
+   ───────────────────────────────────────────────────────────────────────── */
+
 @media (prefers-reduced-motion: reduce) {
   .instance-tab-wrapper {
-    transition: none;
+    transition: opacity 0.15s ease;
+  }
+  
+  .instance-tab-wrapper:hover::after {
+    animation: none;
+    opacity: 0.5;
   }
   
   .instance-tab-wrapper.instance-tab--drop-before::before,
   .instance-tab-wrapper.instance-tab--drop-after::after {
     animation: none;
+    opacity: 1;
+    box-shadow: 0 0 6px var(--accent-primary);
+  }
+  
+  .tab-base {
+    transition: 
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+  
+  .tab-inactive:hover {
+    transform: none;
+  }
+  
+  .new-tab-button {
+    transition: 
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+  
+  .new-tab-button:hover,
+  .new-tab-button:active {
+    transform: none;
+  }
+  
+  .tab-close:hover,
+  .tab-close:active {
+    transform: none;
+  }
+  
+  .tab-bar-instance::after {
+    opacity: 0.3;
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   New Tab Button — Tech-inspired with Glow
+   ───────────────────────────────────────────────────────────────────────── */
+
 .new-tab-button {
-  @apply inline-flex items-center justify-center w-8 h-8 rounded-md transition-colors;
-  background-color: var(--new-tab-bg);
+  @apply inline-flex items-center justify-center w-8 h-8 rounded-lg;
+  background: var(--glass-bg);
   color: var(--new-tab-text);
+  border: 1px solid var(--border-muted);
+  position: relative;
+  overflow: hidden;
+  transition: 
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.3s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+/* Tech circuit pattern overlay */
+.new-tab-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(var(--accent-primary-rgb), 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(var(--accent-tertiary-rgb), 0.03) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .new-tab-button:hover {
-  background-color: var(--new-tab-hover-bg);
+  background: var(--new-tab-hover-bg);
+  border-color: rgba(var(--accent-primary-rgb), 0.3);
+  color: var(--accent-primary);
+  box-shadow: 
+    0 0 16px rgba(var(--accent-primary-rgb), 0.2),
+    inset 0 0 20px rgba(var(--accent-primary-rgb), 0.05);
+  transform: scale(1.05);
+}
+
+.new-tab-button:hover::before {
+  opacity: 1;
+}
+
+.new-tab-button:active {
+  transform: scale(0.95);
+  box-shadow: 
+    0 0 8px rgba(var(--accent-primary-rgb), 0.3),
+    inset 0 0 10px rgba(var(--accent-primary-rgb), 0.1);
 }
 
 .new-tab-button:focus-visible {
   @apply ring-2 ring-offset-1;
   ring-color: var(--accent-primary);
   ring-offset-color: var(--surface-base);
+  box-shadow: var(--glow-primary);
 }
 
-/* Session tabs */
+/* ─────────────────────────────────────────────────────────────────────────
+   Session Tabs — Sleek Underline Style
+   ───────────────────────────────────────────────────────────────────────── */
+
 .session-tab-base {
-  @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-t-md max-w-[150px] transition-colors text-sm;
+  @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-md max-w-[150px] text-sm;
   font-family: var(--font-family-sans);
   outline: none;
-  border-bottom: 2px solid transparent;
+  position: relative;
+  transition: 
+    color 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .session-tab-base:focus-visible {
@@ -216,11 +492,23 @@
   ring-offset-color: var(--surface-base);
 }
 
+/* Active session tab with glowing underline */
 .session-tab-active {
   background-color: var(--session-tab-active-bg);
-  border-bottom-color: var(--accent-primary);
   color: var(--session-tab-active-text);
   font-weight: var(--font-weight-medium);
+}
+
+.session-tab-active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  background: var(--accent-primary);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 6px rgba(var(--accent-primary-rgb), 0.5);
 }
 
 .session-tab-inactive {
@@ -229,8 +517,368 @@
 
 .session-tab-inactive:hover {
   background-color: var(--session-tab-hover-bg);
+  color: var(--text-secondary);
 }
 
 .session-tab-special {
   color: var(--session-tab-inactive-text);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE INSTANCE SWITCHER
+   Optimized for iPhone 13 Pro Max (428px) and similar devices
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+  /* Instance tabs - horizontal scroll with snap */
+  .tab-bar-instance {
+    padding: 0;
+  }
+  
+  .tab-bar-instance .tab-container {
+    padding: 0;
+  }
+  
+  .tab-bar-instance .tab-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .tab-bar-instance .tab-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .tab-bar-instance .tab-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .tab-bar-instance .tab-strip {
+    gap: 6px;
+    padding: 8px 12px;
+    flex-wrap: nowrap;
+  }
+  
+  .tab-bar-instance .tab-strip-tabs {
+    gap: 6px;
+  }
+  
+  /* Individual tab styling for mobile */
+  .tab-bar-instance .tab-base {
+    flex-shrink: 0;
+    scroll-snap-align: center;
+    min-width: 100px;
+    max-width: 160px;
+    padding: 10px 14px;
+    font-size: 13px;
+    border-radius: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Active tab with enhanced mobile glow */
+  .tab-bar-instance .tab-active {
+    box-shadow: var(--glow-primary);
+  }
+  
+  /* Tab close button - visible on active tab only */
+  .tab-bar-instance .tab-close {
+    width: 20px;
+    height: 20px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  
+  .tab-bar-instance .tab-active .tab-close {
+    opacity: 1;
+  }
+  
+  /* New instance button optimized for mobile */
+  .tab-bar-instance .new-tab-button {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-muted);
+    border: 1px dashed var(--border-base);
+    scroll-snap-align: end;
+  }
+  
+  .tab-bar-instance .new-tab-button:active {
+    transform: scale(0.95);
+    background: var(--surface-hover);
+  }
+  
+  /* Status indicator on mobile tabs */
+  .tab-bar-instance .status-indicator {
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    flex-shrink: 0;
+  }
+  
+  .tab-bar-instance .status-dot {
+    width: 6px;
+    height: 6px;
+  }
+  
+  /* Hide keyboard hints on mobile */
+  .tab-bar-instance .tab-shortcuts {
+    display: none;
+  }
+  
+  /* Remote button on mobile */
+  .tab-bar-instance .tab-remote-button {
+    width: 44px;
+    height: 44px;
+  }
+  
+  /* Wrapper adjustments for mobile */
+  .instance-tab-wrapper {
+    scroll-snap-align: center;
+  }
+  
+  /* Hide drag handle hint on mobile */
+  .instance-tab-wrapper:hover::after {
+    display: none;
+  }
+}
+
+/* Touch interactions */
+@media (pointer: coarse) {
+  .tab-bar-instance .tab-base {
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
+  }
+  
+  .tab-bar-instance .tab-base:active:not(.tab-active) {
+    transform: scale(0.98);
+    background: var(--surface-hover);
+  }
+  
+  /* Long press visual hint for tab options */
+  .tab-bar-instance .tab-base::after {
+    content: "";
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 2px;
+    background: var(--border-secondary);
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  
+  .tab-bar-instance .tab-active::after {
+    opacity: 0.5;
+  }
+  
+  /* Larger touch targets for close button */
+  .tab-bar-instance .tab-close {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 4px;
+  }
+  
+  .instance-tab-wrapper {
+    cursor: default;
+  }
+}
+
+/* Instance quick switcher (swipe up gesture overlay) */
+@media (max-width: 480px) {
+  .instance-quick-switcher {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--glass-bg-heavy);
+    backdrop-filter: var(--glass-blur-heavy);
+    -webkit-backdrop-filter: var(--glass-blur-heavy);
+    border-radius: 20px 20px 0 0;
+    padding: 16px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    border-top: 1px solid var(--glass-border);
+  }
+  
+  .instance-quick-switcher--visible {
+    transform: translateY(0);
+  }
+  
+  .instance-quick-switcher-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border-secondary);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  
+  .instance-quick-switcher-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 0 4px;
+  }
+  
+  .instance-quick-switcher-title {
+    font-size: 14px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+  }
+  
+  .instance-quick-switcher-count {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  
+  .instance-quick-switcher-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 50vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .instance-quick-switcher-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--surface-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    transition: all 0.2s ease;
+  }
+  
+  .instance-quick-switcher-item:active {
+    transform: scale(0.98);
+    background: var(--surface-hover);
+  }
+  
+  .instance-quick-switcher-item--active {
+    border-color: var(--accent-primary);
+    background: var(--accent-soft-bg);
+  }
+  
+  .instance-quick-switcher-item-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  
+  .instance-quick-switcher-item--active .instance-quick-switcher-item-icon {
+    color: var(--accent-primary);
+  }
+  
+  .instance-quick-switcher-item-content {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .instance-quick-switcher-item-name {
+    font-size: 14px;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .instance-quick-switcher-item-path {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .instance-quick-switcher-item-status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  
+  .instance-quick-switcher-item-status--connected {
+    background: var(--status-success);
+    box-shadow: 0 0 6px var(--status-success);
+  }
+  
+  .instance-quick-switcher-item-status--connecting {
+    background: var(--status-warning);
+    animation: pulse 1.5s infinite;
+  }
+  
+  .instance-quick-switcher-item-status--disconnected {
+    background: var(--status-error);
+  }
+  
+  .instance-quick-switcher-new {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 16px;
+    background: var(--surface-muted);
+    border-radius: 12px;
+    border: 1px dashed var(--border-base);
+    color: var(--text-muted);
+    font-size: 14px;
+    transition: all 0.2s ease;
+  }
+  
+  .instance-quick-switcher-new:active {
+    transform: scale(0.98);
+    background: var(--surface-hover);
+    color: var(--accent-primary);
+  }
+}
+
+/* Pulse animation for connecting status */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .instance-quick-switcher {
+    transition: none;
+  }
+  
+  .instance-quick-switcher-item-status--connecting {
+    animation: none;
+  }
+  
+  @media (pointer: coarse) {
+    .tab-bar-instance .tab-base:active:not(.tab-active) {
+      transform: none;
+    }
+    
+    .instance-quick-switcher-item:active,
+    .instance-quick-switcher-new:active {
+      transform: none;
+    }
+  }
 }

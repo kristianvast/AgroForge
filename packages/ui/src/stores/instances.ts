@@ -227,15 +227,23 @@ async function syncPendingQuestions(instanceId: string): Promise<void> {
 
 async function hydrateInstanceData(instanceId: string) {
   try {
-    await fetchSessions(instanceId)
-    await fetchAgents(instanceId)
-    await fetchProviders(instanceId)
-    await ensureInstanceConfigLoaded(instanceId)
+    // Parallel fetch for independent resources - eliminates waterfall
+    await Promise.all([
+      fetchSessions(instanceId),
+      fetchAgents(instanceId),
+      fetchProviders(instanceId),
+      ensureInstanceConfigLoaded(instanceId),
+    ])
+
     const instance = instances().get(instanceId)
     if (!instance?.client) return
-    await fetchCommands(instanceId, instance.client)
-    await syncPendingPermissions(instanceId)
-    await syncPendingQuestions(instanceId)
+
+    // Second batch of parallel operations that depend on instance being ready
+    await Promise.all([
+      fetchCommands(instanceId, instance.client),
+      syncPendingPermissions(instanceId),
+      syncPendingQuestions(instanceId),
+    ])
   } catch (error) {
     log.error("Failed to fetch initial data", error)
   }

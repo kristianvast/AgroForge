@@ -32,6 +32,19 @@ export type ExpansionPreference = "expanded" | "collapsed"
 
 export type ListeningMode = "local" | "all"
 
+export interface AgentUsage {
+  name: string
+  lastUsed: number
+  useCount: number
+}
+
+export interface ModelUsage {
+  providerId: string
+  modelId: string
+  lastUsed: number
+  useCount: number
+}
+
 export interface Preferences {
   showThinkingBlocks: boolean
   thinkingBlocksExpansion: ExpansionPreference
@@ -39,6 +52,8 @@ export interface Preferences {
   lastUsedBinary?: string
   environmentVariables: Record<string, string>
   modelRecents: ModelPreference[]
+  agentUsage: AgentUsage[]
+  modelUsage: ModelUsage[]
   diffViewMode: DiffViewMode
   toolOutputExpansion: ExpansionPreference
   diagnosticsExpansion: ExpansionPreference
@@ -64,6 +79,7 @@ export type ThemePreference = NonNullable<ConfigData["theme"]>
 
 const MAX_RECENT_FOLDERS = 20
 const MAX_RECENT_MODELS = 5
+const MAX_USAGE_ENTRIES = 20
 
 const defaultPreferences: Preferences = {
   showThinkingBlocks: false,
@@ -71,6 +87,8 @@ const defaultPreferences: Preferences = {
   showTimelineTools: true,
   environmentVariables: {},
   modelRecents: [],
+  agentUsage: [],
+  modelUsage: [],
   diffViewMode: "split",
   toolOutputExpansion: "expanded",
   diagnosticsExpansion: "expanded",
@@ -102,6 +120,12 @@ function normalizePreferences(pref?: Partial<Preferences> & { agentModelSelectio
   const sourceModelRecents = sanitized.modelRecents ?? defaultPreferences.modelRecents
   const modelRecents = sourceModelRecents.map((item) => ({ ...item }))
 
+  const sourceAgentUsage = sanitized.agentUsage ?? defaultPreferences.agentUsage
+  const agentUsage = sourceAgentUsage.map((item) => ({ ...item }))
+
+  const sourceModelUsage = sanitized.modelUsage ?? defaultPreferences.modelUsage
+  const modelUsage = sourceModelUsage.map((item) => ({ ...item }))
+
   return {
     showThinkingBlocks: sanitized.showThinkingBlocks ?? defaultPreferences.showThinkingBlocks,
     thinkingBlocksExpansion: sanitized.thinkingBlocksExpansion ?? defaultPreferences.thinkingBlocksExpansion,
@@ -109,6 +133,8 @@ function normalizePreferences(pref?: Partial<Preferences> & { agentModelSelectio
     lastUsedBinary: sanitized.lastUsedBinary ?? defaultPreferences.lastUsedBinary,
     environmentVariables,
     modelRecents,
+    agentUsage,
+    modelUsage,
     diffViewMode: sanitized.diffViewMode ?? defaultPreferences.diffViewMode,
     toolOutputExpansion: sanitized.toolOutputExpansion ?? defaultPreferences.toolOutputExpansion,
     diagnosticsExpansion: sanitized.diagnosticsExpansion ?? defaultPreferences.diagnosticsExpansion,
@@ -383,6 +409,82 @@ function addRecentModelPreference(model: ModelPreference): void {
   updatePreferences({ modelRecents: updated })
 }
 
+function recordAgentUsage(agentName: string): void {
+  if (!agentName) return
+  const usage = preferences().agentUsage ?? []
+  const existing = usage.find((item) => item.name === agentName)
+  const now = Date.now()
+  
+  let updated: AgentUsage[]
+  if (existing) {
+    // Update existing entry
+    updated = usage.map((item) => 
+      item.name === agentName 
+        ? { ...item, lastUsed: now, useCount: item.useCount + 1 }
+        : item
+    )
+  } else {
+    // Add new entry
+    updated = [...usage, { name: agentName, lastUsed: now, useCount: 1 }]
+  }
+  
+  // Sort by useCount (descending), then by lastUsed (descending)
+  updated.sort((a, b) => {
+    if (b.useCount !== a.useCount) return b.useCount - a.useCount
+    return b.lastUsed - a.lastUsed
+  })
+  
+  // Keep only top entries
+  updatePreferences({ agentUsage: updated.slice(0, MAX_USAGE_ENTRIES) })
+}
+
+function recordModelUsage(providerId: string, modelId: string): void {
+  if (!providerId || !modelId) return
+  const usage = preferences().modelUsage ?? []
+  const existing = usage.find((item) => item.providerId === providerId && item.modelId === modelId)
+  const now = Date.now()
+  
+  let updated: ModelUsage[]
+  if (existing) {
+    // Update existing entry
+    updated = usage.map((item) => 
+      item.providerId === providerId && item.modelId === modelId
+        ? { ...item, lastUsed: now, useCount: item.useCount + 1 }
+        : item
+    )
+  } else {
+    // Add new entry
+    updated = [...usage, { providerId, modelId, lastUsed: now, useCount: 1 }]
+  }
+  
+  // Sort by useCount (descending), then by lastUsed (descending)
+  updated.sort((a, b) => {
+    if (b.useCount !== a.useCount) return b.useCount - a.useCount
+    return b.lastUsed - a.lastUsed
+  })
+  
+  // Keep only top entries
+  updatePreferences({ modelUsage: updated.slice(0, MAX_USAGE_ENTRIES) })
+}
+
+function getAgentUsageScore(agentName: string): number {
+  const usage = preferences().agentUsage ?? []
+  const entry = usage.find((item) => item.name === agentName)
+  if (!entry) return 0
+  // Score based on use count and recency (recency bonus decays over 7 days)
+  const recencyBonus = Math.max(0, 1 - (Date.now() - entry.lastUsed) / (7 * 24 * 60 * 60 * 1000))
+  return entry.useCount + recencyBonus * 2
+}
+
+function getModelUsageScore(providerId: string, modelId: string): number {
+  const usage = preferences().modelUsage ?? []
+  const entry = usage.find((item) => item.providerId === providerId && item.modelId === modelId)
+  if (!entry) return 0
+  // Score based on use count and recency (recency bonus decays over 7 days)
+  const recencyBonus = Math.max(0, 1 - (Date.now() - entry.lastUsed) / (7 * 24 * 60 * 60 * 1000))
+  return entry.useCount + recencyBonus * 2
+}
+
 async function setAgentModelPreference(instanceId: string, agent: string, model: ModelPreference): Promise<void> {
   if (!instanceId || !agent || !model.providerId || !model.modelId) return
   await ensureInstanceConfigLoaded(instanceId)
@@ -527,6 +629,10 @@ export {
   addEnvironmentVariable,
   removeEnvironmentVariable,
   addRecentModelPreference,
+  recordAgentUsage,
+  recordModelUsage,
+  getAgentUsageScore,
+  getModelUsageScore,
   setAgentModelPreference,
   getAgentModelPreference,
   setDiffViewMode,
@@ -537,7 +643,7 @@ export {
   themePreference,
   setThemePreference,
   recordWorkspaceLaunch,
- }
+}
  
 
 

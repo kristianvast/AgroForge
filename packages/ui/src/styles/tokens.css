@@ -1,100 +1,177 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   AGROFORGE — Futuristic Cyberpunk Theme
+   Agricultural Intelligence meets Cutting-Edge Technology
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  /* Surface tokens */
-  --surface-base: #ffffff;
-  --surface-secondary: #f5f5f5;
-  --surface-muted: #f8f9fa;
-  --surface-code: #f8f8f8;
-  --surface-hover: #e0e0e0;
+  /* ─────────────────────────────────────────────────────────────────────────
+     LIGHT MODE (Clean, Professional with Tech Accents)
+     ───────────────────────────────────────────────────────────────────────── */
+  
+  /* Surface tokens - Clean whites with subtle depth */
+  --surface-base: #fafbfc;
+  --surface-secondary: #f0f2f5;
+  --surface-muted: #e8ebef;
+  --surface-code: #f5f7fa;
+  --surface-hover: #e4e8ed;
+  --surface-elevated: #ffffff;
+  --surface-sunken: #e1e5eb;
   
   /* Border tokens */
-  --border-base: #e0e0e0;
-  --border-secondary: #e0e0e0;
-  --border-muted: #e0e0e0;
+  --border-base: #d1d9e3;
+  --border-secondary: #c5cdd8;
+  --border-muted: #dfe5ec;
+  --border-subtle: #e8ecf0;
+  --border-glow: rgba(0, 230, 180, 0.3);
   
   /* Text tokens */
-  --text-primary: #1a1a1a;
-  --text-secondary: #666666;
-  --text-muted: #666666;
+  --text-primary: #0f1419;
+  --text-secondary: #536471;
+  --text-muted: #8899a6;
   --text-inverted: #ffffff;
+  --text-accent: #00d4aa;
   
-  /* Accent tokens */
-  --accent-primary: #0066ff;
-  --accent-hover: #0052cc;
+  /* ═══ AGROFORGE SIGNATURE COLORS ═══ */
+  /* Primary: Electric Teal-Green (Growth + Tech) */
+  --accent-primary: #00d4aa;
+  --accent-primary-rgb: 0, 212, 170;
+  --accent-hover: #00b894;
+  --accent-active: #009f80;
+  --accent-soft-bg: rgba(0, 212, 170, 0.1);
+  --accent-gradient: linear-gradient(135deg, #00d4aa 0%, #00b4d8 50%, #8b5cf6 100%);
+  --accent-gradient-vivid: linear-gradient(135deg, #00ffcc 0%, #00d4ff 40%, #a855f7 100%);
+  --accent-gradient-subtle: linear-gradient(135deg, rgba(0, 212, 170, 0.15) 0%, rgba(0, 180, 216, 0.1) 100%);
   
-  /* Status tokens */
-  --status-success: #4caf50;
-  --status-error: #f44336;
-  --status-warning: #ff9800;
+  /* Secondary: Cyber Purple (Intelligence) */
+  --accent-secondary: #8b5cf6;
+  --accent-secondary-rgb: 139, 92, 246;
+  --accent-secondary-hover: #7c3aed;
+  
+  /* Tertiary: Electric Cyan (Data Flow) */
+  --accent-tertiary: #00b4d8;
+  --accent-tertiary-rgb: 0, 180, 216;
+  
+  /* Provider accent colors */
+  --accent-anthropic: #d97757;
+  --accent-openai: #10a37f;
+  --accent-google: #4285f4;
+  --accent-mistral: #ff7000;
+  --accent-groq: #f55036;
+  --accent-xai: #1d9bf0;
+  --accent-aws: #ff9900;
+  --accent-azure: #0078d4;
+  
+  /* Status tokens - Vibrant, Clear */
+  --status-success: #10b981;
+  --status-success-glow: rgba(16, 185, 129, 0.4);
+  --status-error: #ef4444;
+  --status-error-glow: rgba(239, 68, 68, 0.4);
+  --status-warning: #f59e0b;
+  --status-warning-glow: rgba(245, 158, 11, 0.4);
+  --status-info: #3b82f6;
+  --status-info-glow: rgba(59, 130, 246, 0.4);
+  
+  /* Glow Effects */
+  --glow-primary: 0 0 20px rgba(0, 212, 170, 0.3), 0 0 40px rgba(0, 212, 170, 0.1);
+  --glow-primary-intense: 0 0 20px rgba(0, 212, 170, 0.5), 0 0 60px rgba(0, 212, 170, 0.25), 0 0 100px rgba(0, 212, 170, 0.1);
+  --glow-secondary: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.1);
+  --glow-tertiary: 0 0 20px rgba(0, 180, 216, 0.3), 0 0 40px rgba(0, 180, 216, 0.1);
+  --glow-success: 0 0 15px rgba(16, 185, 129, 0.4);
+  --glow-error: 0 0 15px rgba(239, 68, 68, 0.4);
+  
+  /* Glass/Frosted Effects */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-heavy: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-blur: blur(12px);
+  --glass-blur-heavy: blur(20px);
   
   /* Message-specific tokens */
-  --message-user-bg: var(--surface-secondary);
-  --message-user-border: #2196f3;
-  --message-assistant-bg: var(--message-tool-bg);
-  --message-assistant-border: #f59e0b;
-
-  --message-tool-bg: #f8f9fa;
-  --message-tool-border: #6c757d;
+  --message-user-bg: linear-gradient(135deg, rgba(0, 212, 170, 0.08) 0%, rgba(0, 180, 216, 0.05) 100%);
+  --message-user-border: #00d4aa;
+  --message-assistant-bg: linear-gradient(135deg, rgba(139, 92, 246, 0.06) 0%, rgba(0, 180, 216, 0.04) 100%);
+  --message-assistant-border: #8b5cf6;
+  --message-tool-bg: #f0f2f5;
+  --message-tool-border: #00b4d8;
 
   /* Session list selection tints */
-  --session-user-active-bg: color-mix(in oklab, var(--surface-secondary) 85%, var(--message-user-border));
-  --session-assistant-active-bg: color-mix(in oklab, var(--surface-secondary) 85%, var(--message-assistant-border));
+  --session-user-active-bg: rgba(0, 212, 170, 0.12);
+  --session-assistant-active-bg: rgba(139, 92, 246, 0.1);
 
   /* Semantic component colors */
-  --session-status-working-fg: #b45309;
-  --session-status-working-bg: rgba(245, 158, 11, 0.16);
-  --session-status-compacting-fg: #6d28d9;
-  --session-status-compacting-bg: rgba(109, 40, 217, 0.18);
-  --session-status-idle-fg: #15803d;
-  --session-status-idle-bg: rgba(22, 163, 74, 0.16);
-  --session-status-permission-fg: #b91c1c;
-  --session-status-permission-bg: rgba(239, 68, 68, 0.16);
-  --list-item-highlight-bg: rgba(0, 102, 255, 0.1);
-  --list-item-highlight-bg-solid: #e5f0ff;
-  --list-item-highlight-border: rgba(0, 102, 255, 0.25);
-  --attachment-chip-bg: rgba(0, 102, 255, 0.1);
-  --attachment-chip-text: #0066ff;
-  --attachment-chip-ring: rgba(0, 102, 255, 0.1);
-  --badge-neutral-bg: rgba(0, 102, 255, 0.05);
-  --badge-neutral-text: #0066ff;
-  --status-ready-fg: #16a34a;
-  --status-ready-bg: rgba(34, 197, 94, 0.1);
-  --status-starting-fg: #ca8a04;
-  --status-starting-bg: rgba(250, 204, 21, 0.1);
-  --status-error-fg: #dc2626;
+  --session-status-working-fg: #f59e0b;
+  --session-status-working-bg: rgba(245, 158, 11, 0.12);
+  --session-status-compacting-fg: #8b5cf6;
+  --session-status-compacting-bg: rgba(139, 92, 246, 0.12);
+  --session-status-idle-fg: #10b981;
+  --session-status-idle-bg: rgba(16, 185, 129, 0.12);
+  --session-status-permission-fg: #ef4444;
+  --session-status-permission-bg: rgba(239, 68, 68, 0.12);
+  
+  --list-item-highlight-bg: rgba(0, 212, 170, 0.1);
+  --list-item-highlight-bg-solid: #e6f9f5;
+  --list-item-highlight-border: rgba(0, 212, 170, 0.3);
+  
+  --attachment-chip-bg: rgba(0, 212, 170, 0.1);
+  --attachment-chip-text: #00b894;
+  --attachment-chip-ring: rgba(0, 212, 170, 0.2);
+  
+  --badge-neutral-bg: rgba(0, 212, 170, 0.08);
+  --badge-neutral-text: #00b894;
+  
+  --status-ready-fg: #10b981;
+  --status-ready-bg: rgba(16, 185, 129, 0.1);
+  --status-starting-fg: #f59e0b;
+  --status-starting-bg: rgba(245, 158, 11, 0.1);
+  --status-error-fg: #ef4444;
   --status-error-bg: rgba(239, 68, 68, 0.1);
   --status-stopped-fg: #6b7280;
   --status-stopped-bg: rgba(107, 114, 128, 0.1);
-  --env-vars-bg: rgba(0, 102, 255, 0.1);
-  --env-vars-border: rgba(0, 102, 255, 0.2);
-  --env-vars-text: #0066ff;
-  --folder-overlay-bg: rgba(0, 0, 0, 0.35);
-  --folder-card-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  
+  --env-vars-bg: rgba(0, 212, 170, 0.1);
+  --env-vars-border: rgba(0, 212, 170, 0.2);
+  --env-vars-text: #00b894;
+  
+  --folder-overlay-bg: rgba(15, 20, 25, 0.4);
+  --folder-card-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 40px rgba(0, 212, 170, 0.1);
   --folder-card-radius: 16px;
-  --dropdown-highlight-bg: rgba(0, 102, 255, 0.1);
-  --dropdown-highlight-text: var(--text-inverted);
-  --selection-highlight-bg: rgba(0, 102, 255, 0.12);
-  --selection-highlight-strong-bg: rgba(0, 102, 255, 0.18);
-  --overlay-scrim: rgba(0, 0, 0, 0.5);
-  --scroll-elevation-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  --message-error-bg: rgba(244, 67, 54, 0.1);
-  --message-error-bg-strong: rgba(244, 67, 54, 0.15);
+  
+  --dropdown-highlight-bg: rgba(0, 212, 170, 0.1);
+  --dropdown-highlight-text: var(--text-primary);
+  
+  --selection-highlight-bg: rgba(0, 212, 170, 0.12);
+  --selection-highlight-strong-bg: rgba(0, 212, 170, 0.2);
+  
+  --overlay-scrim: rgba(15, 20, 25, 0.5);
+  --scroll-elevation-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  
+  --message-error-bg: rgba(239, 68, 68, 0.08);
+  --message-error-bg-strong: rgba(239, 68, 68, 0.15);
   --danger-soft-bg: rgba(239, 68, 68, 0.1);
-  --danger-soft-bg-strong: rgba(244, 67, 54, 0.15);
+  --danger-soft-bg-strong: rgba(239, 68, 68, 0.18);
+  
   --log-level-error: var(--status-error);
   --log-level-warn: var(--status-warning);
   --log-level-debug: var(--text-muted);
   --log-level-default: var(--text-primary);
+  
   --focus-ring-color: var(--accent-primary);
   --focus-ring-offset: var(--surface-base);
+  
   --kbd-bg: var(--surface-secondary);
   --kbd-border: var(--border-base);
   --kbd-text: var(--text-primary);
+  
+  /* Button tokens */
   --button-primary-bg: var(--accent-primary);
   --button-primary-hover-bg: var(--accent-hover);
-  --button-primary-text: var(--text-inverted);
+  --button-primary-text: #ffffff;
+  --button-primary-shadow: var(--glow-primary);
+  
+  /* Tab tokens */
   --tab-active-bg: var(--accent-primary);
   --tab-active-hover-bg: var(--accent-hover);
-  --tab-active-text: var(--text-inverted);
+  --tab-active-text: #ffffff;
   --tab-inactive-bg: var(--surface-muted);
   --tab-inactive-hover-bg: var(--surface-hover);
   --tab-inactive-text: var(--text-secondary);
@@ -127,8 +204,8 @@
   --pill-radius: 9999px;
   
   /* Typography tokens */
-  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-family-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-family-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
   
   /* Font weights */
   --font-weight-regular: 400;
@@ -150,114 +227,177 @@
   --line-height-relaxed: 1.6;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE — The Main Experience
+   Cyberpunk Noir with Electric Accents
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Surface tokens */
-    --surface-base: #1a1a1a;
-    --surface-secondary: #2a2a2a;
-    --surface-muted: #212529;
-    --surface-code: #1a1a1a;
-    --surface-hover: #3a3a3a;
+    /* Surface tokens - Deep space blacks with subtle blue undertones */
+    --surface-base: #0a0e14;
+    --surface-secondary: #12171f;
+    --surface-muted: #161c26;
+    --surface-code: #0d1117;
+    --surface-hover: #1c232e;
+    --surface-elevated: #1a2130;
+    --surface-sunken: #060a0f;
     
-    /* Border tokens */
-    --border-base: #3a3a3a;
-    --border-secondary: #3a3a3a;
-    --border-muted: #3a3a3a;
+    /* Border tokens - Subtle with glow potential */
+    --border-base: #1e2a3a;
+    --border-secondary: #253245;
+    --border-muted: #192231;
+    --border-subtle: #1a222d;
+    --border-glow: rgba(0, 255, 204, 0.2);
     
     /* Text tokens */
-    --text-primary: #cfd4dc;
-    --text-secondary: #999999;
-    --text-muted: #999999;
-    --text-inverted: #1a1a1a;
+    --text-primary: #e6edf5;
+    --text-secondary: #8899a6;
+    --text-muted: #657786;
+    --text-inverted: #0a0e14;
+    --text-accent: #00ffcc;
     
-    /* Accent tokens */
-    --accent-primary: #0080ff;
-    --accent-hover: #0066cc;
+    /* ═══ AGROFORGE SIGNATURE COLORS — DARK MODE ═══ */
+    /* Primary: Neon Teal-Green (Bioluminescent Growth) */
+    --accent-primary: #00ffcc;
+    --accent-primary-rgb: 0, 255, 204;
+    --accent-hover: #00e6b8;
+    --accent-active: #00cca3;
+    --accent-soft-bg: rgba(0, 255, 204, 0.15);
+    --accent-gradient: linear-gradient(135deg, #00ffcc 0%, #00d4ff 50%, #a855f7 100%);
+    --accent-gradient-vivid: linear-gradient(135deg, #00ffcc 0%, #00ffff 30%, #c084fc 70%, #f472b6 100%);
+    --accent-gradient-subtle: linear-gradient(135deg, rgba(0, 255, 204, 0.15) 0%, rgba(0, 212, 255, 0.1) 100%);
     
-    /* Status tokens */
-    --status-success: #4caf50;
-    --status-error: #f44336;
-    --status-warning: #ff9800;
+    /* Secondary: Electric Violet (Neural Intelligence) */
+    --accent-secondary: #a855f7;
+    --accent-secondary-rgb: 168, 85, 247;
+    --accent-secondary-hover: #9333ea;
+    
+    /* Tertiary: Plasma Cyan (Data Streams) */
+    --accent-tertiary: #00d4ff;
+    --accent-tertiary-rgb: 0, 212, 255;
+    
+    /* Status tokens - Neon, Punchy */
+    --status-success: #22c55e;
+    --status-success-glow: rgba(34, 197, 94, 0.5);
+    --status-error: #f43f5e;
+    --status-error-glow: rgba(244, 63, 94, 0.5);
+    --status-warning: #fbbf24;
+    --status-warning-glow: rgba(251, 191, 36, 0.5);
+    --status-info: #38bdf8;
+    --status-info-glow: rgba(56, 189, 248, 0.5);
+    
+    /* Glow Effects - THE MAGIC */
+    --glow-primary: 0 0 20px rgba(0, 255, 204, 0.4), 0 0 40px rgba(0, 255, 204, 0.2), 0 0 60px rgba(0, 255, 204, 0.1);
+    --glow-primary-intense: 0 0 30px rgba(0, 255, 204, 0.6), 0 0 60px rgba(0, 255, 204, 0.3), 0 0 120px rgba(0, 255, 204, 0.15);
+    --glow-secondary: 0 0 20px rgba(168, 85, 247, 0.4), 0 0 40px rgba(168, 85, 247, 0.2), 0 0 60px rgba(168, 85, 247, 0.1);
+    --glow-tertiary: 0 0 20px rgba(0, 212, 255, 0.4), 0 0 40px rgba(0, 212, 255, 0.2);
+    --glow-success: 0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.2);
+    --glow-error: 0 0 20px rgba(244, 63, 94, 0.5), 0 0 40px rgba(244, 63, 94, 0.2);
+    
+    /* Glass/Frosted Effects - Cyberpunk Panels */
+    --glass-bg: rgba(18, 23, 31, 0.75);
+    --glass-bg-heavy: rgba(10, 14, 20, 0.9);
+    --glass-border: rgba(0, 255, 204, 0.1);
+    --glass-blur: blur(12px);
+    --glass-blur-heavy: blur(24px);
     
     /* Message-specific tokens */
-    --message-user-bg: #202734;
-    --message-user-border: #42a5f5;
-    --message-assistant-bg: var(--message-tool-bg);
-    --message-assistant-border: #d97706;
+    --message-user-bg: linear-gradient(135deg, rgba(0, 255, 204, 0.08) 0%, rgba(0, 212, 255, 0.04) 100%);
+    --message-user-border: #00ffcc;
+    --message-assistant-bg: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(0, 212, 255, 0.04) 100%);
+    --message-assistant-border: #a855f7;
+    --message-tool-bg: #12171f;
+    --message-tool-border: #00d4ff;
 
-    --message-tool-bg: #212529;
-    --message-tool-border: #adb5bd;
+    /* Session list selection tints */
+    --session-user-active-bg: rgba(0, 255, 204, 0.15);
+    --session-assistant-active-bg: rgba(168, 85, 247, 0.12);
 
     /* Semantic component colors */
-    --session-status-working-fg: #facc15;
-    --session-status-working-bg: rgba(250, 204, 21, 0.25);
+    --session-status-working-fg: #fbbf24;
+    --session-status-working-bg: rgba(251, 191, 36, 0.2);
     --session-status-compacting-fg: #c084fc;
-    --session-status-compacting-bg: rgba(192, 132, 252, 0.28);
+    --session-status-compacting-bg: rgba(192, 132, 252, 0.2);
     --session-status-idle-fg: #4ade80;
-    --session-status-idle-bg: rgba(74, 222, 128, 0.22);
-    --session-status-permission-fg: #f87171;
-    --session-status-permission-bg: rgba(248, 113, 113, 0.22);
-  --list-item-highlight-bg: rgba(0, 128, 255, 0.2);
-  --list-item-highlight-bg-solid: #15324e;
-  --list-item-highlight-border: rgba(0, 128, 255, 0.4);
-
-    --attachment-chip-bg: rgba(0, 128, 255, 0.1);
-    --attachment-chip-text: #0080ff;
-    --attachment-chip-ring: rgba(0, 128, 255, 0.2);
-  --badge-neutral-bg: rgba(0, 128, 255, 0.15);
-  --badge-neutral-text: #0080ff;
-  --status-ready-fg: #22c55e;
-  --status-ready-bg: rgba(34, 197, 94, 0.2);
-  --status-starting-fg: #facc15;
-  --status-starting-bg: rgba(250, 204, 21, 0.2);
-  --status-error-fg: #ef4444;
-  --status-error-bg: rgba(239, 68, 68, 0.2);
-  --status-stopped-fg: #9ca3af;
-  --status-stopped-bg: rgba(107, 114, 128, 0.2);
-  --env-vars-bg: rgba(0, 128, 255, 0.2);
-  --env-vars-border: rgba(0, 128, 255, 0.3);
-  --env-vars-text: #0080ff;
-  --folder-overlay-bg: rgba(0, 0, 0, 0.45);
-  --folder-card-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-  --folder-card-radius: 16px;
-  --dropdown-highlight-bg: rgba(0, 128, 255, 0.2);
-  --dropdown-highlight-text: var(--text-primary);
-  --kbd-bg: var(--surface-secondary);
-  --kbd-border: var(--border-base);
-  --kbd-text: var(--text-primary);
-  --button-primary-bg: #3f3f46;
-  --button-primary-hover-bg: #52525b;
-  --button-primary-text: #f5f6f8;
-  --tab-active-bg: #3f3f46;
-  --tab-active-hover-bg: #52525b;
-  --tab-active-text: #f5f6f8;
-  --tab-inactive-bg: #2a2a31;
-  --tab-inactive-hover-bg: #3f3f46;
-  --tab-inactive-text: #d4d4d8;
-  --new-tab-bg: #3f3f46;
-  --new-tab-hover-bg: #52525b;
-  --new-tab-text: #f5f6f8;
-  --session-tab-active-bg: var(--surface-muted);
-  --session-tab-active-text: var(--text-primary);
-  --session-tab-inactive-text: var(--text-muted);
-  --session-tab-hover-bg: #3f3f46;
-
-    --button-primary-bg: #3f3f46;
-    --button-primary-hover-bg: #52525b;
-    --button-primary-text: #f5f6f8;
-    --tab-active-bg: #3f3f46;
-    --tab-active-hover-bg: #52525b;
-    --tab-active-text: #f5f6f8;
-    --tab-inactive-bg: #2f2f36;
-    --tab-inactive-hover-bg: #3d3d45;
-    --tab-inactive-text: #d4d4d8;
-    --new-tab-bg: #3f3f46;
-    --new-tab-hover-bg: #52525b;
-    --new-tab-text: #f5f6f8;
-    --session-tab-active-bg: var(--surface-muted);
-    --session-tab-active-text: var(--text-primary);
+    --session-status-idle-bg: rgba(74, 222, 128, 0.2);
+    --session-status-permission-fg: #fb7185;
+    --session-status-permission-bg: rgba(251, 113, 133, 0.2);
+    
+    --list-item-highlight-bg: rgba(0, 255, 204, 0.12);
+    --list-item-highlight-bg-solid: #0d2820;
+    --list-item-highlight-border: rgba(0, 255, 204, 0.35);
+    
+    --attachment-chip-bg: rgba(0, 255, 204, 0.12);
+    --attachment-chip-text: #00ffcc;
+    --attachment-chip-ring: rgba(0, 255, 204, 0.25);
+    
+    --badge-neutral-bg: rgba(0, 255, 204, 0.12);
+    --badge-neutral-text: #00ffcc;
+    
+    --status-ready-fg: #4ade80;
+    --status-ready-bg: rgba(74, 222, 128, 0.15);
+    --status-starting-fg: #fbbf24;
+    --status-starting-bg: rgba(251, 191, 36, 0.15);
+    --status-error-fg: #fb7185;
+    --status-error-bg: rgba(251, 113, 133, 0.15);
+    --status-stopped-fg: #9ca3af;
+    --status-stopped-bg: rgba(156, 163, 175, 0.15);
+    
+    --env-vars-bg: rgba(0, 255, 204, 0.12);
+    --env-vars-border: rgba(0, 255, 204, 0.25);
+    --env-vars-text: #00ffcc;
+    
+    --folder-overlay-bg: rgba(0, 0, 0, 0.7);
+    --folder-card-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), 0 0 60px rgba(0, 255, 204, 0.1);
+    --folder-card-radius: 16px;
+    
+    --dropdown-highlight-bg: rgba(0, 255, 204, 0.15);
+    --dropdown-highlight-text: var(--text-primary);
+    
+    --selection-highlight-bg: rgba(0, 255, 204, 0.15);
+    --selection-highlight-strong-bg: rgba(0, 255, 204, 0.25);
+    
+    --overlay-scrim: rgba(0, 0, 0, 0.75);
+    --scroll-elevation-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 204, 0.05);
+    
+    --message-error-bg: rgba(244, 63, 94, 0.12);
+    --message-error-bg-strong: rgba(244, 63, 94, 0.2);
+    --danger-soft-bg: rgba(244, 63, 94, 0.15);
+    --danger-soft-bg-strong: rgba(244, 63, 94, 0.25);
+    
+    --log-level-error: var(--status-error);
+    --log-level-warn: var(--status-warning);
+    --log-level-debug: var(--text-muted);
+    --log-level-default: var(--text-primary);
+    
+    --focus-ring-color: var(--accent-primary);
+    --focus-ring-offset: var(--surface-base);
+    
+    --kbd-bg: #1a2130;
+    --kbd-border: #253245;
+    --kbd-text: var(--text-primary);
+    
+    /* Button tokens - Glowing, Premium */
+    --button-primary-bg: var(--accent-primary);
+    --button-primary-hover-bg: var(--accent-hover);
+    --button-primary-text: #0a0e14;
+    --button-primary-shadow: var(--glow-primary);
+    
+    /* Tab tokens */
+    --tab-active-bg: rgba(0, 255, 204, 0.15);
+    --tab-active-hover-bg: rgba(0, 255, 204, 0.2);
+    --tab-active-text: #00ffcc;
+    --tab-inactive-bg: #161c26;
+    --tab-inactive-hover-bg: #1c232e;
+    --tab-inactive-text: var(--text-secondary);
+    --new-tab-bg: #1a2130;
+    --new-tab-hover-bg: #253245;
+    --new-tab-text: var(--text-muted);
+    --session-tab-active-bg: rgba(0, 255, 204, 0.1);
+    --session-tab-active-text: #00ffcc;
     --session-tab-inactive-text: var(--text-muted);
-    --session-tab-hover-bg: #3f3f46;
+    --session-tab-hover-bg: #1c232e;
 
     /* Layout & spacing tokens */
     --space-2xs: 2px;
@@ -279,16 +419,16 @@
     --chip-radius: 0.375rem;
     --pill-radius: 9999px;
     
-    /* Typography tokens (same as light theme) */
-    --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --font-family-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-
+    /* Typography tokens */
+    --font-family-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-family-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+    
     /* Font weights */
     --font-weight-regular: 400;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
-
+    
     /* Font sizes */
     --font-size-xs: 11px;
     --font-size-sm: 12px;
@@ -301,97 +441,174 @@
     --line-height-tight: 1.25;
     --line-height-normal: 1.5;
     --line-height-relaxed: 1.6;
-
   }
 }
 
 [data-theme="dark"] {
-  /* Surface tokens */
-  --surface-base: #1a1a1a;
-  --surface-secondary: #2a2a2a;
-  --surface-muted: #212529;
-  --surface-code: #1a1a1a;
-  --surface-hover: #3a3a3a;
+  /* Surface tokens - Deep space blacks with subtle blue undertones */
+  --surface-base: #0a0e14;
+  --surface-secondary: #12171f;
+  --surface-muted: #161c26;
+  --surface-code: #0d1117;
+  --surface-hover: #1c232e;
+  --surface-elevated: #1a2130;
+  --surface-sunken: #060a0f;
   
-  /* Border tokens */
-  --border-base: #3a3a3a;
-  --border-secondary: #3a3a3a;
-  --border-muted: #3a3a3a;
+  /* Border tokens - Subtle with glow potential */
+  --border-base: #1e2a3a;
+  --border-secondary: #253245;
+  --border-muted: #192231;
+  --border-subtle: #1a222d;
+  --border-glow: rgba(0, 255, 204, 0.2);
   
   /* Text tokens */
-  --text-primary: #cfd4dc;
-  --text-secondary: #999999;
-  --text-muted: #999999;
-  --text-inverted: #1a1a1a;
+  --text-primary: #e6edf5;
+  --text-secondary: #8899a6;
+  --text-muted: #657786;
+  --text-inverted: #0a0e14;
+  --text-accent: #00ffcc;
   
-  /* Accent tokens */
-  --accent-primary: #0080ff;
-  --accent-hover: #0066cc;
+  /* ═══ AGROFORGE SIGNATURE COLORS — DARK MODE ═══ */
+  /* Primary: Neon Teal-Green (Bioluminescent Growth) */
+  --accent-primary: #00ffcc;
+  --accent-primary-rgb: 0, 255, 204;
+  --accent-hover: #00e6b8;
+  --accent-active: #00cca3;
+  --accent-soft-bg: rgba(0, 255, 204, 0.15);
+  --accent-gradient: linear-gradient(135deg, #00ffcc 0%, #00d4ff 50%, #a855f7 100%);
+  --accent-gradient-vivid: linear-gradient(135deg, #00ffcc 0%, #00ffff 30%, #c084fc 70%, #f472b6 100%);
+  --accent-gradient-subtle: linear-gradient(135deg, rgba(0, 255, 204, 0.15) 0%, rgba(0, 212, 255, 0.1) 100%);
   
-  /* Status tokens */
-  --status-success: #4caf50;
-  --status-error: #f44336;
-  --status-warning: #ff9800;
+  /* Secondary: Electric Violet (Neural Intelligence) */
+  --accent-secondary: #a855f7;
+  --accent-secondary-rgb: 168, 85, 247;
+  --accent-secondary-hover: #9333ea;
+  
+  /* Tertiary: Plasma Cyan (Data Streams) */
+  --accent-tertiary: #00d4ff;
+  --accent-tertiary-rgb: 0, 212, 255;
+  
+  /* Status tokens - Neon, Punchy */
+  --status-success: #22c55e;
+  --status-success-glow: rgba(34, 197, 94, 0.5);
+  --status-error: #f43f5e;
+  --status-error-glow: rgba(244, 63, 94, 0.5);
+  --status-warning: #fbbf24;
+  --status-warning-glow: rgba(251, 191, 36, 0.5);
+  --status-info: #38bdf8;
+  --status-info-glow: rgba(56, 189, 248, 0.5);
+  
+  /* Glow Effects - THE MAGIC */
+  --glow-primary: 0 0 20px rgba(0, 255, 204, 0.4), 0 0 40px rgba(0, 255, 204, 0.2), 0 0 60px rgba(0, 255, 204, 0.1);
+  --glow-primary-intense: 0 0 30px rgba(0, 255, 204, 0.6), 0 0 60px rgba(0, 255, 204, 0.3), 0 0 120px rgba(0, 255, 204, 0.15);
+  --glow-secondary: 0 0 20px rgba(168, 85, 247, 0.4), 0 0 40px rgba(168, 85, 247, 0.2), 0 0 60px rgba(168, 85, 247, 0.1);
+  --glow-tertiary: 0 0 20px rgba(0, 212, 255, 0.4), 0 0 40px rgba(0, 212, 255, 0.2);
+  --glow-success: 0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.2);
+  --glow-error: 0 0 20px rgba(244, 63, 94, 0.5), 0 0 40px rgba(244, 63, 94, 0.2);
+  
+  /* Glass/Frosted Effects - Cyberpunk Panels */
+  --glass-bg: rgba(18, 23, 31, 0.75);
+  --glass-bg-heavy: rgba(10, 14, 20, 0.9);
+  --glass-border: rgba(0, 255, 204, 0.1);
+  --glass-blur: blur(12px);
+  --glass-blur-heavy: blur(24px);
   
   /* Message-specific tokens */
-  --message-user-bg: #202734;
-  --message-user-border: #2196f3;
-  --message-assistant-bg: var(--message-tool-bg);
-  --message-assistant-border: #d97706;
+  --message-user-bg: linear-gradient(135deg, rgba(0, 255, 204, 0.08) 0%, rgba(0, 212, 255, 0.04) 100%);
+  --message-user-border: #00ffcc;
+  --message-assistant-bg: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(0, 212, 255, 0.04) 100%);
+  --message-assistant-border: #a855f7;
+  --message-tool-bg: #12171f;
+  --message-tool-border: #00d4ff;
 
-  --message-tool-bg: #212529;
-  --message-tool-border: #adb5bd;
+  /* Session list selection tints */
+  --session-user-active-bg: rgba(0, 255, 204, 0.15);
+  --session-assistant-active-bg: rgba(168, 85, 247, 0.12);
 
   /* Semantic component colors */
-  --session-status-working-fg: #facc15;
-  --session-status-working-bg: rgba(250, 204, 21, 0.25);
+  --session-status-working-fg: #fbbf24;
+  --session-status-working-bg: rgba(251, 191, 36, 0.2);
   --session-status-compacting-fg: #c084fc;
-  --session-status-compacting-bg: rgba(192, 132, 252, 0.28);
+  --session-status-compacting-bg: rgba(192, 132, 252, 0.2);
   --session-status-idle-fg: #4ade80;
-  --session-status-idle-bg: rgba(74, 222, 128, 0.22);
-  --session-status-permission-fg: #f87171;
-  --session-status-permission-bg: rgba(248, 113, 113, 0.22);
-  --list-item-highlight-bg: rgba(0, 128, 255, 0.2);
-  --list-item-highlight-bg-solid: #15324e;
-  --list-item-highlight-border: rgba(0, 128, 255, 0.4);
-  --attachment-chip-bg: rgba(0, 128, 255, 0.1);
-  --attachment-chip-text: #0080ff;
-  --attachment-chip-ring: rgba(0, 128, 255, 0.2);
-  --badge-neutral-bg: rgba(0, 128, 255, 0.15);
-  --badge-neutral-text: #0080ff;
-  --status-ready-fg: #22c55e;
-  --status-ready-bg: rgba(34, 197, 94, 0.2);
-  --status-starting-fg: #facc15;
-  --status-starting-bg: rgba(250, 204, 21, 0.2);
-  --status-error-fg: #ef4444;
-  --status-error-bg: rgba(239, 68, 68, 0.2);
+  --session-status-idle-bg: rgba(74, 222, 128, 0.2);
+  --session-status-permission-fg: #fb7185;
+  --session-status-permission-bg: rgba(251, 113, 133, 0.2);
+  
+  --list-item-highlight-bg: rgba(0, 255, 204, 0.12);
+  --list-item-highlight-bg-solid: #0d2820;
+  --list-item-highlight-border: rgba(0, 255, 204, 0.35);
+  
+  --attachment-chip-bg: rgba(0, 255, 204, 0.12);
+  --attachment-chip-text: #00ffcc;
+  --attachment-chip-ring: rgba(0, 255, 204, 0.25);
+  
+  --badge-neutral-bg: rgba(0, 255, 204, 0.12);
+  --badge-neutral-text: #00ffcc;
+  
+  --status-ready-fg: #4ade80;
+  --status-ready-bg: rgba(74, 222, 128, 0.15);
+  --status-starting-fg: #fbbf24;
+  --status-starting-bg: rgba(251, 191, 36, 0.15);
+  --status-error-fg: #fb7185;
+  --status-error-bg: rgba(251, 113, 133, 0.15);
   --status-stopped-fg: #9ca3af;
-  --status-stopped-bg: rgba(107, 114, 128, 0.2);
-  --env-vars-bg: rgba(0, 128, 255, 0.2);
-  --env-vars-border: rgba(0, 128, 255, 0.3);
-  --env-vars-text: #0080ff;
-  --folder-overlay-bg: rgba(0, 0, 0, 0.45);
-  --folder-card-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  --status-stopped-bg: rgba(156, 163, 175, 0.15);
+  
+  --env-vars-bg: rgba(0, 255, 204, 0.12);
+  --env-vars-border: rgba(0, 255, 204, 0.25);
+  --env-vars-text: #00ffcc;
+  
+  --folder-overlay-bg: rgba(0, 0, 0, 0.7);
+  --folder-card-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), 0 0 60px rgba(0, 255, 204, 0.1);
   --folder-card-radius: 16px;
-  --dropdown-highlight-bg: rgba(0, 128, 255, 0.2);
+  
+  --dropdown-highlight-bg: rgba(0, 255, 204, 0.15);
   --dropdown-highlight-text: var(--text-primary);
-  --selection-highlight-bg: rgba(0, 128, 255, 0.18);
-  --selection-highlight-strong-bg: rgba(0, 128, 255, 0.28);
-  --overlay-scrim: rgba(0, 0, 0, 0.6);
-  --scroll-elevation-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
-  --message-error-bg: rgba(244, 67, 54, 0.12);
-  --message-error-bg-strong: rgba(244, 67, 54, 0.2);
-  --danger-soft-bg: rgba(244, 67, 54, 0.16);
-  --danger-soft-bg-strong: rgba(244, 67, 54, 0.28);
+  
+  --selection-highlight-bg: rgba(0, 255, 204, 0.15);
+  --selection-highlight-strong-bg: rgba(0, 255, 204, 0.25);
+  
+  --overlay-scrim: rgba(0, 0, 0, 0.75);
+  --scroll-elevation-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 204, 0.05);
+  
+  --message-error-bg: rgba(244, 63, 94, 0.12);
+  --message-error-bg-strong: rgba(244, 63, 94, 0.2);
+  --danger-soft-bg: rgba(244, 63, 94, 0.15);
+  --danger-soft-bg-strong: rgba(244, 63, 94, 0.25);
+  
   --log-level-error: var(--status-error);
   --log-level-warn: var(--status-warning);
-  --log-level-debug: var(--text-secondary);
+  --log-level-debug: var(--text-muted);
   --log-level-default: var(--text-primary);
+  
   --focus-ring-color: var(--accent-primary);
   --focus-ring-offset: var(--surface-base);
-  --kbd-bg: var(--surface-secondary);
-  --kbd-border: var(--border-base);
+  
+  --kbd-bg: #1a2130;
+  --kbd-border: #253245;
   --kbd-text: var(--text-primary);
+  
+  /* Button tokens - Glowing, Premium */
+  --button-primary-bg: var(--accent-primary);
+  --button-primary-hover-bg: var(--accent-hover);
+  --button-primary-text: #0a0e14;
+  --button-primary-shadow: var(--glow-primary);
+  
+  /* Tab tokens */
+  --tab-active-bg: rgba(0, 255, 204, 0.15);
+  --tab-active-hover-bg: rgba(0, 255, 204, 0.2);
+  --tab-active-text: #00ffcc;
+  --tab-inactive-bg: #161c26;
+  --tab-inactive-hover-bg: #1c232e;
+  --tab-inactive-text: var(--text-secondary);
+  --new-tab-bg: #1a2130;
+  --new-tab-hover-bg: #253245;
+  --new-tab-text: var(--text-muted);
+  --session-tab-active-bg: rgba(0, 255, 204, 0.1);
+  --session-tab-active-text: #00ffcc;
+  --session-tab-inactive-text: var(--text-muted);
+  --session-tab-hover-bg: #1c232e;
 
   /* Layout & spacing tokens */
   --space-2xs: 2px;
@@ -413,16 +630,16 @@
   --chip-radius: 0.375rem;
   --pill-radius: 9999px;
   
-  /* Typography tokens (same as light theme) */
-  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-family-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-
+  /* Typography tokens */
+  --font-family-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+  
   /* Font weights */
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-
+  
   /* Font sizes */
   --font-size-xs: 11px;
   --font-size-sm: 12px;
@@ -435,5 +652,4 @@
   --line-height-tight: 1.25;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.6;
-
 }

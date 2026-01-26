@@ -1,0 +1,419 @@
+/* Smart Session Picker - Enhanced new session flow */
+
+.smart-picker-modal {
+  @apply relative flex flex-col rounded-xl overflow-hidden shadow-2xl;
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-base);
+  width: min(480px, calc(100vw - 32px));
+  max-height: min(700px, calc(100vh - 64px));
+  animation: picker-slide-up 0.2s ease-out;
+}
+
+/* Header */
+.smart-picker-header {
+  @apply flex items-center gap-3 px-4 py-3;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent-primary) 8%, var(--surface-secondary)) 0%,
+    var(--surface-secondary) 100%
+  );
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.smart-picker-header-content {
+  @apply flex items-center gap-3 flex-1 min-w-0;
+}
+
+.smart-picker-header-icon {
+  @apply flex items-center justify-center w-10 h-10 rounded-xl;
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%);
+  color: var(--text-inverted);
+}
+
+.smart-picker-header-text {
+  @apply flex flex-col min-w-0 flex-1;
+}
+
+.smart-picker-title {
+  @apply text-base font-semibold;
+  color: var(--text-primary);
+}
+
+.smart-picker-subtitle {
+  @apply text-xs truncate;
+  color: var(--text-muted);
+}
+
+.smart-picker-back {
+  @apply p-2 rounded-lg transition-colors;
+  color: var(--text-secondary);
+}
+
+.smart-picker-back:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+/* Body */
+.smart-picker-body {
+  @apply flex flex-col flex-1 overflow-y-auto p-4;
+}
+
+.smart-picker-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.smart-picker-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.smart-picker-body::-webkit-scrollbar-thumb {
+  background-color: var(--border-base);
+  border-radius: 3px;
+}
+
+/* Sections */
+.smart-picker-section {
+  @apply flex flex-col gap-3;
+}
+
+.smart-picker-section--sessions {
+  @apply flex-1 min-h-0;
+}
+
+.smart-picker-section-header {
+  @apply flex items-center gap-2;
+}
+
+.smart-picker-section-title {
+  @apply flex items-center gap-2 text-xs font-semibold uppercase tracking-wider flex-1;
+  color: var(--text-muted);
+}
+
+.smart-picker-badge {
+  @apply px-2 py-0.5 rounded-full text-[10px] font-bold;
+  background-color: var(--accent-soft-bg);
+  color: var(--accent-primary);
+}
+
+/* Config Row */
+.smart-picker-config {
+  @apply grid grid-cols-2 gap-2;
+}
+
+.smart-picker-config-item {
+  @apply flex items-center gap-3 p-3 rounded-xl text-left transition-all;
+  background-color: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.smart-picker-config-item:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--border-base);
+}
+
+.smart-picker-config-icon {
+  @apply flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0;
+  transition: all 0.2s ease;
+}
+
+.smart-picker-config-icon--agent {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%);
+  color: var(--text-inverted);
+}
+
+.smart-picker-config-icon--model {
+  background: linear-gradient(
+    135deg, 
+    var(--provider-accent, var(--accent-primary)) 0%, 
+    color-mix(in srgb, var(--provider-accent, var(--accent-primary)) 70%, black) 100%
+  );
+  color: white;
+}
+
+.smart-picker-config-content {
+  @apply flex flex-col min-w-0 flex-1;
+}
+
+.smart-picker-config-label {
+  @apply text-[10px] font-medium uppercase tracking-wider;
+  color: var(--text-muted);
+}
+
+.smart-picker-config-value {
+  @apply text-sm font-medium truncate;
+  color: var(--text-primary);
+}
+
+/* Create Button */
+.smart-picker-create-btn {
+  @apply flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all;
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%);
+  color: var(--text-inverted);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+}
+
+.smart-picker-create-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-primary) 40%, transparent);
+}
+
+.smart-picker-create-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.smart-picker-create-btn:disabled {
+  @apply opacity-60 cursor-not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.smart-picker-kbd {
+  @apply ml-auto px-2 py-0.5 rounded text-[10px] font-medium;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.smart-picker-spinner {
+  @apply w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin;
+}
+
+/* Divider */
+.smart-picker-divider {
+  @apply flex items-center gap-3 my-4;
+}
+
+.smart-picker-divider-line {
+  @apply flex-1 h-px;
+  background-color: var(--border-subtle);
+}
+
+.smart-picker-divider-text {
+  @apply text-[10px] font-medium uppercase tracking-wider;
+  color: var(--text-muted);
+}
+
+/* Search */
+.smart-picker-search {
+  @apply relative flex items-center mb-3 rounded-lg overflow-hidden;
+  background-color: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+  transition: all 0.15s ease;
+}
+
+.smart-picker-search:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-soft-bg);
+}
+
+.smart-picker-search-icon {
+  @apply w-4 h-4 ml-3 flex-shrink-0;
+  color: var(--text-muted);
+}
+
+.smart-picker-search-input {
+  @apply flex-1 px-3 py-2 text-sm bg-transparent outline-none;
+  color: var(--text-primary);
+}
+
+.smart-picker-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.smart-picker-search-clear {
+  @apply p-2 mr-1 rounded transition-colors;
+  color: var(--text-muted);
+}
+
+.smart-picker-search-clear:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+/* Empty State */
+.smart-picker-empty {
+  @apply flex flex-col items-center justify-center gap-2 py-8 text-center;
+  color: var(--text-muted);
+}
+
+.smart-picker-empty p {
+  @apply text-sm font-medium;
+  color: var(--text-secondary);
+}
+
+.smart-picker-empty span {
+  @apply text-xs;
+}
+
+.smart-picker-empty button {
+  @apply mt-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors;
+  background-color: var(--surface-secondary);
+  color: var(--text-secondary);
+}
+
+.smart-picker-empty button:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.smart-picker-empty--search {
+  @apply py-6;
+}
+
+/* Sessions List */
+.smart-picker-sessions {
+  @apply flex flex-col gap-1.5 max-h-60 overflow-y-auto;
+}
+
+.smart-picker-sessions::-webkit-scrollbar {
+  width: 4px;
+}
+
+.smart-picker-sessions::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.smart-picker-sessions::-webkit-scrollbar-thumb {
+  background-color: var(--border-base);
+  border-radius: 2px;
+}
+
+.smart-picker-session {
+  @apply relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all;
+  background-color: var(--surface-secondary);
+  border: 1px solid transparent;
+}
+
+.smart-picker-session:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--border-subtle);
+}
+
+.smart-picker-session:hover .smart-picker-session-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.smart-picker-session--attention {
+  background-color: color-mix(in srgb, var(--status-warning) 8%, var(--surface-secondary));
+  border-color: color-mix(in srgb, var(--status-warning) 20%, transparent);
+}
+
+.smart-picker-session-indicator {
+  @apply w-1 self-stretch rounded-full flex-shrink-0;
+  background-color: var(--border-base);
+}
+
+.smart-picker-session-indicator--permission {
+  background-color: var(--status-warning);
+}
+
+.smart-picker-session-indicator--working {
+  background-color: var(--accent-primary);
+  animation: pulse-indicator 1.5s ease-in-out infinite;
+}
+
+.smart-picker-session-indicator--idle {
+  background-color: var(--text-muted);
+}
+
+@keyframes pulse-indicator {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.smart-picker-session-content {
+  @apply flex flex-col min-w-0 flex-1;
+}
+
+.smart-picker-session-title {
+  @apply text-sm font-medium truncate;
+  color: var(--text-primary);
+}
+
+.smart-picker-session-meta {
+  @apply flex items-center gap-3 mt-0.5;
+}
+
+.smart-picker-session-status {
+  @apply inline-flex items-center gap-1 text-[10px] font-medium;
+  color: var(--text-muted);
+}
+
+.smart-picker-session-status--permission {
+  color: var(--status-warning);
+}
+
+.smart-picker-session-status--working {
+  color: var(--accent-primary);
+}
+
+.smart-picker-pulse {
+  @apply w-1.5 h-1.5 rounded-full;
+  background-color: currentColor;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.smart-picker-session-time {
+  @apply inline-flex items-center gap-1 text-[10px];
+  color: var(--text-muted);
+}
+
+.smart-picker-session-arrow {
+  @apply flex-shrink-0 opacity-0 transform translate-x-1 transition-all;
+  color: var(--text-muted);
+}
+
+/* Footer */
+.smart-picker-footer {
+  @apply flex items-center justify-end px-4 py-3;
+  background-color: var(--surface-secondary);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.smart-picker-cancel {
+  @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+  background-color: var(--surface-base);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-base);
+}
+
+.smart-picker-cancel:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .smart-picker-modal {
+    width: 100%;
+    max-height: calc(100vh - 32px);
+    border-radius: 16px 16px 0 0;
+    margin-top: auto;
+  }
+
+  .smart-picker-config {
+    grid-template-columns: 1fr;
+  }
+
+  .smart-picker-sessions {
+    max-height: 40vh;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .smart-picker-modal,
+  .smart-picker-session,
+  .smart-picker-create-btn,
+  .smart-picker-session-indicator--working,
+  .smart-picker-pulse,
+  .smart-picker-spinner {
+    animation: none;
+    transition: none;
+  }
+}

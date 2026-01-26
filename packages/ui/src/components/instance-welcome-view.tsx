@@ -83,7 +83,7 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
       context: "global",
     }
   })
-  const newSessionShortcutString = createMemo(() => (isMac() ? "cmd+shift+o" : "ctrl+shift+o"))
+  const newSessionShortcutString = createMemo(() => (isMac() ? "cmd+shift+e" : "ctrl+shift+e"))
 
   createEffect(() => {
     const sessions = parentSessions()
@@ -139,7 +139,7 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
  
     const sessions = parentSessions()
  
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") {
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "e") {
       e.preventDefault()
       handleNewSession()
       return

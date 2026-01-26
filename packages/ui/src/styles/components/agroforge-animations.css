@@ -1,0 +1,597 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   AgroForge Futuristic Animations
+   High-tech, impressive visual effects for AI coding assistant
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Animation Tokens
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Neon color palette */
+  --neon-cyan: #00f5ff;
+  --neon-blue: #0080ff;
+  --neon-purple: #a855f7;
+  --neon-pink: #ec4899;
+  --neon-green: #22ff88;
+  
+  /* Glow intensities */
+  --glow-soft: 0 0 10px;
+  --glow-medium: 0 0 20px;
+  --glow-strong: 0 0 40px;
+  --glow-intense: 0 0 60px;
+  
+  /* Animation timing */
+  --timing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --timing-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --timing-swift: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Keyframe Animations
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* 1. Glow Pulse - Subtle pulsing glow effect */
+@keyframes glow-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px var(--neon-cyan)) drop-shadow(0 0 8px var(--neon-blue));
+    opacity: 1;
+  }
+  50% {
+    filter: drop-shadow(0 0 8px var(--neon-cyan)) drop-shadow(0 0 25px var(--neon-blue)) drop-shadow(0 0 40px var(--neon-purple));
+    opacity: 0.9;
+  }
+}
+
+/* 2. Shimmer - Horizontal shimmer/scan line effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* 3. Float - Gentle floating animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-6px) rotate(0.5deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-4px) rotate(-0.5deg);
+  }
+}
+
+/* 4. Data Stream - Matrix-like data flowing effect */
+@keyframes data-stream {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 0% 100%;
+  }
+}
+
+/* 5. Border Glow - Animated glowing border */
+@keyframes border-glow {
+  0%, 100% {
+    border-color: var(--neon-cyan);
+    box-shadow: 
+      0 0 5px var(--neon-cyan),
+      0 0 10px var(--neon-cyan),
+      inset 0 0 5px rgba(0, 245, 255, 0.1);
+  }
+  33% {
+    border-color: var(--neon-blue);
+    box-shadow: 
+      0 0 5px var(--neon-blue),
+      0 0 15px var(--neon-blue),
+      0 0 30px var(--neon-blue),
+      inset 0 0 10px rgba(0, 128, 255, 0.15);
+  }
+  66% {
+    border-color: var(--neon-purple);
+    box-shadow: 
+      0 0 5px var(--neon-purple),
+      0 0 15px var(--neon-purple),
+      0 0 25px var(--neon-purple),
+      inset 0 0 8px rgba(168, 85, 247, 0.12);
+  }
+}
+
+/* 6. Fade Slide In - Smooth entrance animation */
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* 7. Spin Glow - Spinning with glow trail (loading) */
+@keyframes spinGlow {
+  0% {
+    transform: rotate(0deg);
+    filter: drop-shadow(0 0 8px var(--neon-cyan));
+  }
+  25% {
+    filter: drop-shadow(0 0 12px var(--neon-blue)) drop-shadow(4px 0 15px var(--neon-purple));
+  }
+  50% {
+    filter: drop-shadow(0 0 15px var(--neon-purple)) drop-shadow(0 4px 20px var(--neon-pink));
+  }
+  75% {
+    filter: drop-shadow(0 0 12px var(--neon-pink)) drop-shadow(-4px 0 15px var(--neon-cyan));
+  }
+  100% {
+    transform: rotate(360deg);
+    filter: drop-shadow(0 0 8px var(--neon-cyan));
+  }
+}
+
+/* 8. Typewriter - Text reveal effect */
+@keyframes typewriter {
+  from {
+    width: 0;
+    border-right-color: var(--neon-cyan);
+  }
+  to {
+    width: 100%;
+    border-right-color: var(--neon-cyan);
+  }
+}
+
+@keyframes blink-caret {
+  0%, 50% {
+    border-right-color: var(--neon-cyan);
+  }
+  51%, 100% {
+    border-right-color: transparent;
+  }
+}
+
+/* 9. Particle Rise - Particles rising up */
+@keyframes particle-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(100%) scale(0);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(80%) scale(1);
+  }
+  90% {
+    opacity: 0.8;
+    transform: translateY(-10%) scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20%) scale(0.2);
+  }
+}
+
+/* Additional support animations */
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes hologram-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  93% {
+    opacity: 0.8;
+  }
+  94% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 0.9;
+  }
+  97% {
+    opacity: 1;
+  }
+}
+
+@keyframes circuit-pulse {
+  0%, 100% {
+    stroke-dashoffset: 1000;
+    opacity: 0.3;
+  }
+  50% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Utility Classes
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Glow Pulse Animation */
+.animate-glow {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-glow-fast {
+  animation: glow-pulse 1.5s ease-in-out infinite;
+}
+
+/* Shimmer Animation */
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 245, 255, 0.08) 20%,
+    rgba(0, 128, 255, 0.15) 40%,
+    rgba(168, 85, 247, 0.15) 60%,
+    rgba(0, 245, 255, 0.08) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.5s linear infinite;
+}
+
+/* Float Animation */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float 8s ease-in-out infinite;
+}
+
+.animate-float-fast {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Glassmorphism Effect */
+.glass-effect {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.glass-effect-strong {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Neon Border */
+.neon-border {
+  border: 1px solid var(--neon-cyan);
+  border-radius: var(--radius-lg);
+  animation: border-glow 4s ease-in-out infinite;
+}
+
+.neon-border-static {
+  border: 1px solid var(--neon-cyan);
+  border-radius: var(--radius-lg);
+  box-shadow: 
+    0 0 5px var(--neon-cyan),
+    0 0 10px var(--neon-cyan),
+    0 0 20px var(--neon-cyan),
+    inset 0 0 10px rgba(0, 245, 255, 0.1);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    var(--neon-cyan) 0%,
+    var(--neon-blue) 25%,
+    var(--neon-purple) 50%,
+    var(--neon-pink) 75%,
+    var(--neon-cyan) 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+.gradient-text-static {
+  background: linear-gradient(
+    135deg,
+    var(--neon-cyan) 0%,
+    var(--neon-blue) 50%,
+    var(--neon-purple) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Hover Lift Effect */
+.hover-lift {
+  transition: 
+    transform 0.3s var(--timing-bounce),
+    box-shadow 0.3s var(--timing-smooth),
+    filter 0.3s var(--timing-smooth);
+  will-change: transform, box-shadow, filter;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 10px 40px rgba(0, 128, 255, 0.3),
+    0 0 20px rgba(0, 245, 255, 0.2);
+  filter: brightness(1.1);
+}
+
+.hover-lift:active {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 
+    0 5px 20px rgba(0, 128, 255, 0.2),
+    0 0 10px rgba(0, 245, 255, 0.1);
+}
+
+/* Data Stream Background */
+.data-stream-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.data-stream-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(0, 245, 255, 0.03) 2px,
+      rgba(0, 245, 255, 0.03) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 4px,
+      rgba(0, 128, 255, 0.02) 4px,
+      rgba(0, 128, 255, 0.02) 8px
+    );
+  animation: data-stream 20s linear infinite;
+  pointer-events: none;
+}
+
+/* Scanline Effect */
+.scanline-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanline-effect::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(0, 245, 255, 0.4),
+    transparent
+  );
+  animation: scanline 3s linear infinite;
+  pointer-events: none;
+}
+
+/* Typewriter Effect */
+.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--neon-cyan);
+  animation: 
+    typewriter 2s steps(40) forwards,
+    blink-caret 0.75s step-end infinite;
+}
+
+/* Fade Slide In */
+.fade-slide-in {
+  animation: fadeSlideIn 0.5s var(--timing-swift) forwards;
+}
+
+.fade-slide-in-delay-1 {
+  animation: fadeSlideIn 0.5s var(--timing-swift) 0.1s forwards;
+  opacity: 0;
+}
+
+.fade-slide-in-delay-2 {
+  animation: fadeSlideIn 0.5s var(--timing-swift) 0.2s forwards;
+  opacity: 0;
+}
+
+.fade-slide-in-delay-3 {
+  animation: fadeSlideIn 0.5s var(--timing-swift) 0.3s forwards;
+  opacity: 0;
+}
+
+/* Spin Glow Loader */
+.spin-glow {
+  animation: spinGlow 1.5s linear infinite;
+}
+
+.spin-glow-slow {
+  animation: spinGlow 3s linear infinite;
+}
+
+/* Particle Container */
+.particle-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--neon-cyan);
+  border-radius: 50%;
+  animation: particle-rise 3s ease-out infinite;
+  box-shadow: 
+    0 0 6px var(--neon-cyan),
+    0 0 12px var(--neon-blue);
+}
+
+.particle:nth-child(2n) {
+  background: var(--neon-blue);
+  animation-delay: 0.5s;
+  animation-duration: 4s;
+}
+
+.particle:nth-child(3n) {
+  background: var(--neon-purple);
+  animation-delay: 1s;
+  animation-duration: 3.5s;
+}
+
+/* Hologram Flicker */
+.hologram {
+  animation: hologram-flicker 4s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Interactive States
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Focus glow ring */
+.focus-glow:focus {
+  outline: none;
+  box-shadow: 
+    0 0 0 2px var(--surface-base),
+    0 0 0 4px var(--neon-cyan),
+    0 0 20px var(--neon-cyan);
+}
+
+/* Active pulse */
+.active-pulse {
+  position: relative;
+}
+
+.active-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: transparent;
+  border: 2px solid var(--neon-cyan);
+  animation: glow-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Loading bar */
+.loading-bar {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--neon-cyan),
+    var(--neon-blue),
+    var(--neon-purple),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+
+/* Tech corner accents */
+.tech-corners {
+  position: relative;
+}
+
+.tech-corners::before,
+.tech-corners::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--neon-cyan);
+  pointer-events: none;
+}
+
+.tech-corners::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.tech-corners::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Reduced Motion Support
+   ─────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .animate-glow,
+  .animate-glow-fast,
+  .animate-shimmer,
+  .animate-float,
+  .animate-float-slow,
+  .animate-float-fast,
+  .neon-border,
+  .gradient-text,
+  .spin-glow,
+  .spin-glow-slow,
+  .typewriter,
+  .hologram,
+  .particle,
+  .scanline-effect::after,
+  .data-stream-bg::before,
+  .loading-bar {
+    animation: none;
+  }
+  
+  .hover-lift:hover {
+    transform: none;
+  }
+  
+  .gradient-text {
+    background-size: 100% auto;
+  }
+}

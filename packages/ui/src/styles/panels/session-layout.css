@@ -116,26 +116,12 @@ session-sidebar-controls .selector-trigger-primary {
 }
 
 .sidebar-selector-hint {
-  @apply flex justify-center text-xs w-full;
+  @apply inline-flex items-center gap-1.5 text-[10px];
   color: var(--text-muted);
 }
 
 .sidebar-selector-hints {
-  @apply flex items-center gap-2 w-full;
-  justify-content: space-between;
-}
-
-.sidebar-selector-hint--left,
-.sidebar-selector-hint--right {
-  @apply flex-1;
-}
-
-.sidebar-selector-hint--left {
-  justify-content: flex-start;
-}
-
-.sidebar-selector-hint--right {
-  justify-content: flex-end;
+  @apply flex items-center gap-4 justify-center;
 }
 
 .session-header-hints {
@@ -467,5 +453,173 @@ session-sidebar-controls .selector-trigger-primary {
 
   .session-item-base {
     @apply px-2 py-2;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE NAVIGATION & TOOLBAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Default styles for command palette button text */
+.connection-status-button .connection-status-button-text {
+  display: inline;
+}
+
+.connection-status-button::before {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  /* Main toolbar adjustments */
+  .session-toolbar {
+    padding: 8px 12px;
+    min-height: 52px;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Status indicator compact */
+  .status-indicator {
+    font-size: 0;
+  }
+  
+  .status-indicator .status-dot {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .status-indicator .status-text {
+    display: none;
+  }
+  
+  /* Token stats - pill style */
+  .session-toolbar .inline-flex {
+    padding: 4px 8px;
+    font-size: 10px;
+    border-radius: 12px;
+  }
+  
+  .session-toolbar .inline-flex .uppercase {
+    display: none;
+  }
+  
+  /* Command palette button - icon only on mobile */
+  .connection-status-button {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .connection-status-button .connection-status-button-text {
+    display: none;
+  }
+  
+  .connection-status-button::before {
+    content: "⌘";
+    font-size: 18px;
+    font-weight: 500;
+  }
+  
+  /* Hide keyboard hints on mobile */
+  .connection-status-shortcut-hint,
+  .sidebar-selector-hints {
+    display: none;
+  }
+  
+  /* Drawer toggle buttons */
+  .session-toolbar-left .MuiIconButton-root,
+  .session-toolbar-right .MuiIconButton-root {
+    width: 40px;
+    height: 40px;
+  }
+  
+  /* Permission banner compact */
+  .permission-notification-banner {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}
+
+/* Mobile drawer overlay improvements */
+@media (max-width: 480px) {
+  /* Full-width drawers slide from edge */
+  .MuiDrawer-paper {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+  }
+  
+  /* Session sidebar on mobile */
+  .session-sidebar {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .session-sidebar-container {
+    width: 100% !important;
+  }
+  
+  /* Close button in drawer header for mobile */
+  .session-sidebar-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--surface-secondary);
+  }
+  
+  /* Context usage panel compact */
+  .context-usage-panel {
+    padding: 8px 12px;
+  }
+  
+  .context-usage-bar {
+    height: 6px;
+  }
+}
+
+/* Bottom safe area for content */
+@media (max-width: 480px) {
+  .content-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Session cache pane - no horizontal overflow */
+  .session-cache-pane {
+    overflow-x: hidden;
+  }
+}
+
+/* Instance tab bar mobile optimization */
+@media (max-width: 480px) {
+  .instance-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    gap: 4px;
+    padding: 4px 8px;
+  }
+  
+  .instance-tab {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    min-width: auto;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+  
+  /* Show only active tab icon, others show text */
+  .instance-tab:not(.instance-tab--active) .instance-tab-icon {
+    display: none;
   }
 }

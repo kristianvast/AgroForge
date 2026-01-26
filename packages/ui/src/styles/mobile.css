@@ -1,0 +1,1271 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CODENOMAD — Mobile-First CSS Foundation
+   Target: iPhone 13 Pro Max (428px logical width, 926px height)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. MOBILE BREAKPOINTS & CSS CUSTOM PROPERTIES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Device dimensions */
+  --mobile-max-width: 428px;
+  --mobile-breakpoint-sm: 480px;
+  --mobile-breakpoint-md: 768px;
+  --mobile-breakpoint-lg: 1024px;
+  
+  /* Safe area insets (iOS notch & home indicator) */
+  --mobile-safe-area-top: env(safe-area-inset-top, 0px);
+  --mobile-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --mobile-safe-area-left: env(safe-area-inset-left, 0px);
+  --mobile-safe-area-right: env(safe-area-inset-right, 0px);
+  
+  /* Touch targets - Apple HIG compliance */
+  --mobile-touch-target: 44px;
+  --mobile-touch-target-large: 56px;
+  --mobile-touch-target-small: 36px;
+  
+  /* Thumb zones - ergonomic reach areas */
+  --mobile-thumb-zone-height: 100px;
+  --mobile-thumb-zone-easy: 80px;
+  --mobile-thumb-zone-stretch: 150px;
+  
+  /* Mobile-specific spacing */
+  --mobile-spacing-xs: 8px;
+  --mobile-spacing-sm: 12px;
+  --mobile-spacing-md: 16px;
+  --mobile-spacing-lg: 20px;
+  --mobile-spacing-xl: 24px;
+  
+  /* Mobile typography - larger for readability */
+  --mobile-font-size-body: 16px;
+  --mobile-font-size-small: 14px;
+  --mobile-font-size-label: 13px;
+  --mobile-font-size-caption: 12px;
+  
+  /* Mobile animation durations */
+  --mobile-transition-fast: 150ms;
+  --mobile-transition-normal: 250ms;
+  --mobile-transition-slow: 350ms;
+  
+  /* Z-index layers for mobile overlays */
+  --mobile-z-base: 0;
+  --mobile-z-sticky: 100;
+  --mobile-z-drawer: 200;
+  --mobile-z-modal: 300;
+  --mobile-z-toast: 400;
+  --mobile-z-overlay: 500;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. MOBILE-SPECIFIC UTILITY CLASSES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Visibility utilities */
+.mobile-only {
+  display: none !important;
+}
+
+.desktop-only {
+  display: block !important;
+}
+
+@media (max-width: 480px) {
+  .mobile-only {
+    display: block !important;
+  }
+  
+  .mobile-only.flex {
+    display: flex !important;
+  }
+  
+  .mobile-only.inline-flex {
+    display: inline-flex !important;
+  }
+  
+  .mobile-only.grid {
+    display: grid !important;
+  }
+  
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* Touch device detection */
+@media (pointer: coarse) {
+  .touch-only {
+    display: block !important;
+  }
+  
+  .touch-only.flex {
+    display: flex !important;
+  }
+  
+  .mouse-only {
+    display: none !important;
+  }
+}
+
+@media (pointer: fine) {
+  .touch-only {
+    display: none !important;
+  }
+  
+  .mouse-only {
+    display: block !important;
+  }
+}
+
+/* Touch target utilities - Apple HIG minimum 44px */
+.touch-target {
+  min-width: var(--mobile-touch-target);
+  min-height: var(--mobile-touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.touch-target-large {
+  min-width: var(--mobile-touch-target-large);
+  min-height: var(--mobile-touch-target-large);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.touch-target-small {
+  min-width: var(--mobile-touch-target-small);
+  min-height: var(--mobile-touch-target-small);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Safe area utilities */
+.mobile-safe-area {
+  padding-top: var(--mobile-safe-area-top);
+  padding-bottom: var(--mobile-safe-area-bottom);
+  padding-left: var(--mobile-safe-area-left);
+  padding-right: var(--mobile-safe-area-right);
+}
+
+.mobile-safe-area-top {
+  padding-top: var(--mobile-safe-area-top);
+}
+
+.mobile-safe-area-bottom {
+  padding-bottom: var(--mobile-safe-area-bottom);
+}
+
+.mobile-safe-area-horizontal {
+  padding-left: var(--mobile-safe-area-left);
+  padding-right: var(--mobile-safe-area-right);
+}
+
+/* Viewport height utilities - handles iOS Safari toolbar */
+.mobile-full-height {
+  height: 100dvh;
+  /* Fallback for older browsers */
+  height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  .mobile-full-height {
+    height: 100dvh;
+  }
+}
+
+.mobile-min-height {
+  min-height: 100dvh;
+  min-height: 100vh;
+}
+
+@supports (min-height: 100dvh) {
+  .mobile-min-height {
+    min-height: 100dvh;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. MOBILE TOOLBAR/HEADER OPTIMIZATION
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.mobile-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--mobile-z-sticky);
+  background-color: var(--surface-base);
+  border-bottom: 1px solid var(--border-base);
+  padding-top: var(--mobile-safe-area-top);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.mobile-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--mobile-touch-target-large);
+  padding: var(--mobile-spacing-xs) var(--mobile-spacing-md);
+  gap: var(--mobile-spacing-sm);
+}
+
+.mobile-header-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-header-action {
+  flex-shrink: 0;
+  min-width: var(--mobile-touch-target);
+  min-height: var(--mobile-touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color var(--mobile-transition-fast);
+}
+
+.mobile-header-action:active {
+  background-color: var(--surface-hover);
+}
+
+/* Mobile navigation bar (bottom) */
+.mobile-nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--mobile-z-sticky);
+  background-color: var(--glass-bg-heavy);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border-top: 1px solid var(--border-base);
+  padding-bottom: var(--mobile-safe-area-bottom);
+}
+
+.mobile-nav-bar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  min-height: var(--mobile-touch-target-large);
+  padding: var(--mobile-spacing-xs) var(--mobile-spacing-md);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: var(--mobile-touch-target-large);
+  min-height: var(--mobile-touch-target);
+  padding: var(--mobile-spacing-xs);
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--mobile-transition-fast);
+}
+
+.mobile-nav-item:active,
+.mobile-nav-item[data-active="true"] {
+  color: var(--accent-primary);
+}
+
+.mobile-nav-item-label {
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   4. MOBILE DRAWER BEHAVIOR
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Full-width drawer (slide from left/right) */
+.mobile-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  z-index: var(--mobile-z-drawer);
+  width: 100%;
+  max-width: 100%;
+  background-color: var(--surface-base);
+  transform: translateX(-100%);
+  transition: transform var(--mobile-transition-normal) cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.mobile-drawer[data-side="right"] {
+  left: auto;
+  right: 0;
+  transform: translateX(100%);
+}
+
+.mobile-drawer[data-open="true"] {
+  transform: translateX(0);
+}
+
+.mobile-drawer-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--mobile-touch-target-large);
+  padding: var(--mobile-spacing-xs) var(--mobile-spacing-md);
+  padding-top: calc(var(--mobile-spacing-xs) + var(--mobile-safe-area-top));
+  background-color: var(--surface-base);
+  border-bottom: 1px solid var(--border-base);
+}
+
+.mobile-drawer-content {
+  padding: var(--mobile-spacing-md);
+  padding-bottom: calc(var(--mobile-spacing-md) + var(--mobile-safe-area-bottom));
+}
+
+.mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--mobile-z-drawer) - 1);
+  background-color: var(--overlay-scrim);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--mobile-transition-normal), visibility var(--mobile-transition-normal);
+}
+
+.mobile-drawer-backdrop[data-open="true"] {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Bottom sheet pattern */
+.mobile-bottom-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--mobile-z-modal);
+  max-height: 90vh;
+  max-height: 90dvh;
+  background-color: var(--surface-base);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  transform: translateY(100%);
+  transition: transform var(--mobile-transition-normal) cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-bottom-sheet[data-open="true"] {
+  transform: translateY(0);
+}
+
+.mobile-bottom-sheet-header {
+  flex-shrink: 0;
+  padding: var(--mobile-spacing-md);
+  padding-top: var(--mobile-spacing-sm);
+  border-bottom: 1px solid var(--border-base);
+}
+
+.mobile-bottom-sheet-content {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--mobile-spacing-md);
+  padding-bottom: calc(var(--mobile-spacing-md) + var(--mobile-safe-area-bottom));
+}
+
+/* Swipe indicator / drag handle */
+.mobile-swipe-indicator {
+  display: flex;
+  justify-content: center;
+  padding: var(--mobile-spacing-sm) 0;
+}
+
+.mobile-swipe-indicator::before {
+  content: "";
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background-color: var(--border-secondary);
+  opacity: 0.6;
+}
+
+/* Swipe-to-close affordance */
+.mobile-swipe-area {
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.mobile-swipe-area:active {
+  cursor: grabbing;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. MOBILE FORM CONTROLS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Prevent iOS zoom on input focus - requires 16px minimum */
+@media (pointer: coarse) {
+  .mobile-input,
+  input.mobile-input,
+  textarea.mobile-input,
+  select.mobile-input {
+    font-size: 16px !important;
+    line-height: 1.5;
+    min-height: var(--mobile-touch-target);
+    padding: var(--mobile-spacing-sm) var(--mobile-spacing-md);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-base);
+    background-color: var(--surface-base);
+    color: var(--text-primary);
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  .mobile-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-soft-bg);
+  }
+  
+  /* Larger touch targets for form elements */
+  input[type="checkbox"].mobile-checkbox,
+  input[type="radio"].mobile-radio {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+  }
+  
+  /* Mobile select styling */
+  select.mobile-select {
+    font-size: 16px !important;
+    min-height: var(--mobile-touch-target);
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238899a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+  }
+}
+
+/* Textarea auto-resize helper */
+.mobile-textarea {
+  resize: vertical;
+  min-height: calc(var(--mobile-touch-target) * 2);
+  max-height: 200px;
+}
+
+/* Form field groups */
+.mobile-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mobile-spacing-xs);
+  margin-bottom: var(--mobile-spacing-md);
+}
+
+.mobile-form-label {
+  font-size: var(--mobile-font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+.mobile-form-hint {
+  font-size: var(--mobile-font-size-caption);
+  color: var(--text-muted);
+}
+
+.mobile-form-error {
+  font-size: var(--mobile-font-size-caption);
+  color: var(--status-error);
+}
+
+/* Keyboard avoidance helper - add to body when keyboard is open */
+.mobile-keyboard-open {
+  /* Adjust layout when keyboard is visible */
+}
+
+.mobile-keyboard-open .mobile-nav-bar {
+  display: none;
+}
+
+.mobile-keyboard-open .mobile-bottom-sheet {
+  max-height: 50vh;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. MOBILE SCROLL BEHAVIOR
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Momentum scrolling */
+.mobile-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+}
+
+.mobile-scroll-x {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+}
+
+.mobile-scroll-snap-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Hide scrollbars on mobile but keep functionality */
+.mobile-scroll-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.mobile-scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Pull-to-refresh container */
+.mobile-pull-refresh {
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-pull-refresh-indicator {
+  position: absolute;
+  top: -60px;
+  left: 0;
+  right: 0;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: transform var(--mobile-transition-fast);
+}
+
+.mobile-pull-refresh[data-pulling="true"] .mobile-pull-refresh-indicator {
+  transform: translateY(60px);
+}
+
+.mobile-pull-refresh-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-base);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Scroll shadow indicators */
+.mobile-scroll-shadow-top {
+  box-shadow: inset 0 10px 10px -10px rgba(0, 0, 0, 0.15);
+}
+
+.mobile-scroll-shadow-bottom {
+  box-shadow: inset 0 -10px 10px -10px rgba(0, 0, 0, 0.15);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   7. MOBILE GESTURE HINTS & FEEDBACK
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Touch active state (replaces hover on mobile) */
+@media (pointer: coarse) {
+  .mobile-touch-feedback {
+    transition: background-color var(--mobile-transition-fast),
+                transform var(--mobile-transition-fast),
+                opacity var(--mobile-transition-fast);
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .mobile-touch-feedback:active {
+    background-color: var(--surface-hover);
+  }
+  
+  /* Scale feedback for buttons */
+  .mobile-touch-scale:active {
+    transform: scale(0.97);
+  }
+  
+  /* Opacity feedback */
+  .mobile-touch-opacity:active {
+    opacity: 0.7;
+  }
+}
+
+/* Long-press visual feedback */
+.mobile-longpress {
+  position: relative;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.mobile-longpress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--accent-primary);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity var(--mobile-transition-normal),
+              transform var(--mobile-transition-normal);
+  pointer-events: none;
+}
+
+.mobile-longpress[data-longpress="true"]::after {
+  opacity: 0.15;
+  transform: scale(1);
+}
+
+/* Swipe gesture indicators */
+.mobile-swipe-hint {
+  position: relative;
+}
+
+.mobile-swipe-hint::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background-color: var(--accent-primary);
+  opacity: 0;
+  transition: opacity var(--mobile-transition-fast);
+}
+
+.mobile-swipe-hint[data-direction="left"]::before {
+  right: 8px;
+}
+
+.mobile-swipe-hint[data-direction="right"]::before {
+  left: 8px;
+}
+
+.mobile-swipe-hint[data-swiping="true"]::before {
+  opacity: 0.5;
+}
+
+/* Ripple effect for touch */
+.mobile-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-ripple::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  padding-bottom: 100%;
+  border-radius: 50%;
+  background-color: var(--accent-primary);
+  opacity: 0;
+  transform: scale(0);
+  transition: transform 0.4s cubic-bezier(0, 0, 0.2, 1),
+              opacity 0.4s cubic-bezier(0, 0, 0.2, 1);
+  pointer-events: none;
+  left: 50%;
+  top: 50%;
+  margin-left: -50%;
+  margin-top: -50%;
+}
+
+.mobile-ripple:active::after {
+  opacity: 0.2;
+  transform: scale(2);
+  transition: transform 0s, opacity 0s;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   8. MOBILE BUTTON STYLES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.mobile-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mobile-spacing-xs);
+  min-height: var(--mobile-touch-target);
+  padding: var(--mobile-spacing-sm) var(--mobile-spacing-lg);
+  font-size: var(--mobile-font-size-body);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--mobile-transition-fast),
+              transform var(--mobile-transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-button:active {
+  transform: scale(0.98);
+}
+
+.mobile-button-primary {
+  background-color: var(--accent-primary);
+  color: var(--text-inverted);
+}
+
+.mobile-button-primary:active {
+  background-color: var(--accent-active);
+}
+
+.mobile-button-secondary {
+  background-color: var(--surface-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-base);
+}
+
+.mobile-button-secondary:active {
+  background-color: var(--surface-hover);
+}
+
+.mobile-button-ghost {
+  background-color: transparent;
+  color: var(--accent-primary);
+}
+
+.mobile-button-ghost:active {
+  background-color: var(--accent-soft-bg);
+}
+
+.mobile-button-danger {
+  background-color: var(--status-error);
+  color: white;
+}
+
+.mobile-button-danger:active {
+  opacity: 0.9;
+}
+
+.mobile-button-full {
+  width: 100%;
+}
+
+.mobile-button-icon {
+  padding: 0;
+  width: var(--mobile-touch-target);
+  height: var(--mobile-touch-target);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   9. MOBILE MODAL / DIALOG
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.mobile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mobile-z-overlay);
+  background-color: var(--overlay-scrim);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--mobile-spacing-md);
+  padding-bottom: calc(var(--mobile-spacing-md) + var(--mobile-safe-area-bottom));
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--mobile-transition-normal),
+              visibility var(--mobile-transition-normal);
+}
+
+.mobile-modal-overlay[data-open="true"] {
+  opacity: 1;
+  visibility: visible;
+}
+
+.mobile-modal {
+  width: 100%;
+  max-width: var(--mobile-max-width);
+  max-height: calc(90vh - var(--mobile-safe-area-bottom) - var(--mobile-spacing-md) * 2);
+  max-height: calc(90dvh - var(--mobile-safe-area-bottom) - var(--mobile-spacing-md) * 2);
+  background-color: var(--surface-base);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(20px);
+  transition: transform var(--mobile-transition-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-modal-overlay[data-open="true"] .mobile-modal {
+  transform: translateY(0);
+}
+
+.mobile-modal-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--mobile-spacing-md);
+  border-bottom: 1px solid var(--border-base);
+}
+
+.mobile-modal-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.mobile-modal-close {
+  min-width: var(--mobile-touch-target);
+  min-height: var(--mobile-touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: calc(var(--mobile-spacing-md) * -0.5);
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.mobile-modal-close:active {
+  background-color: var(--surface-hover);
+}
+
+.mobile-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--mobile-spacing-md);
+}
+
+.mobile-modal-footer {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--mobile-spacing-sm);
+  padding: var(--mobile-spacing-md);
+  border-top: 1px solid var(--border-base);
+}
+
+.mobile-modal-footer > * {
+  flex: 1;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   10. MOBILE LIST STYLES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.mobile-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--mobile-spacing-md);
+  min-height: var(--mobile-touch-target-large);
+  padding: var(--mobile-spacing-sm) var(--mobile-spacing-md);
+  background-color: var(--surface-base);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color var(--mobile-transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-list-item:last-child {
+  border-bottom: none;
+}
+
+.mobile-list-item:active {
+  background-color: var(--surface-hover);
+}
+
+.mobile-list-item[data-selected="true"] {
+  background-color: var(--list-item-highlight-bg);
+}
+
+.mobile-list-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-list-item-title {
+  font-size: var(--mobile-font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-list-item-subtitle {
+  font-size: var(--mobile-font-size-small);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-list-item-action {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+/* Swipeable list item */
+.mobile-list-item-swipeable {
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-list-item-swipe-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.mobile-list-item-swipe-actions[data-side="left"] {
+  left: 0;
+  transform: translateX(-100%);
+}
+
+.mobile-list-item-swipe-actions[data-side="right"] {
+  right: 0;
+  transform: translateX(100%);
+}
+
+.mobile-list-item-swipe-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  padding: 0 var(--mobile-spacing-md);
+  color: white;
+  font-weight: var(--font-weight-medium);
+}
+
+.mobile-list-item-swipe-action[data-type="delete"] {
+  background-color: var(--status-error);
+}
+
+.mobile-list-item-swipe-action[data-type="archive"] {
+  background-color: var(--accent-primary);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   11. MOBILE LANDSCAPE ORIENTATION
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --mobile-touch-target: 40px;
+    --mobile-touch-target-large: 48px;
+  }
+  
+  .mobile-header-content {
+    min-height: var(--mobile-touch-target);
+    padding: var(--mobile-spacing-xs) var(--mobile-spacing-md);
+  }
+  
+  .mobile-nav-bar-content {
+    min-height: var(--mobile-touch-target);
+    padding: var(--mobile-spacing-xs) var(--mobile-spacing-md);
+  }
+  
+  .mobile-bottom-sheet {
+    max-height: 80vh;
+    max-height: 80dvh;
+  }
+  
+  /* Side-by-side layout in landscape */
+  .mobile-landscape-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   12. MOBILE ANIMATION UTILITIES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes mobile-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-slide-left {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-slide-right {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-scale-in {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.mobile-animate-slide-up {
+  animation: mobile-slide-up var(--mobile-transition-normal) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.mobile-animate-slide-down {
+  animation: mobile-slide-down var(--mobile-transition-normal) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.mobile-animate-slide-left {
+  animation: mobile-slide-left var(--mobile-transition-normal) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.mobile-animate-slide-right {
+  animation: mobile-slide-right var(--mobile-transition-normal) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.mobile-animate-fade-in {
+  animation: mobile-fade-in var(--mobile-transition-fast) ease-out forwards;
+}
+
+.mobile-animate-scale-in {
+  animation: mobile-scale-in var(--mobile-transition-normal) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-animate-slide-up,
+  .mobile-animate-slide-down,
+  .mobile-animate-slide-left,
+  .mobile-animate-slide-right,
+  .mobile-animate-fade-in,
+  .mobile-animate-scale-in {
+    animation: none;
+  }
+  
+  .mobile-drawer,
+  .mobile-bottom-sheet,
+  .mobile-modal {
+    transition: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   13. MOBILE TOAST / SNACKBAR
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.mobile-toast-container {
+  position: fixed;
+  bottom: calc(var(--mobile-touch-target-large) + var(--mobile-safe-area-bottom) + var(--mobile-spacing-md));
+  left: var(--mobile-spacing-md);
+  right: var(--mobile-spacing-md);
+  z-index: var(--mobile-z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mobile-spacing-sm);
+  pointer-events: none;
+}
+
+.mobile-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--mobile-spacing-sm);
+  padding: var(--mobile-spacing-sm) var(--mobile-spacing-md);
+  background-color: var(--surface-elevated);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--scroll-elevation-shadow);
+  pointer-events: auto;
+  animation: mobile-slide-up var(--mobile-transition-normal) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.mobile-toast-message {
+  flex: 1;
+  font-size: var(--mobile-font-size-small);
+  color: var(--text-primary);
+}
+
+.mobile-toast-action {
+  flex-shrink: 0;
+  padding: var(--mobile-spacing-xs) var(--mobile-spacing-sm);
+  font-size: var(--mobile-font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--accent-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.mobile-toast[data-type="success"] {
+  border-left: 3px solid var(--status-success);
+}
+
+.mobile-toast[data-type="error"] {
+  border-left: 3px solid var(--status-error);
+}
+
+.mobile-toast[data-type="warning"] {
+  border-left: 3px solid var(--status-warning);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   14. MOBILE CARD STYLES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.mobile-card {
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.mobile-card-header {
+  padding: var(--mobile-spacing-md);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.mobile-card-title {
+  font-size: var(--mobile-font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.mobile-card-content {
+  padding: var(--mobile-spacing-md);
+}
+
+.mobile-card-footer {
+  padding: var(--mobile-spacing-md);
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--surface-secondary);
+}
+
+.mobile-card-pressable {
+  cursor: pointer;
+  transition: transform var(--mobile-transition-fast),
+              box-shadow var(--mobile-transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-card-pressable:active {
+  transform: scale(0.98);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   15. MOBILE SPACING UTILITIES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .mobile-p-xs { padding: var(--mobile-spacing-xs); }
+  .mobile-p-sm { padding: var(--mobile-spacing-sm); }
+  .mobile-p-md { padding: var(--mobile-spacing-md); }
+  .mobile-p-lg { padding: var(--mobile-spacing-lg); }
+  .mobile-p-xl { padding: var(--mobile-spacing-xl); }
+  
+  .mobile-px-xs { padding-left: var(--mobile-spacing-xs); padding-right: var(--mobile-spacing-xs); }
+  .mobile-px-sm { padding-left: var(--mobile-spacing-sm); padding-right: var(--mobile-spacing-sm); }
+  .mobile-px-md { padding-left: var(--mobile-spacing-md); padding-right: var(--mobile-spacing-md); }
+  .mobile-px-lg { padding-left: var(--mobile-spacing-lg); padding-right: var(--mobile-spacing-lg); }
+  .mobile-px-xl { padding-left: var(--mobile-spacing-xl); padding-right: var(--mobile-spacing-xl); }
+  
+  .mobile-py-xs { padding-top: var(--mobile-spacing-xs); padding-bottom: var(--mobile-spacing-xs); }
+  .mobile-py-sm { padding-top: var(--mobile-spacing-sm); padding-bottom: var(--mobile-spacing-sm); }
+  .mobile-py-md { padding-top: var(--mobile-spacing-md); padding-bottom: var(--mobile-spacing-md); }
+  .mobile-py-lg { padding-top: var(--mobile-spacing-lg); padding-bottom: var(--mobile-spacing-lg); }
+  .mobile-py-xl { padding-top: var(--mobile-spacing-xl); padding-bottom: var(--mobile-spacing-xl); }
+  
+  .mobile-m-xs { margin: var(--mobile-spacing-xs); }
+  .mobile-m-sm { margin: var(--mobile-spacing-sm); }
+  .mobile-m-md { margin: var(--mobile-spacing-md); }
+  .mobile-m-lg { margin: var(--mobile-spacing-lg); }
+  .mobile-m-xl { margin: var(--mobile-spacing-xl); }
+  
+  .mobile-gap-xs { gap: var(--mobile-spacing-xs); }
+  .mobile-gap-sm { gap: var(--mobile-spacing-sm); }
+  .mobile-gap-md { gap: var(--mobile-spacing-md); }
+  .mobile-gap-lg { gap: var(--mobile-spacing-lg); }
+  .mobile-gap-xl { gap: var(--mobile-spacing-xl); }
+  
+  /* Full width on mobile */
+  .mobile-full-width {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Stack on mobile */
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  /* Hide overflow text */
+  .mobile-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

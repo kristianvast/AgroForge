@@ -12,7 +12,7 @@ export function setupTabKeyboardShortcuts(
 ) {
   keyboardRegistry.register({
     id: "session-new",
-    key: "o",
+    key: "e",
     modifiers: {
       shift: true,
       meta: isMac(),

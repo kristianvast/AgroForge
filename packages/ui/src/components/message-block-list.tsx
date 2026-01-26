@@ -28,6 +28,8 @@ interface MessageBlockListProps {
 }
 
 export default function MessageBlockList(props: MessageBlockListProps) {
+  // Keep virtualization always enabled - toggling it based on loading causes re-render storms
+  // The VirtualItem handles visibility internally and doesn't need to be disabled during loads
   return (
     <>
       <Index each={props.messageIds()}>
@@ -38,7 +40,7 @@ export default function MessageBlockList(props: MessageBlockListProps) {
             scrollContainer={props.scrollContainer}
             threshold={VIRTUAL_ITEM_MARGIN_PX}
             placeholderClass="message-stream-placeholder"
-            virtualizationEnabled={() => !props.loading}
+            virtualizationEnabled={() => true}
             suspendMeasurements={props.suspendMeasurements}
           >
             <MessageBlock

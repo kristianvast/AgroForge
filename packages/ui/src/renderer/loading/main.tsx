@@ -136,9 +136,9 @@ function LoadingApp() {
 
   return (
     <div class="loading-wrapper" role="status" aria-live="polite">
-      <img src={iconUrl} alt="CodeNomad" class="loading-logo" width="180" height="180" />
+      <img src={iconUrl} alt="AgroForge" class="loading-logo loading-logo-animated" width="180" height="180" />
       <div class="loading-heading">
-        <h1 class="loading-title">CodeNomad</h1>
+        <h1 class="loading-title loading-title-animated">AgroForge</h1>
         <Show when={status()}>{(statusText) => <p class="loading-status">{statusText()}</p>}</Show>
       </div>
       <div class="loading-card">

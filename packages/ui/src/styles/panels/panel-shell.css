@@ -1,9 +1,34 @@
-/* Panel component shells */
+/* Panel component shells — Futuristic Glass Design */
 .panel {
-  @apply rounded-lg shadow-sm border overflow-hidden min-w-0;
-  background-color: var(--surface-base);
-  border-color: var(--border-base);
+  @apply rounded-lg overflow-hidden min-w-0;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.panel:hover {
+  border-color: rgba(var(--accent-primary-rgb), 0.2);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    0 0 20px rgba(var(--accent-primary-rgb), 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Elevated panel variant with stronger glow */
+.panel--elevated {
+  background: var(--glass-bg-heavy);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  box-shadow: 
+    0 8px 40px rgba(0, 0, 0, 0.2),
+    0 0 30px rgba(var(--accent-primary-rgb), 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .panel-footer-hints {
@@ -12,9 +37,29 @@
 }
 
 .panel-header {
-  @apply px-4 py-3 border-b;
-  border-color: var(--border-base);
-  background-color: var(--surface-secondary);
+  @apply px-4 py-3;
+  border-bottom: 1px solid var(--glass-border);
+  background: linear-gradient(
+    180deg,
+    rgba(var(--accent-primary-rgb), 0.03) 0%,
+    transparent 100%
+  );
+  position: relative;
+}
+
+.panel-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--accent-primary-rgb), 0.15) 50%,
+    transparent 100%
+  );
 }
 
 .panel-title {
@@ -29,27 +74,44 @@
 
 .panel-body {
   @apply p-4;
-  background-color: var(--surface-base);
+  background: transparent;
 }
 
 .panel-section {
-  @apply border-t;
-  border-color: var(--border-base);
+  border-top: 1px solid var(--glass-border);
+  position: relative;
+}
+
+.panel-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--accent-primary-rgb), 0.1) 50%,
+    transparent 100%
+  );
 }
 
 .panel-section-header {
-  @apply w-full px-4 py-3 flex items-center justify-center transition-colors cursor-pointer gap-2;
-  background-color: var(--surface-secondary);
+  @apply w-full px-4 py-3 flex items-center justify-center cursor-pointer gap-2;
+  background: rgba(var(--accent-primary-rgb), 0.02);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .panel-section-header:hover {
-  background-color: var(--surface-hover);
+  background: rgba(var(--accent-primary-rgb), 0.06);
+  box-shadow: inset 0 0 20px rgba(var(--accent-primary-rgb), 0.03);
 }
 
 .panel-section-content {
-  @apply px-4 py-3 border-t overflow-visible space-y-4 w-full;
-  border-color: var(--border-base);
-  background-color: var(--surface-secondary);
+  @apply px-4 py-3 overflow-visible space-y-4 w-full;
+  border-top: 1px solid var(--glass-border);
+  background: rgba(var(--accent-primary-rgb), 0.015);
 }
 
 .panel-list {
@@ -63,17 +125,21 @@
 }
 
 .panel-list-item {
-  @apply border-b last:border-b-0 transition-colors w-full;
-  border-color: var(--border-base);
+  @apply last:border-b-0 w-full;
+  border-bottom: 1px solid rgba(var(--accent-primary-rgb), 0.05);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .panel-list-item:hover {
-  background-color: var(--surface-hover);
+  background: rgba(var(--accent-primary-rgb), 0.06);
+  box-shadow: inset 0 0 30px rgba(var(--accent-primary-rgb), 0.03);
 }
 
 .panel-list-item-highlight {
-  background-color: var(--list-item-highlight-bg) !important;
-  box-shadow: inset 0 0 0 1px var(--list-item-highlight-border);
+  background: var(--list-item-highlight-bg) !important;
+  box-shadow: 
+    inset 0 0 0 1px var(--list-item-highlight-border),
+    inset 0 0 20px rgba(var(--accent-primary-rgb), 0.05);
 }
 
 .panel-list-item-content {
@@ -116,7 +182,27 @@
 }
 
 .panel-footer {
-  @apply px-4 py-3 border-t;
-  border-color: var(--border-base);
-  background-color: var(--surface-secondary);
+  @apply px-4 py-3;
+  border-top: 1px solid var(--glass-border);
+  background: linear-gradient(
+    0deg,
+    rgba(var(--accent-primary-rgb), 0.03) 0%,
+    transparent 100%
+  );
+  position: relative;
+}
+
+.panel-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--accent-primary-rgb), 0.15) 50%,
+    transparent 100%
+  );
 }

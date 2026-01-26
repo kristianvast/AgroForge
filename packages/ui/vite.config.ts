@@ -45,6 +45,18 @@ export default defineConfig({
         main: resolve(__dirname, "./src/renderer/index.html"),
         loading: resolve(__dirname, "./src/renderer/loading.html"),
       },
+      output: {
+        manualChunks: {
+          // Vendor chunk splitting for better caching & parallel loading
+          "vendor-solid": ["solid-js", "solid-js/web", "solid-js/store"],
+          "vendor-suid": ["@suid/material", "@suid/icons-material"],
+          "vendor-kobalte": ["@kobalte/core"],
+          "vendor-diff": ["@git-diff-view/solid", "@git-diff-view/core"],
+          "vendor-shiki": ["shiki"],
+          "vendor-icons": ["lucide-solid"],
+          "vendor-markdown": ["marked"],
+        },
+      },
     },
   },
 })

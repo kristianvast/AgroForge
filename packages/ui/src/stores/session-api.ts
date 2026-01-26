@@ -70,7 +70,15 @@ async function fetchSessions(instanceId: string): Promise<void> {
 
   try {
     log.info("session.list", { instanceId })
-    const response = await instance.client.session.list()
+
+    // Parallel fetch - eliminates waterfall between list and status calls
+    const [response, statusResponse] = await Promise.all([
+      instance.client.session.list(),
+      instance.client.session.status().catch((error) => {
+        log.error("Failed to fetch session status:", error)
+        return { data: {} }
+      }),
+    ])
 
     const sessionMap = new Map<string, Session>()
 
@@ -78,15 +86,10 @@ async function fetchSessions(instanceId: string): Promise<void> {
       return
     }
 
-    let statusById: Record<string, any> = {}
-    try {
-      const statusResponse = await instance.client.session.status()
-      if (statusResponse.data && typeof statusResponse.data === "object") {
-        statusById = statusResponse.data as Record<string, any>
-      }
-    } catch (error) {
-      log.error("Failed to fetch session status:", error)
-    }
+    const statusById: Record<string, any> =
+      statusResponse.data && typeof statusResponse.data === "object"
+        ? (statusResponse.data as Record<string, any>)
+        : {}
 
     const existingSessions = sessions().get(instanceId)
 
@@ -153,6 +156,12 @@ async function fetchSessions(instanceId: string): Promise<void> {
 
 
     pruneDraftPrompts(instanceId, new Set(sessionMap.keys()))
+
+    // Trigger background prefetch for recent sessions after session list loads
+    // Uses queueMicrotask to avoid blocking the current render cycle
+    queueMicrotask(() => {
+      prefetchRecentSessionMessages(instanceId, 3)
+    })
   } catch (error) {
     log.error("Failed to fetch sessions:", error)
     throw error
@@ -497,6 +506,22 @@ async function fetchProviders(instanceId: string): Promise<void> {
 }
 
 async function loadMessages(instanceId: string, sessionId: string, force = false): Promise<void> {
+  // FAST PATH: Check if already loaded BEFORE any state changes
+  // This prevents the loading state from flickering for cached sessions
+  if (!force) {
+    const alreadyLoaded = messagesLoaded().get(instanceId)?.has(sessionId)
+    if (alreadyLoaded) {
+      return // No state changes needed - prevents UI blink
+    }
+  }
+
+  // Check if already loading to prevent duplicate requests
+  const isLoading = loading().loadingMessages.get(instanceId)?.has(sessionId)
+  if (isLoading) {
+    return
+  }
+
+  // Clear loaded flag if forcing refresh
   if (force) {
     setMessagesLoaded((prev) => {
       const next = new Map(prev)
@@ -506,16 +531,6 @@ async function loadMessages(instanceId: string, sessionId: string, force = false
       }
       return next
     })
-  }
-
-  const alreadyLoaded = messagesLoaded().get(instanceId)?.has(sessionId)
-  if (alreadyLoaded && !force) {
-    return
-  }
-
-  const isLoading = loading().loadingMessages.get(instanceId)?.has(sessionId)
-  if (isLoading) {
-    return
   }
 
   const instance = instances().get(instanceId)
@@ -670,13 +685,45 @@ async function loadMessages(instanceId: string, sessionId: string, force = false
   updateSessionInfo(instanceId, sessionId)
 }
 
+/**
+ * Prefetches messages for recent sessions in the background.
+ * This improves perceived performance by loading session content
+ * before the user navigates to them.
+ * 
+ * @param instanceId - The instance to prefetch sessions for
+ * @param limit - Maximum number of sessions to prefetch (default: 3)
+ */
+function prefetchRecentSessionMessages(instanceId: string, limit = 3): void {
+  const instanceSessions = sessions().get(instanceId)
+  if (!instanceSessions || instanceSessions.size === 0) return
+
+  // Get recently updated sessions, sorted by update time
+  const sortedSessions = Array.from(instanceSessions.values())
+    .filter((s) => s.parentId === null) // Only parent sessions
+    .sort((a, b) => (b.time.updated ?? 0) - (a.time.updated ?? 0))
+    .slice(0, limit)
+
+  // Fire-and-forget background prefetch for each session
+  for (const session of sortedSessions) {
+    const alreadyLoaded = messagesLoaded().get(instanceId)?.has(session.id)
+    const isLoading = loading().loadingMessages.get(instanceId)?.has(session.id)
+
+    if (!alreadyLoaded && !isLoading) {
+      // Low priority prefetch - don't block or throw
+      loadMessages(instanceId, session.id).catch(() => {
+        // Silent failure for prefetch - not critical
+      })
+    }
+  }
+}
+
 export {
   createSession,
   deleteSession,
   fetchAgents,
   fetchProviders,
-
   fetchSessions,
   forkSession,
   loadMessages,
+  prefetchRecentSessionMessages,
 }

@@ -1,8 +1,8 @@
-import { Component, For, Show, createSignal, createMemo, createEffect, JSX, onCleanup } from "solid-js"
+import { Component, For, Show, createSignal, createMemo, createEffect, JSX, onCleanup, onMount } from "solid-js"
 import type { SessionStatus } from "../types/session"
 import type { SessionThread } from "../stores/session-state"
 import { getSessionStatus } from "../stores/session-status"
-import { Bot, User, Copy, Trash2, Pencil, ShieldAlert, ChevronDown, ChevronRight, Search, X, GitBranch, MessageSquare, Zap, Clock, Filter, Plus } from "lucide-solid"
+import { Bot, User, Copy, Trash2, Pencil, ShieldAlert, ChevronDown, ChevronRight, Search, X, GitBranch, MessageSquare, Zap, Clock, Filter, Plus, Loader2, RefreshCcw, Cog, AlertCircle, CircleDot, Activity } from "lucide-solid"
 import KeyboardHint from "./keyboard-hint"
 import SessionRenameDialog from "./session-rename-dialog"
 import { keyboardRegistry } from "../lib/keyboard-registry"
@@ -22,7 +22,146 @@ import { getLogger } from "../lib/logger"
 import { copyToClipboard } from "../lib/clipboard"
 const log = getLogger("session")
 
+// Session type for SubagentPreview
+type Session = {
+  id: string
+  title?: string
+  parentId?: string | null
+  pendingPermission?: boolean
+  pendingQuestion?: boolean
+  time?: { updated?: number }
+}
 
+// Dynamic icon helper based on session state and type
+type SessionIconType = "parent" | "subagent" | "fork"
+type SessionIconState = "idle" | "working" | "permission" | "compacting"
+
+function getSessionIcon(
+  type: SessionIconType,
+  state: SessionIconState
+): { Icon: typeof MessageSquare; className: string } {
+  // Parent session icons
+  if (type === "parent") {
+    switch (state) {
+      case "working":
+        return { Icon: Loader2, className: "animate-spin" }
+      case "permission":
+        return { Icon: ShieldAlert, className: "" }
+      case "compacting":
+        return { Icon: RefreshCcw, className: "animate-spin-slow" }
+      default:
+        return { Icon: MessageSquare, className: "" }
+    }
+  }
+
+  // Subagent session icons
+  if (type === "subagent") {
+    switch (state) {
+      case "working":
+        return { Icon: Cog, className: "animate-spin" }
+      case "permission":
+        return { Icon: AlertCircle, className: "" }
+      case "compacting":
+        return { Icon: RefreshCcw, className: "animate-spin-slow" }
+      default:
+        return { Icon: Bot, className: "" }
+    }
+  }
+
+  // Fork session icons
+  if (type === "fork") {
+    switch (state) {
+      case "working":
+        return { Icon: GitBranch, className: "animate-pulse" }
+      case "permission":
+        return { Icon: AlertCircle, className: "" }
+      case "compacting":
+        return { Icon: RefreshCcw, className: "animate-spin-slow" }
+      default:
+        return { Icon: GitBranch, className: "" }
+    }
+  }
+
+  return { Icon: MessageSquare, className: "" }
+}
+
+// Subagent Preview Component
+const SubagentPreview: Component<{
+  children: Session[]
+  instanceId: string
+  onExpand: () => void
+}> = (previewProps) => {
+  // Calculate status for each child
+  const childStatuses = createMemo(() => {
+    return previewProps.children.map(child => {
+      const status = getSessionStatus(previewProps.instanceId, child.id)
+      const needsPermission = Boolean(child.pendingPermission)
+      const needsQuestion = Boolean((child as any).pendingQuestion)
+      const needsInput = needsPermission || needsQuestion
+      
+      if (needsInput) return "attention"
+      if (status === "working" || status === "compacting") return "working"
+      return "idle"
+    })
+  })
+
+  // Count working and attention
+  const counts = createMemo(() => {
+    const statuses = childStatuses()
+    let working = 0
+    let attention = 0
+    for (const s of statuses) {
+      if (s === "working") working++
+      if (s === "attention") attention++
+    }
+    return { working, attention }
+  })
+
+  // Should the row pulse?
+  const shouldPulse = () => counts().attention > 0
+
+  // Generate summary text
+  const summaryText = createMemo(() => {
+    const { working, attention } = counts()
+    const parts: string[] = []
+    if (working > 0) parts.push(`${working} working`)
+    if (attention > 0) parts.push(`${attention} need${attention === 1 ? "s" : ""} input`)
+    if (parts.length === 0) return `${previewProps.children.length} subagent${previewProps.children.length === 1 ? "" : "s"}`
+    return parts.join(", ")
+  })
+
+  return (
+    <div
+      class={`session-subagent-preview ${shouldPulse() ? "session-subagent-preview--attention" : ""}`}
+      onClick={(e) => {
+        e.stopPropagation()
+        previewProps.onExpand()
+      }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          previewProps.onExpand()
+        }
+      }}
+      title="Click to expand subagents"
+    >
+      <div class="session-subagent-dots">
+        <For each={childStatuses().slice(0, 6)}>
+          {(status) => (
+            <span class={`session-subagent-dot session-subagent-dot--${status}`} />
+          )}
+        </For>
+        <Show when={previewProps.children.length > 6}>
+          <span class="session-subagent-more">+{previewProps.children.length - 6}</span>
+        </Show>
+      </div>
+      <span class="session-subagent-summary">{summaryText()}</span>
+      <ChevronRight class="session-subagent-expand-icon" />
+    </div>
+  )
+}
 
 interface SessionListProps {
   instanceId: string
@@ -53,6 +192,29 @@ const SessionList: Component<SessionListProps> = (props) => {
   const [searchQuery, setSearchQuery] = createSignal("")
   const [showSearch, setShowSearch] = createSignal(false)
   const [filterStatus, setFilterStatus] = createSignal<"all" | "working" | "permission">("all")
+  const [isMobile, setIsMobile] = createSignal(false)
+  const [isTouchDevice, setIsTouchDevice] = createSignal(false)
+
+  // Detect mobile viewport and touch capability
+  onMount(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 480)
+    }
+    
+    // Check for touch device
+    setIsTouchDevice(
+      'ontouchstart' in window || 
+      navigator.maxTouchPoints > 0 ||
+      (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+    )
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    onCleanup(() => {
+      window.removeEventListener('resize', checkMobile)
+    })
+  })
 
   const isSessionDeleting = (sessionId: string) => {
     const deleting = loading().deletingSession.get(props.instanceId)
@@ -245,6 +407,8 @@ const SessionList: Component<SessionListProps> = (props) => {
     onToggleExpand?: () => void
   }> = (rowProps) => {
     const session = createMemo(() => sessionStateSessions().get(props.instanceId)?.get(rowProps.sessionId))
+    const [isTapped, setIsTapped] = createSignal(false)
+    
     if (!session()) {
       return <></>
     }
@@ -258,6 +422,31 @@ const SessionList: Component<SessionListProps> = (props) => {
     const statusClassName = () => (needsInput() ? "session-permission" : `session-${status()}`)
     const statusText = () => (needsPermission() ? "Permission" : needsQuestion() ? "Input" : statusLabel())
     const isSubagent = () => isSubagentSession(session()?.title)
+    
+    // Touch feedback handler
+    const handleTouchStart = () => {
+      if (isTouchDevice()) {
+        setIsTapped(true)
+        // Reset after animation completes
+        setTimeout(() => setIsTapped(false), 150)
+      }
+    }
+    
+    // Determine session icon type and state
+    const iconType = createMemo((): SessionIconType => {
+      if (!rowProps.isChild) return "parent"
+      return isSubagent() ? "subagent" : "fork"
+    })
+    
+    const iconState = createMemo((): SessionIconState => {
+      if (needsInput()) return "permission"
+      const s = status()
+      if (s === "working") return "working"
+      if (s === "compacting") return "compacting"
+      return "idle"
+    })
+    
+    const iconConfig = createMemo(() => getSessionIcon(iconType(), iconState()))
     
     // Format time ago
     const timeAgo = createMemo(() => {
@@ -277,9 +466,10 @@ const SessionList: Component<SessionListProps> = (props) => {
     return (
       <div class={`session-list-item-v2 ${rowProps.isChild ? "session-list-item-v2--child" : ""} ${isActive() ? "session-list-item-v2--active" : ""}`}>
         <div
-          class={`session-card ${rowProps.isChild ? "session-card--child" : "session-card--parent"} ${isActive() ? "session-card--active" : ""} ${needsInput() ? "session-card--attention" : ""} ${status() === "working" || status() === "compacting" ? "session-card--working" : ""}`}
+          class={`session-card ${rowProps.isChild ? "session-card--child" : "session-card--parent"} ${isActive() ? "session-card--active" : ""} ${needsInput() ? "session-card--attention" : ""} ${status() === "working" || status() === "compacting" ? "session-card--working" : ""} ${isTouchDevice() ? "session-card--swipeable" : ""} ${isTapped() ? "session-card--tapped" : ""}`}
           data-session-id={rowProps.sessionId}
           onClick={() => selectSession(rowProps.sessionId)}
+          onTouchStart={handleTouchStart}
           title={title()}
           role="button"
           tabIndex={0}
@@ -308,21 +498,18 @@ const SessionList: Component<SessionListProps> = (props) => {
             {/* Header row with icon, title, and expand */}
             <div class="session-card-header">
               <div class="session-card-icon-wrap">
-                {rowProps.isChild ? (
-                  isSubagent() ? (
-                    <div class="session-icon session-icon--subagent">
-                      <Bot class="w-3.5 h-3.5" />
-                    </div>
-                  ) : (
-                    <div class="session-icon session-icon--fork">
-                      <GitBranch class="w-3.5 h-3.5" />
+                {(() => {
+                  const { Icon, className } = iconConfig()
+                  const typeClass = rowProps.isChild
+                    ? (isSubagent() ? "session-icon--subagent" : "session-icon--fork")
+                    : "session-icon--parent"
+                  const stateClass = iconState() !== "idle" ? `session-icon--${iconState()}` : ""
+                  return (
+                    <div class={`session-icon ${typeClass} ${stateClass}`}>
+                      <Icon class={`w-3.5 h-3.5 ${className}`} />
                     </div>
                   )
-                ) : (
-                  <div class="session-icon session-icon--parent">
-                    <MessageSquare class="w-3.5 h-3.5" />
-                  </div>
-                )}
+                })()}
               </div>
               
               <div class="session-card-title-area">
@@ -522,15 +709,17 @@ const SessionList: Component<SessionListProps> = (props) => {
                     </Show>
                   </div>
                   
-                  {/* New session button */}
-                  <button
-                    class="session-new-session-btn"
-                    onClick={() => props.onNew()}
-                    aria-label="New session"
-                    title="New session (⌘⇧O / Ctrl+Shift+O)"
-                  >
-                    <Plus class="w-4 h-4" />
-                  </button>
+                  {/* New session button - hidden on mobile (FAB shown instead) */}
+                  <Show when={!isMobile()}>
+                    <button
+                      class="session-new-session-btn"
+                      onClick={() => props.onNew()}
+                      aria-label="New session"
+                      title="New session (⌘⇧E / Ctrl+Shift+E)"
+                    >
+                      <Plus class="w-4 h-4" />
+                    </button>
+                  </Show>
                   
                   {/* Search toggle */}
                   <button
@@ -672,7 +861,16 @@ const SessionList: Component<SessionListProps> = (props) => {
                       onToggleExpand={() => toggleSessionParentExpanded(props.instanceId, thread.parent.id)}
                     />
 
-                    {/* Animated children container */}
+                    {/* Subagent preview when collapsed */}
+                    <Show when={!expanded() && thread.children.length > 0}>
+                      <SubagentPreview
+                        children={thread.children}
+                        instanceId={props.instanceId}
+                        onExpand={() => toggleSessionParentExpanded(props.instanceId, thread.parent.id)}
+                      />
+                    </Show>
+
+                    {/* Animated children container - full list when expanded */}
                     <div 
                       class={`session-children-container ${expanded() && thread.children.length > 0 ? "session-children-container--expanded" : ""}`}
                       style={{
@@ -706,6 +904,18 @@ const SessionList: Component<SessionListProps> = (props) => {
         <div class="session-list-footer session-list-footer-v2 p-3 border-t border-base">
           {props.footerContent ?? null}
         </div>
+      </Show>
+
+      {/* Mobile FAB - Floating Action Button for new session */}
+      <Show when={isMobile()}>
+        <button
+          class="session-new-session-btn session-new-session-btn--fab"
+          onClick={() => props.onNew()}
+          aria-label="Create new session"
+          title="New session"
+        >
+          <Plus class="w-6 h-6" />
+        </button>
       </Show>
 
       <SessionRenameDialog

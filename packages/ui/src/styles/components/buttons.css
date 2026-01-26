@@ -1,56 +1,230 @@
 /* Button component styles */
+
+/* ═══ PRIMARY BUTTON — Premium Glowing Style ═══ */
 .button-primary,
 button.button-primary {
   @apply px-6 py-3 text-base rounded-lg;
+  position: relative;
   background-color: var(--button-primary-bg);
   color: var(--button-primary-text);
   border-color: var(--button-primary-bg);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: var(--glow-primary);
+  transition: 
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease-out,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+  overflow: hidden;
+}
+
+/* Shimmer overlay for primary buttons */
+.button-primary::before,
+button.button-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.15) 40%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.15) 60%,
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
 }
 
 .button-primary:hover:not(:disabled),
 button.button-primary:hover:not(:disabled) {
   background-color: var(--button-primary-hover-bg);
   border-color: var(--button-primary-hover-bg);
+  box-shadow: var(--glow-primary-intense);
+  transform: translateY(-2px);
+}
+
+/* Shimmer animation on hover */
+.button-primary:hover:not(:disabled)::before,
+button.button-primary:hover:not(:disabled)::before {
+  transform: translateX(100%);
+}
+
+.button-primary:active:not(:disabled),
+button.button-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--glow-primary);
+  transition-duration: 0.1s;
 }
 
 .button-primary:focus-visible,
 button.button-primary:focus-visible {
-  box-shadow: 0 0 0 2px var(--focus-ring-offset), 0 0 0 4px var(--focus-ring-color);
+  outline: none;
+  box-shadow: 
+    var(--glow-primary-intense),
+    0 0 0 2px var(--focus-ring-offset),
+    0 0 0 4px var(--focus-ring-color);
 }
 
+/* ═══ SECONDARY BUTTON — Subtle with Glow Potential ═══ */
 .button-secondary,
 button.button-secondary {
   @apply px-6 py-3 text-base rounded-lg;
+  position: relative;
   background-color: var(--surface-secondary);
   color: var(--text-primary);
-  border-color: var(--border-base);
+  border: 1px solid var(--border-base);
+  font-weight: var(--font-weight-medium);
+  transition: 
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease-out,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .button-secondary:hover:not(:disabled),
 button.button-secondary:hover:not(:disabled) {
   background-color: var(--surface-hover);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 15px rgba(var(--accent-primary-rgb), 0.15);
+  transform: translateY(-1px);
+}
+
+.button-secondary:active:not(:disabled),
+button.button-secondary:active:not(:disabled) {
+  transform: translateY(0);
+  transition-duration: 0.1s;
 }
 
 .button-secondary:focus-visible,
 button.button-secondary:focus-visible {
-  box-shadow: 0 0 0 2px var(--focus-ring-offset), 0 0 0 4px var(--focus-ring-color);
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 
+    0 0 20px rgba(var(--accent-primary-rgb), 0.2),
+    0 0 0 2px var(--focus-ring-offset),
+    0 0 0 4px var(--focus-ring-color);
 }
 
+/* ═══ TERTIARY BUTTON — Ghost with Lift ═══ */
 .button-tertiary,
 button.button-tertiary {
   @apply px-4 py-2 text-sm rounded-lg;
+  position: relative;
   background-color: transparent;
   color: var(--text-secondary);
-  border-color: var(--border-base);
+  border: 1px solid var(--border-base);
+  font-weight: var(--font-weight-medium);
+  transition: 
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .button-tertiary:hover:not(:disabled),
 button.button-tertiary:hover:not(:disabled) {
   color: var(--text-primary);
   background-color: var(--surface-hover);
+  border-color: var(--border-secondary);
+  transform: translateY(-1px);
+}
+
+.button-tertiary:active:not(:disabled),
+button.button-tertiary:active:not(:disabled) {
+  transform: translateY(0);
+  transition-duration: 0.1s;
 }
 
 .button-tertiary:focus-visible,
 button.button-tertiary:focus-visible {
-  box-shadow: 0 0 0 2px var(--focus-ring-offset), 0 0 0 4px var(--focus-ring-color);
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 
+    0 0 15px rgba(var(--accent-primary-rgb), 0.15),
+    0 0 0 2px var(--focus-ring-offset),
+    0 0 0 4px var(--focus-ring-color);
+}
+
+/* ═══ GRADIENT BUTTON — Ultra Premium ═══ */
+.button-gradient,
+button.button-gradient {
+  @apply px-6 py-3 text-base rounded-lg;
+  position: relative;
+  background: var(--accent-gradient);
+  color: var(--text-inverted);
+  border: none;
+  font-weight: var(--font-weight-semibold);
+  box-shadow: 
+    var(--glow-primary),
+    0 4px 15px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  transition: 
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.3s ease-out;
+}
+
+/* Animated gradient shimmer for gradient buttons */
+.button-gradient::before,
+button.button-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.8s ease;
+  pointer-events: none;
+}
+
+.button-gradient:hover:not(:disabled),
+button.button-gradient:hover:not(:disabled) {
+  box-shadow: 
+    var(--glow-primary-intense),
+    var(--glow-secondary),
+    0 8px 25px rgba(0, 0, 0, 0.3);
+  transform: translateY(-3px);
+}
+
+.button-gradient:hover:not(:disabled)::before,
+button.button-gradient:hover:not(:disabled)::before {
+  transform: translateX(100%) skewX(-15deg);
+}
+
+.button-gradient:active:not(:disabled),
+button.button-gradient:active:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 
+    var(--glow-primary),
+    0 4px 15px rgba(0, 0, 0, 0.2);
+  transition-duration: 0.1s;
+}
+
+.button-gradient:focus-visible,
+button.button-gradient:focus-visible {
+  outline: none;
+  box-shadow: 
+    var(--glow-primary-intense),
+    var(--glow-secondary),
+    0 0 0 2px var(--focus-ring-offset),
+    0 0 0 4px var(--focus-ring-color);
+}
+
+/* ═══ DISABLED STATES — All Buttons ═══ */
+.button-primary:disabled,
+button.button-primary:disabled,
+.button-secondary:disabled,
+button.button-secondary:disabled,
+.button-tertiary:disabled,
+button.button-tertiary:disabled,
+.button-gradient:disabled,
+button.button-gradient:disabled {
+  @apply opacity-50 cursor-not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }

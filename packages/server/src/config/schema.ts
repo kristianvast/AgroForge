@@ -5,6 +5,19 @@ const ModelPreferenceSchema = z.object({
   modelId: z.string(),
 })
 
+const AgentUsageSchema = z.object({
+  name: z.string(),
+  lastUsed: z.number().nonnegative(),
+  useCount: z.number().nonnegative(),
+})
+
+const ModelUsageSchema = z.object({
+  providerId: z.string(),
+  modelId: z.string(),
+  lastUsed: z.number().nonnegative(),
+  useCount: z.number().nonnegative(),
+})
+
 const AgentModelSelectionSchema = z.record(z.string(), ModelPreferenceSchema)
 const AgentModelSelectionsSchema = z.record(z.string(), AgentModelSelectionSchema)
 
@@ -15,6 +28,8 @@ const PreferencesSchema = z.object({
   lastUsedBinary: z.string().optional(),
   environmentVariables: z.record(z.string()).default({}),
   modelRecents: z.array(ModelPreferenceSchema).default([]),
+  agentUsage: z.array(AgentUsageSchema).default([]),
+  modelUsage: z.array(ModelUsageSchema).default([]),
   diffViewMode: z.enum(["split", "unified"]).default("split"),
   toolOutputExpansion: z.enum(["expanded", "collapsed"]).default("expanded"),
   diagnosticsExpansion: z.enum(["expanded", "collapsed"]).default("expanded"),
@@ -46,6 +61,8 @@ const DEFAULT_CONFIG = ConfigFileSchema.parse({})
 
 export {
   ModelPreferenceSchema,
+  AgentUsageSchema,
+  ModelUsageSchema,
   AgentModelSelectionSchema,
   AgentModelSelectionsSchema,
   PreferencesSchema,
@@ -56,6 +73,8 @@ export {
 }
 
 export type ModelPreference = z.infer<typeof ModelPreferenceSchema>
+export type AgentUsage = z.infer<typeof AgentUsageSchema>
+export type ModelUsage = z.infer<typeof ModelUsageSchema>
 export type AgentModelSelection = z.infer<typeof AgentModelSelectionSchema>
 export type AgentModelSelections = z.infer<typeof AgentModelSelectionsSchema>
 export type Preferences = z.infer<typeof PreferencesSchema>

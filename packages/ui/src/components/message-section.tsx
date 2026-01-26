@@ -13,7 +13,7 @@ const SCROLL_SENTINEL_MARGIN_PX = 48
 const USER_SCROLL_INTENT_WINDOW_MS = 600
 const SCROLL_INTENT_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ", "Spacebar"])
 const QUOTE_SELECTION_MAX_LENGTH = 2000
-const codeNomadLogo = new URL("../images/CodeNomad-Icon.png", import.meta.url).href
+const agroForgeLogo = new URL("../images/CodeNomad-Icon.png", import.meta.url).href
 
 export interface MessageSectionProps {
   instanceId: string
@@ -89,6 +89,35 @@ export default function MessageSection(props: MessageSectionProps) {
  
   const [timelineSegments, setTimelineSegments] = createSignal<TimelineSegment[]>([])
   const hasTimelineSegments = () => timelineSegments().length > 0
+
+  // Debounced loading state - only show spinner after 150ms to prevent flicker
+  // This makes fast loads (cached sessions) feel instant
+  const [showLoadingSpinner, setShowLoadingSpinner] = createSignal(false)
+  let loadingDebounceTimer: ReturnType<typeof setTimeout> | null = null
+  
+  createEffect(() => {
+    const isLoading = Boolean(props.loading)
+    
+    if (isLoading) {
+      // Only show spinner after 150ms delay - prevents flicker for fast loads
+      loadingDebounceTimer = setTimeout(() => {
+        setShowLoadingSpinner(true)
+      }, 150)
+    } else {
+      // Clear timer and hide spinner immediately when loading completes
+      if (loadingDebounceTimer) {
+        clearTimeout(loadingDebounceTimer)
+        loadingDebounceTimer = null
+      }
+      setShowLoadingSpinner(false)
+    }
+    
+    onCleanup(() => {
+      if (loadingDebounceTimer) {
+        clearTimeout(loadingDebounceTimer)
+      }
+    })
+  })
 
   const seenTimelineMessageIds = new Set<string>()
   const seenTimelineSegmentKeys = new Set<string>()
@@ -473,13 +502,9 @@ export default function MessageSection(props: MessageSectionProps) {
     const loading = Boolean(props.loading)
     const ids = messageIds()
 
+    // Don't clear timeline state on loading - this causes visual flicker
+    // The timeline will update naturally when new message IDs arrive
     if (loading) {
-      previousTimelineIds = []
-      previousLastTimelineMessageId = null
-      previousLastTimelinePartCount = 0
-      setTimelineSegments([])
-      seenTimelineMessageIds.clear()
-      seenTimelineSegmentKeys.clear()
       return
     }
 
@@ -749,12 +774,12 @@ export default function MessageSection(props: MessageSectionProps) {
         <div class="message-stream-shell" ref={setShellElement}>
           <div class="message-stream" ref={setContainerRef} onScroll={handleScroll} onMouseUp={handleStreamMouseUp}>
             <div ref={setTopSentinel} aria-hidden="true" style={{ height: "1px" }} />
-            <Show when={!props.loading && messageIds().length === 0}>
+            <Show when={!props.loading && !showLoadingSpinner() && messageIds().length === 0}>
               <div class="empty-state">
                 <div class="empty-state-content">
                   <div class="flex flex-col items-center gap-3 mb-6">
-                    <img src={codeNomadLogo} alt="CodeNomad logo" class="h-48 w-auto" loading="lazy" />
-                    <h1 class="text-3xl font-semibold text-primary">CodeNomad</h1>
+                    <img src={agroForgeLogo} alt="AgroForge logo" class="h-48 w-auto" loading="lazy" />
+                    <h1 class="text-3xl font-semibold text-primary">AgroForge</h1>
                   </div>
                   <h3>Start a conversation</h3>
                   <p>Type a message below or open the Command Palette:</p>
@@ -772,7 +797,7 @@ export default function MessageSection(props: MessageSectionProps) {
               </div>
             </Show>
  
-            <Show when={props.loading}>
+            <Show when={showLoadingSpinner()}>
               <div class="loading-state">
                 <div class="spinner" />
                 <p>Loading messages...</p>

@@ -1,35 +1,127 @@
-/* Modal utilities */
+/* Modal utilities — Futuristic Glass-Morphism */
 .modal-overlay {
   @apply fixed inset-0 z-50;
-  background-color: var(--overlay-scrim);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: modal-overlay-in 0.2s ease-out;
+}
+
+@keyframes modal-overlay-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
 }
 
 .modal-surface {
-  @apply rounded-lg shadow-2xl flex flex-col;
-  background-color: var(--surface-base);
+  @apply rounded-xl flex flex-col;
+  background: var(--glass-bg-heavy);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
   color: var(--text-primary);
   max-width: min(100%, calc(100vw - 32px));
   overflow-wrap: anywhere;
   word-break: break-word;
   min-width: 0;
+  border: 1px solid var(--glass-border);
+  box-shadow: 
+    0 25px 80px rgba(0, 0, 0, 0.4),
+    0 0 40px rgba(var(--accent-primary-rgb), 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  position: relative;
+  animation: modal-surface-in 0.25s ease-out;
+}
+
+@keyframes modal-surface-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Neon border glow effect */
+.modal-surface::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-primary-rgb), 0.3) 0%,
+    transparent 30%,
+    transparent 70%,
+    rgba(var(--accent-secondary-rgb), 0.2) 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .modal-search-container {
-  @apply p-4 border-b;
-  border-color: var(--border-base);
+  @apply p-4;
+  border-bottom: 1px solid var(--glass-border);
+  background: linear-gradient(
+    180deg,
+    rgba(var(--accent-primary-rgb), 0.04) 0%,
+    transparent 100%
+  );
+  position: relative;
+}
+
+.modal-search-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--accent-primary-rgb), 0.2) 50%,
+    transparent 100%
+  );
 }
 
 .modal-search-input {
   @apply flex-1 bg-transparent outline-none;
   color: var(--text-primary);
+  caret-color: var(--accent-primary);
 }
 
 .modal-search-input::placeholder {
   color: var(--text-muted);
 }
 
+.modal-search-input:focus {
+  text-shadow: 0 0 20px rgba(var(--accent-primary-rgb), 0.1);
+}
+
 .modal-search-icon {
   color: var(--text-muted);
+  transition: color 0.2s ease, filter 0.2s ease;
+}
+
+.modal-search-container:focus-within .modal-search-icon {
+  color: var(--accent-primary);
+  filter: drop-shadow(0 0 6px rgba(var(--accent-primary-rgb), 0.4));
 }
 
 .modal-list-container {
@@ -39,15 +131,20 @@
 .modal-section-header {
   @apply px-4 py-2 text-xs font-semibold uppercase tracking-wide;
   color: var(--text-muted);
+  background: rgba(var(--accent-primary-rgb), 0.02);
+  letter-spacing: 0.1em;
 }
 
 .modal-item {
-  @apply w-full px-4 py-3 flex items-start gap-3 transition-colors cursor-pointer border-none text-left;
+  @apply w-full px-4 py-3 flex items-start gap-3 cursor-pointer border-none text-left;
   color: var(--text-primary);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
 }
 
 .modal-list-container[data-pointer-mode="pointer"] .modal-item:hover {
-  background-color: var(--surface-hover);
+  background: rgba(var(--accent-primary-rgb), 0.08);
+  box-shadow: inset 0 0 30px rgba(var(--accent-primary-rgb), 0.04);
 }
 
 .modal-list-container[data-pointer-mode="keyboard"] .modal-item:hover:not(.modal-item-highlight) {
@@ -55,12 +152,33 @@
 }
 
 .modal-item-highlight {
-  background-color: var(--selection-highlight-bg);
+  background: var(--selection-highlight-bg);
+  box-shadow: 
+    inset 0 0 0 1px rgba(var(--accent-primary-rgb), 0.2),
+    inset 0 0 30px rgba(var(--accent-primary-rgb), 0.06);
+}
+
+/* Glowing left accent bar for highlighted items */
+.modal-item-highlight::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(var(--accent-primary-rgb), 0.5);
 }
 
 .modal-item-label {
   @apply font-medium;
   color: var(--text-primary);
+  transition: color 0.15s ease, text-shadow 0.15s ease;
+}
+
+.modal-item-highlight .modal-item-label {
+  color: var(--accent-primary);
+  text-shadow: 0 0 20px rgba(var(--accent-primary-rgb), 0.3);
 }
 
 .modal-item-description {
@@ -71,4 +189,36 @@
 .modal-empty-state {
   @apply p-8 text-center;
   color: var(--text-muted);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(var(--accent-primary-rgb), 0.03) 0%,
+    transparent 70%
+  );
+}
+
+/* ─── Modal Footer Variant ─── */
+.modal-footer {
+  @apply px-4 py-3;
+  border-top: 1px solid var(--glass-border);
+  background: linear-gradient(
+    0deg,
+    rgba(var(--accent-primary-rgb), 0.04) 0%,
+    transparent 100%
+  );
+  position: relative;
+}
+
+.modal-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--accent-primary-rgb), 0.2) 50%,
+    transparent 100%
+  );
 }

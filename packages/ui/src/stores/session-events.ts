@@ -85,20 +85,19 @@ async function fetchSessionInfo(instanceId: string, sessionId: string): Promise<
   if (!instance?.client) return null
 
   try {
-    const info = await requestData<any>(
-      instance.client.session.get({ sessionID: sessionId }),
-      "session.get",
-    )
+    // Parallel fetch - eliminates waterfall between get and status calls
+    const [info, statusResult] = await Promise.all([
+      requestData<any>(instance.client.session.get({ sessionID: sessionId }), "session.get"),
+      requestData<Record<string, any>>(instance.client.session.status(), "session.status").catch((error) => {
+        log.error("Failed to fetch session status", error)
+        return null
+      }),
+    ])
 
     let fetchedStatus: SessionStatus = "idle"
-    try {
-      const statuses = await requestData<Record<string, any>>(instance.client.session.status(), "session.status")
-      const rawStatus = (info as any)?.status ?? statuses?.[sessionId]
-      const hasType = rawStatus && typeof rawStatus === "object" && typeof rawStatus.type === "string"
-      fetchedStatus = hasType ? mapSdkSessionStatus(rawStatus) : "idle"
-    } catch (error) {
-      log.error("Failed to fetch session status", error)
-    }
+    const rawStatus = (info as any)?.status ?? statusResult?.[sessionId]
+    const hasType = rawStatus && typeof rawStatus === "object" && typeof rawStatus.type === "string"
+    fetchedStatus = hasType ? mapSdkSessionStatus(rawStatus) : "idle"
 
     const fetched = createClientSession(info, instanceId, "", { providerId: "", modelId: "" }, fetchedStatus)
 
