@@ -1,4 +1,4 @@
-# CodeNomad - Development Progress
+# AgroForge - Development Progress
 
 ## Completed Tasks
 
