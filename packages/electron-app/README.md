@@ -1,13 +1,14 @@
-# AgroForge App
+# CodeNomad Desktop
 
-This package contains the native desktop application shell for AgroForge, built with [Electron](https://www.electronjs.org/).
+The native desktop app for CodeNomad, built with [Electron](https://www.electronjs.org/).
 
 ## Overview
 
-The Electron app wraps the AgroForge UI and Server into a standalone executable. It provides deeper system integration, such as:
+Wraps the UI and Server into a standalone executable with:
 - Native window management
 - Global keyboard shortcuts
-- Application menu integration
+- System menu integration
+- Tray support
 
 ## Development
 

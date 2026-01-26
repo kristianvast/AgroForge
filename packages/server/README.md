@@ -1,46 +1,42 @@
-# AgroForge Server
+# CodeNomad Server
 
-**AgroForge Server** is the high-performance engine behind the AgroForge cockpit. It transforms your machine into a robust development host, managing the lifecycle of multiple OpenCode instances and providing the low-latency data streams that long-haul builders demand. It bridges your local filesystem with the UI, ensuring that whether you are on localhost or a remote tunnel, you have the speed, clarity, and control of a native workspace.
+The backend engine for CodeNomad. Manages OpenCode instances, serves the API, and provides real-time data streams.
 
-## Features & Capabilities
+## Features
 
-### 🌍 Deployment Freedom
-- **Remote Access**: Host AgroForge on a powerful workstation and access it from your lightweight laptop.
-- **Code Anywhere**: Tunnel in via VPN or SSH to code securely from coffee shops or while traveling.
-- **Multi-Device**: The responsive web client works on tablets and iPads, turning any screen into a dev terminal.
-- **Always-On**: Run as a background service so your sessions are always ready when you connect.
+### Remote Access
+- Host on a powerful workstation, access from anywhere
+- Tunnel via VPN/SSH for secure remote coding
+- Works on tablets and mobile browsers
 
-### ⚡️ Workspace Power
-- **Multi-Instance**: Juggle multiple OpenCode sessions side-by-side with per-instance tabs.
-- **Long-Context Native**: Scroll through massive transcripts without hitches.
-- **Deep Task Awareness**: Monitor background tasks and child sessions without losing your flow.
-- **Command Palette**: A single, global palette to jump tabs, launch tools, and fire shortcuts.
+### Workspace Management
+- Multi-instance support with per-project tabs
+- Long-context performance for massive sessions
+- Background task monitoring
+- Command palette integration
 
 ## Prerequisites
-- **OpenCode**: `opencode` must be installed and configured on your system.
-- Node.js 18+ and npm (for running or building from source).
-- A workspace folder on disk you want to serve.
-- Optional: a Chromium-based browser if you want `--launch` to open the UI automatically.
+
+- **OpenCode** installed and configured
+- Node.js 18+
+- A workspace folder to serve
 
 ## Usage
 
-### Run via npx (Recommended)
-You can run AgroForge directly without installing it:
+### Run via npx
 
-```sh
-npx @agroforge/server --launch
+```bash
+npx @neuralnomads/codenomad-server --launch
 ```
 
-### Install Globally
-Or install it globally to use the `agroforge` command:
+### Install globally
 
-```sh
-npm install -g @agroforge/server
-agroforge --launch
+```bash
+npm install -g @neuralnomads/codenomad-server
+codenomad --launch
 ```
 
-### Common Flags
-You can configure the server using flags or environment variables:
+### Flags
 
 | Flag | Env Variable | Description |
 |------|--------------|-------------|
@@ -49,10 +45,11 @@ You can configure the server using flags or environment variables:
 | `--workspace-root <path>` | `CLI_WORKSPACE_ROOT` | Default root for new workspaces |
 | `--unrestricted-root` | `CLI_UNRESTRICTED_ROOT` | Allow full-filesystem browsing |
 | `--config <path>` | `CLI_CONFIG` | Config file location |
-| `--launch` | `CLI_LAUNCH` | Open the UI in a Chromium-based browser |
-| `--log-level <level>` | `CLI_LOG_LEVEL` | Logging level (trace, debug, info, warn, error) |
+| `--launch` | `CLI_LAUNCH` | Open UI in browser |
+| `--log-level <level>` | `CLI_LOG_LEVEL` | Logging level |
 
 ### Data Storage
-- **Config**: `~/.config/agroforge/config.json`
-- **Instance Data**: `~/.config/agroforge/instances` (chat history, etc.)
+
+- **Config**: `~/.config/codenomad/config.json`
+- **Instance Data**: `~/.config/codenomad/instances`
 
