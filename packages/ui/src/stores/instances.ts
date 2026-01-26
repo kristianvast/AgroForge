@@ -30,6 +30,11 @@ import { mergeInstanceMetadata, clearInstanceMetadata } from "./instance-metadat
 
 const log = getLogger("api")
 
+// Log batching to prevent rapid state updates from workspace.log events
+const LOG_BATCH_INTERVAL_MS = 100
+const pendingLogEntries = new Map<string, LogEntry[]>()
+let logFlushTimer: ReturnType<typeof setTimeout> | null = null
+
 const [instances, setInstances] = createSignal<Map<string, Instance>>(new Map())
 
 const [activeInstanceId, setActiveInstanceId] = createSignal<string | null>(null)
@@ -478,13 +483,47 @@ function addLog(id: string, entry: LogEntry) {
     return
   }
 
+  // Batch log entries to prevent rapid state updates
+  const pending = pendingLogEntries.get(id) ?? []
+  pending.push(entry)
+  pendingLogEntries.set(id, pending)
+
+  // Schedule flush if not already scheduled
+  if (!logFlushTimer) {
+    logFlushTimer = setTimeout(flushPendingLogs, LOG_BATCH_INTERVAL_MS)
+  }
+}
+
+function flushPendingLogs() {
+  logFlushTimer = null
+  
+  if (pendingLogEntries.size === 0) {
+    return
+  }
+
   setInstanceLogs((prev) => {
     const next = new Map(prev)
-    const existing = next.get(id) ?? []
-    const updated = existing.length >= MAX_LOG_ENTRIES ? [...existing.slice(1), entry] : [...existing, entry]
-    next.set(id, updated)
+    
+    for (const [id, entries] of pendingLogEntries) {
+      if (!isInstanceLogStreaming(id)) {
+        continue
+      }
+      
+      const existing = next.get(id) ?? []
+      let updated = [...existing, ...entries]
+      
+      // Trim to max entries
+      if (updated.length > MAX_LOG_ENTRIES) {
+        updated = updated.slice(updated.length - MAX_LOG_ENTRIES)
+      }
+      
+      next.set(id, updated)
+    }
+    
     return next
   })
+
+  pendingLogEntries.clear()
 }
 
 function clearLogs(id: string) {

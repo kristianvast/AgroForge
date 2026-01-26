@@ -86,6 +86,18 @@ export default function MessageSection(props: MessageSectionProps) {
     }
     return -1
   })
+
+  // Detect if session is actively streaming to suspend measurements during high-frequency updates
+  const isStreaming = createMemo(() => {
+    const ids = messageIds()
+    if (ids.length === 0) return false
+    const resolvedStore = store()
+    // Check last message - if it's streaming or sending, we're in streaming mode
+    const lastId = ids[ids.length - 1]
+    const lastRecord = resolvedStore.getMessage(lastId)
+    if (!lastRecord) return false
+    return lastRecord.status === "streaming" || lastRecord.status === "sending"
+  })
  
   const [timelineSegments, setTimelineSegments] = createSignal<TimelineSegment[]>([])
   const hasTimelineSegments = () => timelineSegments().length > 0
@@ -819,7 +831,7 @@ export default function MessageSection(props: MessageSectionProps) {
               onFork={props.onFork}
               onContentRendered={handleContentRendered}
               setBottomSentinel={setBottomSentinel}
-              suspendMeasurements={() => !isActive()}
+              suspendMeasurements={() => !isActive() || isStreaming()}
             />
 
 

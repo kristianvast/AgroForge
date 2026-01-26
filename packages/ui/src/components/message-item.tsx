@@ -130,6 +130,11 @@ export default function MessageItem(props: MessageItemProps) {
     if (errorMessage() !== null) {
       return true
     }
+    
+    // Streaming/sending assistant messages should always be shown (with indicator)
+    if (isStreamingOrSending()) {
+      return true
+    }
 
     return messageParts().some((part) => partHasRenderableText(part))
   }
@@ -137,6 +142,22 @@ export default function MessageItem(props: MessageItemProps) {
   const isGenerating = () => {
     const info = props.messageInfo
     return !hasContent() && info && info.role === "assistant" && info.time.completed !== undefined && info.time.completed === 0
+  }
+  
+  // Check if message is actively streaming or sending (in progress)
+  const isStreamingOrSending = () => {
+    const status = props.record.status
+    return status === "streaming" || status === "sending"
+  }
+  
+  // Show "generating" state for assistant messages that are streaming but have no text yet
+  const showStreamingIndicator = () => {
+    if (isUser()) return false
+    const status = props.record.status
+    const isStreaming = status === "streaming" || status === "sending"
+    if (!isStreaming) return false
+    // Show indicator if we're streaming but have no renderable text yet
+    return !messageParts().some((part) => partHasRenderableText(part))
   }
 
   const handleRevert = () => {
@@ -191,6 +212,25 @@ export default function MessageItem(props: MessageItemProps) {
 
   const agentMeta = () => {
     if (isUser() || !props.showAgentMeta) return ""
+    const segments: string[] = []
+    const agent = agentIdentifier()
+    const model = modelIdentifier()
+    if (agent) {
+      segments.push(`Agent: ${agent}`)
+    }
+    if (model) {
+      segments.push(`Model: ${model}`)
+    }
+    return segments.join(" • ")
+  }
+
+  const thinkingTitle = () => {
+    const agent = agentIdentifier()
+    if (agent) return `${agent} thinking`
+    return "Agent thinking"
+  }
+
+  const thinkingMeta = () => {
     const segments: string[] = []
     const agent = agentIdentifier()
     const model = modelIdentifier()
@@ -276,9 +316,21 @@ export default function MessageItem(props: MessageItemProps) {
           <div class="message-error-block">⚠️ {errorMessage()}</div>
         </Show>
 
-        <Show when={isGenerating()}>
-          <div class="message-generating">
-            <span class="generating-spinner">⏳</span> Generating...
+        <Show when={showStreamingIndicator() || isGenerating()}>
+          <div class="message-thinking" role="status" aria-live="polite">
+            <div class="message-thinking-visual" aria-hidden="true">
+              <span class="message-thinking-ring" />
+              <span class="message-thinking-dot message-thinking-dot-1" />
+              <span class="message-thinking-dot message-thinking-dot-2" />
+              <span class="message-thinking-dot message-thinking-dot-3" />
+            </div>
+            <div class="message-thinking-text">
+              <span class="message-thinking-title">{thinkingTitle()}</span>
+              <Show when={thinkingMeta()}>
+                {(meta) => <span class="message-thinking-meta">{meta()}</span>}
+              </Show>
+              <span class="message-thinking-subtitle">Analyzing and planning...</span>
+            </div>
           </div>
         </Show>
 

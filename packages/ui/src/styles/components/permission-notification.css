@@ -230,7 +230,10 @@
 
   .permission-center-modal {
     width: 100vw;
+    /* Use dynamic viewport height for mobile browser UI compatibility */
     height: 100vh;
+    height: 100dvh;
+    height: var(--visual-viewport-height, 100vh);
     max-height: none;
     border-radius: 0;
   }

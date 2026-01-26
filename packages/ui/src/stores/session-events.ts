@@ -16,6 +16,7 @@ import type { MessageStatus } from "./message-v2/types"
 
 import { getLogger } from "../lib/logger"
 import { requestData } from "../lib/opencode-api"
+import { cleanSessionTitle } from "../lib/session-title"
 import { getPermissionId, getPermissionKind, getRequestIdFromPermissionReply } from "../types/permission"
 import type { PermissionReplyEventPropertiesLike, PermissionRequestLike } from "../types/permission"
 import { getQuestionId, getRequestIdFromQuestionReply } from "../types/question"
@@ -31,7 +32,7 @@ import {
 } from "./instances"
 import { showAlertDialog } from "./alerts"
 import { createClientSession, mapSdkSessionStatus, type Session, type SessionStatus } from "../types/session"
-import { sessions, setSessions, syncInstanceSessionIndicator, withSession } from "./session-state"
+import { sessions, setSessions, syncInstanceSessionIndicator, withSession, activeSessionId, markSessionUnread } from "./session-state"
 import { normalizeMessagePart } from "./message-v2/normalizers"
 import { updateSessionInfo } from "./message-v2/session-info"
 
@@ -68,6 +69,8 @@ interface TuiToastEvent {
 const ALLOWED_TOAST_VARIANTS = new Set<ToastVariant>(["info", "success", "warning", "error"])
 
 function applySessionStatus(instanceId: string, sessionId: string, status: SessionStatus) {
+  let updated = false
+  let wasWorking = false
   withSession(instanceId, sessionId, (session) => {
     const current = session.status ?? "idle"
     if (current === status) return false
@@ -76,8 +79,23 @@ function applySessionStatus(instanceId: string, sessionId: string, status: Sessi
       return false
     }
 
+    wasWorking = current === "working" || current === "compacting"
     session.status = status
+    updated = true
   })
+
+  // Sync indicator counts so instance tab shows correct status
+  if (updated) {
+    syncInstanceSessionIndicator(instanceId)
+    
+    // Mark as unread if session finished and user is viewing a different session
+    if (wasWorking && status === "idle") {
+      const currentActiveSession = activeSessionId().get(instanceId)
+      if (currentActiveSession !== sessionId) {
+        markSessionUnread(instanceId, sessionId)
+      }
+    }
+  }
 }
 
 async function fetchSessionInfo(instanceId: string, sessionId: string): Promise<Session | null> {
@@ -182,14 +200,29 @@ function handleMessageUpdate(instanceId: string, event: MessageUpdateEvent | Mes
   const instanceSessions = sessions().get(instanceId)
 
   if (event.type === "message.part.updated") {
-    const rawPart = event.properties?.part
+    const properties = event.properties as any
+    const rawPart = properties?.part
     if (!rawPart) return
  
     const part = normalizeMessagePart(rawPart)
-    const messageInfo = (event as any)?.properties?.message as MessageInfo | undefined
+    const messageInfo = properties?.message as MessageInfo | undefined
  
-    const fallbackSessionId = typeof messageInfo?.sessionID === "string" ? messageInfo.sessionID : undefined
-    const fallbackMessageId = typeof messageInfo?.id === "string" ? messageInfo.id : undefined
+    const fallbackSessionId =
+      typeof properties?.sessionID === "string"
+        ? properties.sessionID
+        : typeof properties?.sessionId === "string"
+          ? properties.sessionId
+          : typeof messageInfo?.sessionID === "string"
+            ? messageInfo.sessionID
+            : undefined
+    const fallbackMessageId =
+      typeof properties?.messageID === "string"
+        ? properties.messageID
+        : typeof properties?.messageId === "string"
+          ? properties.messageId
+          : typeof messageInfo?.id === "string"
+            ? messageInfo.id
+            : undefined
  
     const sessionId = typeof part.sessionID === "string" ? part.sessionID : fallbackSessionId
     const messageId = typeof part.messageID === "string" ? part.messageID : fallbackMessageId
@@ -307,7 +340,7 @@ function handleSessionUpdate(instanceId: string, event: EventSessionUpdated): vo
     const newSession = {
       id: info.id,
       instanceId,
-      title: info.title || "Untitled",
+      title: cleanSessionTitle(info.title),
       parentId: info.parentID || null,
       agent: "",
       model: {
@@ -346,7 +379,7 @@ function handleSessionUpdate(instanceId: string, event: EventSessionUpdated): vo
     }
     const updatedSession = {
       ...existingSession,
-      title: info.title || existingSession.title,
+      title: cleanSessionTitle(info.title) || existingSession.title,
       status: existingSession.status ?? "idle",
       time: mergedTime,
       revert: info.revert
@@ -403,6 +436,8 @@ function handleSessionCompacted(instanceId: string, event: EventSessionCompacted
     withSession(instanceId, sessionID, (session) => {
       session.status = "working"
     })
+    // Sync indicator counts so instance tab shows working status
+    syncInstanceSessionIndicator(instanceId)
   } else {
     ensureSessionStatus(instanceId, sessionID, "working")
   }

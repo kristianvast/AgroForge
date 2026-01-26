@@ -11,6 +11,7 @@ import SessionRenameDialog from "./session-rename-dialog"
 import { keyboardRegistry, type KeyboardShortcut } from "../lib/keyboard-registry"
 import { isMac } from "../lib/keyboard-utils"
 import { showToastNotification } from "../lib/notifications"
+import { cleanSessionTitle } from "../lib/session-title"
 import { getLogger } from "../lib/logger"
 const log = getLogger("actions")
 
@@ -490,7 +491,7 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
                           {/* Content */}
                           <div class="session-picker-card-content">
                             <span class="session-card-title">
-                              {session.title || "Untitled Session"}
+                              {cleanSessionTitle(session.title)}
                             </span>
                             <div class="session-card-meta">
                               {/* Status pill */}

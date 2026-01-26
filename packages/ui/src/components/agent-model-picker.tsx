@@ -1,9 +1,9 @@
 import { Component, createSignal, createMemo, For, Show, createEffect, onCleanup } from "solid-js"
 import { Dialog } from "@kobalte/core/dialog"
 import { agents, providers } from "../stores/sessions"
-import { recordAgentUsage, recordModelUsage, getAgentUsageScore, getModelUsageScore } from "../stores/preferences"
+import { recordAgentUsage, recordModelUsage, getAgentUsageScore, getModelUsageScore, preferences } from "../stores/preferences"
 import type { Agent, Provider, Model } from "../types/session"
-import { Bot, Cpu, Search, X, Sparkles, Zap, Check, ChevronRight, Star, Crown, Layers } from "lucide-solid"
+import { Bot, Cpu, Search, X, Sparkles, Zap, Check, ChevronRight, Star, Crown, Layers, Clock, TrendingUp } from "lucide-solid"
 
 type PickerMode = "agent" | "model"
 
@@ -76,6 +76,34 @@ const AgentModelPicker: Component<AgentModelPickerProps> = (props) => {
   const instanceAgents = () => agents().get(props.instanceId) || []
   const instanceProviders = () => providers().get(props.instanceId) || []
 
+  // Get recently used agents (based on usage tracking with recency)
+  const recentlyUsedAgents = createMemo(() => {
+    const agentUsage = preferences().agentUsage || []
+    const all = instanceAgents()
+    const mainAgents = all.filter(a => a.mode !== "subagent")
+    
+    // Get agents that have been used, sorted by most recent
+    return agentUsage
+      .filter(usage => usage.lastUsed > 0)
+      .sort((a, b) => b.lastUsed - a.lastUsed)
+      .slice(0, 4)
+      .map(usage => mainAgents.find(a => a.name === usage.name))
+      .filter((a): a is Agent => !!a)
+  })
+
+  // Get recommended agents (flagship or frequently used, excluding recents)
+  const recommendedAgents = createMemo(() => {
+    const all = instanceAgents()
+    const mainAgents = all.filter(a => a.mode !== "subagent")
+    const recentNames = new Set(recentlyUsedAgents().map(a => a.name))
+    
+    // Sort by usage score, filter out recent ones
+    return [...mainAgents]
+      .filter(a => !recentNames.has(a.name))
+      .sort((a, b) => getAgentUsageScore(b.name) - getAgentUsageScore(a.name))
+      .slice(0, 3)
+  })
+
   // Filter and sort agents based on search and usage
   const filteredAgents = createMemo(() => {
     const query = searchQuery().toLowerCase().trim()
@@ -96,6 +124,72 @@ const AgentModelPicker: Component<AgentModelPickerProps> = (props) => {
       const scoreA = getAgentUsageScore(a.name)
       const scoreB = getAgentUsageScore(b.name)
       return scoreB - scoreA
+    })
+  })
+
+  // Get recently used models (based on usage tracking with recency)
+  const recentlyUsedModels = createMemo(() => {
+    const modelUsage = preferences().modelUsage || []
+    const allProviders = instanceProviders()
+    
+    // Get models that have been used, sorted by most recent
+    return modelUsage
+      .filter(usage => usage.lastUsed > 0)
+      .sort((a, b) => b.lastUsed - a.lastUsed)
+      .slice(0, 4)
+      .map(usage => {
+        for (const provider of allProviders) {
+          const model = provider.models.find(
+            m => m.providerId === usage.providerId && m.id === usage.modelId
+          )
+          if (model) return { model, provider }
+        }
+        return null
+      })
+      .filter((m): m is { model: Model; provider: Provider } => !!m)
+  })
+
+  // Get recommended models (best model from each provider)
+  const recommendedModels = createMemo(() => {
+    const allProviders = instanceProviders()
+    const recentKeys = new Set(
+      recentlyUsedModels().map(m => `${m.model.providerId}:${m.model.id}`)
+    )
+    
+    // Get best model from each provider (flagship > standard > efficient, then by usage)
+    const bestPerProvider: { model: Model; provider: Provider; tier: string; score: number }[] = []
+    
+    for (const provider of allProviders) {
+      // Score all models for this provider
+      const providerModels = provider.models
+        .filter(m => !recentKeys.has(`${m.providerId}:${m.id}`))
+        .map(model => ({
+          model,
+          provider,
+          tier: getModelTier(model),
+          score: getModelUsageScore(model.providerId, model.id)
+        }))
+        .sort((a, b) => {
+          // Flagship > standard > efficient
+          const tierOrder = { flagship: 0, standard: 1, efficient: 2 }
+          const tierDiff = tierOrder[a.tier as keyof typeof tierOrder] - tierOrder[b.tier as keyof typeof tierOrder]
+          if (tierDiff !== 0) return tierDiff
+          // Then by usage score
+          return b.score - a.score
+        })
+      
+      // Take the best one from this provider
+      if (providerModels.length > 0) {
+        bestPerProvider.push(providerModels[0])
+      }
+    }
+    
+    // Sort providers by their best model's tier and score
+    return bestPerProvider.sort((a, b) => {
+      const tierOrder = { flagship: 0, standard: 1, efficient: 2 }
+      const tierDiff = tierOrder[a.tier as keyof typeof tierOrder] - tierOrder[b.tier as keyof typeof tierOrder]
+      if (tierDiff !== 0) return tierDiff
+      return b.score - a.score
     })
   })
 
@@ -293,155 +387,140 @@ const AgentModelPicker: Component<AgentModelPickerProps> = (props) => {
             <div class="picker-content">
               {/* Agent Grid */}
               <Show when={activeTab() === "agent"}>
-                <div class="picker-agent-grid">
-                  <For each={filteredAgents()} fallback={
-                    <div class="picker-empty">
-                      <Bot class="w-8 h-8 opacity-40" />
-                      <p>No agents found</p>
-                    </div>
-                  }>
-                    {(agent, index) => {
-                      const isSelected = agent.name === props.currentAgent
-                      const hasDefaultModel = !!agent.model
-                      const usageScore = getAgentUsageScore(agent.name)
-                      const isFrequent = usageScore >= 2 // Used at least twice
-                      return (
-                        <button
-                          class={`picker-agent-card ${isSelected ? "picker-agent-card--selected" : ""}`}
-                          onClick={() => handleAgentSelect(agent)}
-                          disabled={isChanging()}
-                        >
-                          <div class="picker-agent-card-header">
-                            <div class="picker-agent-avatar">
-                              <Bot class="w-5 h-5" />
-                            </div>
-                            <Show when={isSelected}>
-                              <div class="picker-agent-check">
-                                <Check class="w-3 h-3" />
+                <Show when={!searchQuery()} fallback={
+                  /* Search results - flat list */
+                  <div class="picker-agent-grid">
+                    <For each={filteredAgents()} fallback={
+                      <div class="picker-empty">
+                        <Bot class="w-8 h-8 opacity-40" />
+                        <p>No agents found</p>
+                      </div>
+                    }>
+                      {(agent) => {
+                        const isSelected = agent.name === props.currentAgent
+                        const hasDefaultModel = !!agent.model
+                        return (
+                          <button
+                            class={`picker-agent-card ${isSelected ? "picker-agent-card--selected" : ""}`}
+                            onClick={() => handleAgentSelect(agent)}
+                            disabled={isChanging()}
+                          >
+                            <div class="picker-agent-card-header">
+                              <div class="picker-agent-avatar">
+                                <Bot class="w-5 h-5" />
                               </div>
-                            </Show>
-                            <Show when={isFrequent && !isSelected && index() < 3}>
-                              <span class="picker-frequent-badge">
-                                <Sparkles class="w-3 h-3" />
-                              </span>
-                            </Show>
-                          </div>
-                          
-                          <div class="picker-agent-card-body">
-                            <h3 class="picker-agent-name">{agent.name}</h3>
-                            <Show when={agent.description}>
-                              <p class="picker-agent-description">
-                                {agent.description.length > 80 
-                                  ? agent.description.slice(0, 80) + "..." 
-                                  : agent.description}
-                              </p>
-                            </Show>
-                          </div>
+                              <Show when={isSelected}>
+                                <div class="picker-agent-check">
+                                  <Check class="w-3 h-3" />
+                                </div>
+                              </Show>
+                            </div>
+                            
+                            <div class="picker-agent-card-body">
+                              <h3 class="picker-agent-name">{agent.name}</h3>
+                              <Show when={agent.description}>
+                                <p class="picker-agent-description">
+                                  {agent.description.length > 80 
+                                    ? agent.description.slice(0, 80) + "..." 
+                                    : agent.description}
+                                </p>
+                              </Show>
+                            </div>
 
-                          <div class="picker-agent-card-footer">
-                            <Show when={hasDefaultModel}>
-                              <span class="picker-agent-badge picker-agent-badge--model">
-                                <Cpu class="w-3 h-3" />
-                                Has default model
-                              </span>
-                            </Show>
-                          </div>
-                        </button>
-                      )
-                    }}
-                  </For>
-                </div>
-              </Show>
-
-              {/* Model Selection */}
-              <Show when={activeTab() === "model"}>
-                {/* Provider Filter Pills */}
-                <div class="picker-provider-pills">
-                  <button 
-                    class={`picker-provider-pill ${!selectedProvider() ? "picker-provider-pill--active" : ""}`}
-                    onClick={() => setSelectedProvider(null)}
-                  >
-                    <Layers class="w-3.5 h-3.5" />
-                    All
-                  </button>
-                  <For each={instanceProviders()}>
-                    {(provider) => (
-                      <button 
-                        class={`picker-provider-pill ${selectedProvider() === provider.id ? "picker-provider-pill--active" : ""}`}
-                        onClick={() => setSelectedProvider(prev => prev === provider.id ? null : provider.id)}
-                        style={{ "--provider-accent": getProviderAccent(provider.id) }}
-                      >
-                        <span class="picker-provider-emoji">{getProviderIcon(provider.id)}</span>
-                        {provider.name}
-                        <span class="picker-provider-count">{provider.models.length}</span>
-                      </button>
-                    )}
-                  </For>
-                </div>
-
-                {/* Model List by Provider */}
-                <div class="picker-model-list">
-                  <For each={groupedModels()} fallback={
-                    <div class="picker-empty">
-                      <Cpu class="w-8 h-8 opacity-40" />
-                      <p>No models found</p>
-                    </div>
-                  }>
-                    {(provider) => (
-                      <div class="picker-model-group">
-                        <div 
-                          class="picker-model-group-header"
-                          style={{ "--provider-accent": getProviderAccent(provider.id) }}
-                        >
-                          <span class="picker-model-group-icon">{getProviderIcon(provider.id)}</span>
-                          <span class="picker-model-group-name">{provider.name}</span>
-                          <span class="picker-model-group-count">{provider.models.length}</span>
+                            <div class="picker-agent-card-footer">
+                              <Show when={hasDefaultModel}>
+                                <span class="picker-agent-badge picker-agent-badge--model">
+                                  <Cpu class="w-3 h-3" />
+                                  Has default model
+                                </span>
+                              </Show>
+                            </div>
+                          </button>
+                        )
+                      }}
+                    </For>
+                  </div>
+                }>
+                  {/* Sectioned view when not searching */}
+                  <div class="picker-sections">
+                    {/* Recently Used Section */}
+                    <Show when={recentlyUsedAgents().length > 0}>
+                      <div class="picker-section">
+                        <div class="picker-section-header">
+                          <Clock class="w-4 h-4" />
+                          <span>Recently Used</span>
                         </div>
-                        
-                        <div class="picker-model-group-items">
-                          <For each={provider.models}>
-                            {(model) => {
-                              const isSelected = model.providerId === props.currentModel.providerId && 
-                                                model.id === props.currentModel.modelId
-                              const tier = getModelTier(model)
+                        <div class="picker-agent-grid picker-agent-grid--compact">
+                          <For each={recentlyUsedAgents()}>
+                            {(agent) => {
+                              const isSelected = agent.name === props.currentAgent
                               return (
                                 <button
-                                  class={`picker-model-item ${isSelected ? "picker-model-item--selected" : ""} picker-model-item--${tier}`}
-                                  onClick={() => handleModelSelect(model)}
+                                  class={`picker-agent-card picker-agent-card--compact ${isSelected ? "picker-agent-card--selected" : ""}`}
+                                  onClick={() => handleAgentSelect(agent)}
                                   disabled={isChanging()}
-                                  style={{ "--provider-accent": getProviderAccent(provider.id) }}
                                 >
-                                  <div class="picker-model-item-main">
-                                    <div class="picker-model-item-icon">
-                                      <Show when={tier === "flagship"} fallback={
-                                        <Show when={tier === "efficient"} fallback={<Cpu class="w-4 h-4" />}>
-                                          <Zap class="w-4 h-4" />
-                                        </Show>
-                                      }>
-                                        <Crown class="w-4 h-4" />
-                                      </Show>
+                                  <div class="picker-agent-avatar picker-agent-avatar--small">
+                                    <Bot class="w-4 h-4" />
+                                  </div>
+                                  <span class="picker-agent-name">{agent.name}</span>
+                                  <Show when={isSelected}>
+                                    <Check class="w-3.5 h-3.5 picker-agent-inline-check" />
+                                  </Show>
+                                </button>
+                              )
+                            }}
+                          </For>
+                        </div>
+                      </div>
+                    </Show>
+
+                    {/* Recommended Section */}
+                    <Show when={recommendedAgents().length > 0}>
+                      <div class="picker-section">
+                        <div class="picker-section-header">
+                          <TrendingUp class="w-4 h-4" />
+                          <span>Recommended</span>
+                        </div>
+                        <div class="picker-agent-grid">
+                          <For each={recommendedAgents()}>
+                            {(agent) => {
+                              const isSelected = agent.name === props.currentAgent
+                              const hasDefaultModel = !!agent.model
+                              return (
+                                <button
+                                  class={`picker-agent-card ${isSelected ? "picker-agent-card--selected" : ""}`}
+                                  onClick={() => handleAgentSelect(agent)}
+                                  disabled={isChanging()}
+                                >
+                                  <div class="picker-agent-card-header">
+                                    <div class="picker-agent-avatar">
+                                      <Bot class="w-5 h-5" />
                                     </div>
-                                    <div class="picker-model-item-info">
-                                      <span class="picker-model-item-name">{model.name}</span>
-                                      <span class="picker-model-item-id">{model.id}</span>
-                                    </div>
+                                    <Show when={isSelected}>
+                                      <div class="picker-agent-check">
+                                        <Check class="w-3 h-3" />
+                                      </div>
+                                    </Show>
                                   </div>
                                   
-                                  <div class="picker-model-item-meta">
-                                    <Show when={tier === "flagship"}>
-                                      <span class="picker-model-badge picker-model-badge--flagship">
-                                        <Star class="w-3 h-3" /> Top
-                                      </span>
+                                  <div class="picker-agent-card-body">
+                                    <h3 class="picker-agent-name">{agent.name}</h3>
+                                    <Show when={agent.description}>
+                                      <p class="picker-agent-description">
+                                        {agent.description.length > 80 
+                                          ? agent.description.slice(0, 80) + "..." 
+                                          : agent.description}
+                                      </p>
                                     </Show>
-                                    <Show when={tier === "efficient"}>
-                                      <span class="picker-model-badge picker-model-badge--efficient">
-                                        <Zap class="w-3 h-3" /> Fast
+                                  </div>
+
+                                  <div class="picker-agent-card-footer">
+                                    <Show when={hasDefaultModel}>
+                                      <span class="picker-agent-badge picker-agent-badge--model">
+                                        <Cpu class="w-3 h-3" />
+                                        Has default model
                                       </span>
-                                    </Show>
-                                    <Show when={isSelected}>
-                                      <div class="picker-model-check">
-                                        <Check class="w-3.5 h-3.5" />
-                                      </div>
                                     </Show>
                                   </div>
                                 </button>
@@ -450,9 +529,358 @@ const AgentModelPicker: Component<AgentModelPickerProps> = (props) => {
                           </For>
                         </div>
                       </div>
-                    )}
-                  </For>
-                </div>
+                    </Show>
+
+                    {/* All Agents Section */}
+                    <div class="picker-section">
+                      <div class="picker-section-header">
+                        <Layers class="w-4 h-4" />
+                        <span>All Agents</span>
+                        <span class="picker-section-count">{filteredAgents().length}</span>
+                      </div>
+                      <div class="picker-agent-grid">
+                        <For each={filteredAgents()} fallback={
+                          <div class="picker-empty">
+                            <Bot class="w-8 h-8 opacity-40" />
+                            <p>No agents found</p>
+                          </div>
+                        }>
+                          {(agent) => {
+                            const isSelected = agent.name === props.currentAgent
+                            const hasDefaultModel = !!agent.model
+                            return (
+                              <button
+                                class={`picker-agent-card ${isSelected ? "picker-agent-card--selected" : ""}`}
+                                onClick={() => handleAgentSelect(agent)}
+                                disabled={isChanging()}
+                              >
+                                <div class="picker-agent-card-header">
+                                  <div class="picker-agent-avatar">
+                                    <Bot class="w-5 h-5" />
+                                  </div>
+                                  <Show when={isSelected}>
+                                    <div class="picker-agent-check">
+                                      <Check class="w-3 h-3" />
+                                    </div>
+                                  </Show>
+                                </div>
+                                
+                                <div class="picker-agent-card-body">
+                                  <h3 class="picker-agent-name">{agent.name}</h3>
+                                  <Show when={agent.description}>
+                                    <p class="picker-agent-description">
+                                      {agent.description.length > 80 
+                                        ? agent.description.slice(0, 80) + "..." 
+                                        : agent.description}
+                                    </p>
+                                  </Show>
+                                </div>
+
+                                <div class="picker-agent-card-footer">
+                                  <Show when={hasDefaultModel}>
+                                    <span class="picker-agent-badge picker-agent-badge--model">
+                                      <Cpu class="w-3 h-3" />
+                                      Has default model
+                                    </span>
+                                  </Show>
+                                </div>
+                              </button>
+                            )
+                          }}
+                        </For>
+                      </div>
+                    </div>
+                  </div>
+                </Show>
+              </Show>
+
+              {/* Model Selection */}
+              <Show when={activeTab() === "model"}>
+                <Show when={!searchQuery() && !selectedProvider()} fallback={
+                  /* Searching or filtering - show grouped view */
+                  <>
+                    {/* Provider Filter Pills */}
+                    <div class="picker-provider-pills">
+                      <button 
+                        class={`picker-provider-pill ${!selectedProvider() ? "picker-provider-pill--active" : ""}`}
+                        onClick={() => setSelectedProvider(null)}
+                      >
+                        <Layers class="w-3.5 h-3.5" />
+                        All
+                      </button>
+                      <For each={instanceProviders()}>
+                        {(provider) => (
+                          <button 
+                            class={`picker-provider-pill ${selectedProvider() === provider.id ? "picker-provider-pill--active" : ""}`}
+                            onClick={() => setSelectedProvider(prev => prev === provider.id ? null : provider.id)}
+                            style={{ "--provider-accent": getProviderAccent(provider.id) }}
+                          >
+                            <span class="picker-provider-emoji">{getProviderIcon(provider.id)}</span>
+                            {provider.name}
+                            <span class="picker-provider-count">{provider.models.length}</span>
+                          </button>
+                        )}
+                      </For>
+                    </div>
+
+                    {/* Model List by Provider */}
+                    <div class="picker-model-list">
+                      <For each={groupedModels()} fallback={
+                        <div class="picker-empty">
+                          <Cpu class="w-8 h-8 opacity-40" />
+                          <p>No models found</p>
+                        </div>
+                      }>
+                        {(provider) => (
+                          <div class="picker-model-group">
+                            <div 
+                              class="picker-model-group-header"
+                              style={{ "--provider-accent": getProviderAccent(provider.id) }}
+                            >
+                              <span class="picker-model-group-icon">{getProviderIcon(provider.id)}</span>
+                              <span class="picker-model-group-name">{provider.name}</span>
+                              <span class="picker-model-group-count">{provider.models.length}</span>
+                            </div>
+                            
+                            <div class="picker-model-group-items">
+                              <For each={provider.models}>
+                                {(model) => {
+                                  const isSelected = model.providerId === props.currentModel.providerId && 
+                                                    model.id === props.currentModel.modelId
+                                  const tier = getModelTier(model)
+                                  return (
+                                    <button
+                                      class={`picker-model-item ${isSelected ? "picker-model-item--selected" : ""} picker-model-item--${tier}`}
+                                      onClick={() => handleModelSelect(model)}
+                                      disabled={isChanging()}
+                                      style={{ "--provider-accent": getProviderAccent(provider.id) }}
+                                    >
+                                      <div class="picker-model-item-main">
+                                        <div class="picker-model-item-icon">
+                                          <Show when={tier === "flagship"} fallback={
+                                            <Show when={tier === "efficient"} fallback={<Cpu class="w-4 h-4" />}>
+                                              <Zap class="w-4 h-4" />
+                                            </Show>
+                                          }>
+                                            <Crown class="w-4 h-4" />
+                                          </Show>
+                                        </div>
+                                        <div class="picker-model-item-info">
+                                          <span class="picker-model-item-name">{model.name}</span>
+                                          <span class="picker-model-item-id">{model.id}</span>
+                                        </div>
+                                      </div>
+                                      
+                                      <div class="picker-model-item-meta">
+                                        <Show when={tier === "flagship"}>
+                                          <span class="picker-model-badge picker-model-badge--flagship">
+                                            <Star class="w-3 h-3" /> Top
+                                          </span>
+                                        </Show>
+                                        <Show when={tier === "efficient"}>
+                                          <span class="picker-model-badge picker-model-badge--efficient">
+                                            <Zap class="w-3 h-3" /> Fast
+                                          </span>
+                                        </Show>
+                                        <Show when={isSelected}>
+                                          <div class="picker-model-check">
+                                            <Check class="w-3.5 h-3.5" />
+                                          </div>
+                                        </Show>
+                                      </div>
+                                    </button>
+                                  )
+                                }}
+                              </For>
+                            </div>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  </>
+                }>
+                  {/* Sectioned view - Recently Used, Recommended, then Providers */}
+                  <div class="picker-sections">
+                    {/* Recently Used Models */}
+                    <Show when={recentlyUsedModels().length > 0}>
+                      <div class="picker-section">
+                        <div class="picker-section-header">
+                          <Clock class="w-4 h-4" />
+                          <span>Recently Used</span>
+                        </div>
+                        <div class="picker-model-grid">
+                          <For each={recentlyUsedModels()}>
+                            {({ model, provider }) => {
+                              const isSelected = model.providerId === props.currentModel.providerId && 
+                                                model.id === props.currentModel.modelId
+                              const tier = getModelTier(model)
+                              return (
+                                <button
+                                  class={`picker-model-card ${isSelected ? "picker-model-card--selected" : ""} picker-model-card--${tier}`}
+                                  onClick={() => handleModelSelect(model)}
+                                  disabled={isChanging()}
+                                  style={{ "--provider-accent": getProviderAccent(provider.id) }}
+                                >
+                                  <div class="picker-model-card-header">
+                                    <span class="picker-model-card-provider">{getProviderIcon(provider.id)}</span>
+                                    <Show when={isSelected}>
+                                      <Check class="w-3.5 h-3.5 picker-model-inline-check" />
+                                    </Show>
+                                  </div>
+                                  <span class="picker-model-card-name">{model.name}</span>
+                                  <Show when={tier !== "standard"}>
+                                    <span class={`picker-model-card-tier picker-model-card-tier--${tier}`}>
+                                      {tier === "flagship" ? "Top" : "Fast"}
+                                    </span>
+                                  </Show>
+                                </button>
+                              )
+                            }}
+                          </For>
+                        </div>
+                      </div>
+                    </Show>
+
+                    {/* Recommended Models */}
+                    <Show when={recommendedModels().length > 0}>
+                      <div class="picker-section">
+                        <div class="picker-section-header">
+                          <TrendingUp class="w-4 h-4" />
+                          <span>Recommended</span>
+                        </div>
+                        <div class="picker-model-grid">
+                          <For each={recommendedModels()}>
+                            {({ model, provider }) => {
+                              const isSelected = model.providerId === props.currentModel.providerId && 
+                                                model.id === props.currentModel.modelId
+                              const tier = getModelTier(model)
+                              return (
+                                <button
+                                  class={`picker-model-card ${isSelected ? "picker-model-card--selected" : ""} picker-model-card--${tier}`}
+                                  onClick={() => handleModelSelect(model)}
+                                  disabled={isChanging()}
+                                  style={{ "--provider-accent": getProviderAccent(provider.id) }}
+                                >
+                                  <div class="picker-model-card-header">
+                                    <span class="picker-model-card-provider">{getProviderIcon(provider.id)}</span>
+                                    <Show when={isSelected}>
+                                      <Check class="w-3.5 h-3.5 picker-model-inline-check" />
+                                    </Show>
+                                  </div>
+                                  <span class="picker-model-card-name">{model.name}</span>
+                                  <Show when={tier !== "standard"}>
+                                    <span class={`picker-model-card-tier picker-model-card-tier--${tier}`}>
+                                      {tier === "flagship" ? "Top" : "Fast"}
+                                    </span>
+                                  </Show>
+                                </button>
+                              )
+                            }}
+                          </For>
+                        </div>
+                      </div>
+                    </Show>
+
+                    {/* Provider Filter Pills */}
+                    <div class="picker-provider-pills picker-provider-pills--section">
+                      <button 
+                        class={`picker-provider-pill ${!selectedProvider() ? "picker-provider-pill--active" : ""}`}
+                        onClick={() => setSelectedProvider(null)}
+                      >
+                        <Layers class="w-3.5 h-3.5" />
+                        All Providers
+                      </button>
+                      <For each={instanceProviders()}>
+                        {(provider) => (
+                          <button 
+                            class={`picker-provider-pill ${selectedProvider() === provider.id ? "picker-provider-pill--active" : ""}`}
+                            onClick={() => setSelectedProvider(prev => prev === provider.id ? null : provider.id)}
+                            style={{ "--provider-accent": getProviderAccent(provider.id) }}
+                          >
+                            <span class="picker-provider-emoji">{getProviderIcon(provider.id)}</span>
+                            {provider.name}
+                            <span class="picker-provider-count">{provider.models.length}</span>
+                          </button>
+                        )}
+                      </For>
+                    </div>
+
+                    {/* Model List by Provider */}
+                    <div class="picker-model-list">
+                      <For each={groupedModels()} fallback={
+                        <div class="picker-empty">
+                          <Cpu class="w-8 h-8 opacity-40" />
+                          <p>No models found</p>
+                        </div>
+                      }>
+                        {(provider) => (
+                          <div class="picker-model-group">
+                            <div 
+                              class="picker-model-group-header"
+                              style={{ "--provider-accent": getProviderAccent(provider.id) }}
+                            >
+                              <span class="picker-model-group-icon">{getProviderIcon(provider.id)}</span>
+                              <span class="picker-model-group-name">{provider.name}</span>
+                              <span class="picker-model-group-count">{provider.models.length}</span>
+                            </div>
+                            
+                            <div class="picker-model-group-items">
+                              <For each={provider.models}>
+                                {(model) => {
+                                  const isSelected = model.providerId === props.currentModel.providerId && 
+                                                    model.id === props.currentModel.modelId
+                                  const tier = getModelTier(model)
+                                  return (
+                                    <button
+                                      class={`picker-model-item ${isSelected ? "picker-model-item--selected" : ""} picker-model-item--${tier}`}
+                                      onClick={() => handleModelSelect(model)}
+                                      disabled={isChanging()}
+                                      style={{ "--provider-accent": getProviderAccent(provider.id) }}
+                                    >
+                                      <div class="picker-model-item-main">
+                                        <div class="picker-model-item-icon">
+                                          <Show when={tier === "flagship"} fallback={
+                                            <Show when={tier === "efficient"} fallback={<Cpu class="w-4 h-4" />}>
+                                              <Zap class="w-4 h-4" />
+                                            </Show>
+                                          }>
+                                            <Crown class="w-4 h-4" />
+                                          </Show>
+                                        </div>
+                                        <div class="picker-model-item-info">
+                                          <span class="picker-model-item-name">{model.name}</span>
+                                          <span class="picker-model-item-id">{model.id}</span>
+                                        </div>
+                                      </div>
+                                      
+                                      <div class="picker-model-item-meta">
+                                        <Show when={tier === "flagship"}>
+                                          <span class="picker-model-badge picker-model-badge--flagship">
+                                            <Star class="w-3 h-3" /> Top
+                                          </span>
+                                        </Show>
+                                        <Show when={tier === "efficient"}>
+                                          <span class="picker-model-badge picker-model-badge--efficient">
+                                            <Zap class="w-3 h-3" /> Fast
+                                          </span>
+                                        </Show>
+                                        <Show when={isSelected}>
+                                          <div class="picker-model-check">
+                                            <Check class="w-3.5 h-3.5" />
+                                          </div>
+                                        </Show>
+                                      </div>
+                                    </button>
+                                  )
+                                }}
+                              </For>
+                            </div>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  </div>
+                </Show>
               </Show>
             </div>
 

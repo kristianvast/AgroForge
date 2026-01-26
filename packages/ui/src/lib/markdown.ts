@@ -11,6 +11,18 @@ let isInitialized = false
 let highlightSuppressed = false
 let rendererSetup = false
 
+/**
+ * Pre-warm the Shiki highlighter.
+ * Call this early in the app lifecycle to avoid cold-start delays.
+ * Does NOT block - just starts the async initialization.
+ */
+export function warmupHighlighter(): void {
+  if (highlighter || highlighterPromise) return
+  void getOrCreateHighlighter().catch(() => {
+    // Silent failure - highlighter will be created on demand
+  })
+}
+
 const extensionToLanguage: Record<string, string> = {
   ts: "typescript",
   tsx: "typescript",
@@ -345,8 +357,10 @@ export async function renderMarkdown(
   const decoded = decodeHtmlEntities(content)
 
   if (!suppressHighlight) {
-    // Queue language loading but don't wait for it to complete
-    await ensureLanguages(decoded)
+    // Queue language loading but DON'T wait for it to complete
+    // This prevents blocking the render while languages load
+    // Languages will be available on next render cycle via onLanguagesLoaded
+    void ensureLanguages(decoded)
   }
 
   const previousSuppressed = highlightSuppressed

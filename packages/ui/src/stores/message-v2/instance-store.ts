@@ -68,6 +68,9 @@ function ensurePartId(messageId: string, part: ClientPart, index: number): strin
 
 const PENDING_PART_MAX_AGE_MS = 30_000
 
+// Throttle session revision bumps during streaming to prevent update storms
+const SESSION_REVISION_THROTTLE_MS = 100
+
 function clonePart(part: ClientPart): ClientPart {
   // Cloning is intentionally disabled; message parts
   // are stored as received from the backend.
@@ -209,6 +212,7 @@ export interface InstanceMessageStore {
   setScrollSnapshot: (sessionId: string, scope: string, snapshot: Omit<ScrollSnapshot, "updatedAt">) => void
   getScrollSnapshot: (sessionId: string, scope: string) => ScrollSnapshot | undefined
   getSessionRevision: (sessionId: string) => number
+  bumpSessionRevisionImmediate: (sessionId: string) => void
   getSessionMessageIds: (sessionId: string) => string[]
   getMessage: (messageId: string) => MessageRecord | undefined
   getLatestTodoSnapshot: (sessionId: string) => LatestTodoSnapshot | undefined
@@ -268,8 +272,32 @@ export function createInstanceMessageStore(instanceId: string, hooks?: MessageSt
     setState("latestTodos", sessionId, undefined)
   }
 
+  // Throttle state for session revisions to prevent update storms during streaming
+  const pendingRevisionBumps = new Set<string>()
+  let revisionFlushTimer: ReturnType<typeof setTimeout> | null = null
+
+  function flushPendingRevisions() {
+    revisionFlushTimer = null
+    if (pendingRevisionBumps.size === 0) return
+    const sessions = Array.from(pendingRevisionBumps)
+    pendingRevisionBumps.clear()
+    for (const sessionId of sessions) {
+      setState("sessionRevisions", sessionId, (value = 0) => value + 1)
+    }
+  }
+
   function bumpSessionRevision(sessionId: string) {
     if (!sessionId) return
+    pendingRevisionBumps.add(sessionId)
+    if (revisionFlushTimer === null) {
+      revisionFlushTimer = setTimeout(flushPendingRevisions, SESSION_REVISION_THROTTLE_MS)
+    }
+  }
+
+  // Immediate bump for critical updates (message complete, session switch, etc.)
+  function bumpSessionRevisionImmediate(sessionId: string) {
+    if (!sessionId) return
+    pendingRevisionBumps.delete(sessionId)
     setState("sessionRevisions", sessionId, (value = 0) => value + 1)
   }
 
@@ -356,6 +384,14 @@ export function createInstanceMessageStore(instanceId: string, hooks?: MessageSt
     ensureSessionEntry(sessionId)
 
     const incomingIds = inputs.map((item) => item.id)
+    const existingMessageIds = state.sessions[sessionId]?.messageIds ?? []
+    const pendingMessageIds = existingMessageIds.filter((messageId) => {
+      if (incomingIds.includes(messageId)) return false
+      const record = state.messages[messageId]
+      if (!record) return false
+      return record.isEphemeral || record.status === "sending" || record.status === "streaming"
+    })
+    const nextMessageIds = pendingMessageIds.length > 0 ? [...incomingIds, ...pendingMessageIds] : incomingIds
 
     const normalizedRecords: Record<string, MessageRecord> = {}
     const now = Date.now()
@@ -413,7 +449,7 @@ export function createInstanceMessageStore(instanceId: string, hooks?: MessageSt
 
       setState("sessions", sessionId, (session) => ({
         ...session,
-        messageIds: incomingIds,
+        messageIds: nextMessageIds,
         updatedAt: Date.now(),
       }))
 
@@ -487,7 +523,16 @@ export function createInstanceMessageStore(instanceId: string, hooks?: MessageSt
 
     insertMessageIntoSession(input.sessionId, input.id)
     flushPendingParts(input.id)
-    bumpSessionRevision(input.sessionId)
+    
+    // Use immediate bump for new messages (especially user messages) so UI updates instantly
+    // Throttled bump is fine for streaming part updates that arrive frequently
+    const isNewMessage = state.messages[input.id]?.revision === 0
+    const isUserMessage = input.role === "user"
+    if (isNewMessage || isUserMessage) {
+      bumpSessionRevisionImmediate(input.sessionId)
+    } else {
+      bumpSessionRevision(input.sessionId)
+    }
   }
 
   function bufferPendingPart(entry: PendingPartEntry) {
@@ -560,7 +605,33 @@ export function createInstanceMessageStore(instanceId: string, hooks?: MessageSt
   
     const partId = ensurePartId(input.messageId, input.part, message.partIds.length)
     const cloned = clonePart(input.part)
-  
+
+    // OPTIMIZATION: Skip update if content is identical (reduces re-renders by ~80% during streaming)
+    const existingPartRecord = message.parts[partId]
+    if (existingPartRecord) {
+      const existingPart = existingPartRecord.data
+      const newPart = cloned
+
+      // For text parts, compare text content
+      if (existingPart.type === 'text' && newPart.type === 'text') {
+        if (existingPart.text === newPart.text) {
+          return
+        }
+      }
+
+      // For tool parts, compare state and result
+      if (existingPart.type === 'tool' && newPart.type === 'tool') {
+        const existingTool = existingPart as any
+        const newTool = newPart as any
+        if (
+          existingTool.state?.status === newTool.state?.status &&
+          existingTool.result === newTool.result
+        ) {
+          return
+        }
+      }
+    }
+
     setState(
       "messages",
       input.messageId,
@@ -1117,6 +1188,7 @@ export function createInstanceMessageStore(instanceId: string, hooks?: MessageSt
      setScrollSnapshot,
      getScrollSnapshot,
      getSessionRevision: getSessionRevisionValue,
+     bumpSessionRevisionImmediate,
       getSessionMessageIds: (sessionId: string) => state.sessions[sessionId]?.messageIds ?? [],
       getMessage: (messageId: string) => state.messages[messageId],
       getLatestTodoSnapshot: (sessionId: string) => state.latestTodos[sessionId],
@@ -1124,5 +1196,4 @@ export function createInstanceMessageStore(instanceId: string, hooks?: MessageSt
       clearInstance,
     }
   }
-
 

@@ -1299,6 +1299,19 @@
   box-shadow: 0 0 6px currentColor;
 }
 
+/* Unread indicator - subtle pulse to draw attention */
+.session-status-dot--unread {
+  animation: session-status-pulse 2s ease-in-out infinite;
+}
+
+/* Unread status - blue to indicate "done, check it out" */
+.session-status-pill--session-unread {
+  color: var(--session-status-unread-fg, #3b82f6);
+  background-color: var(--session-status-unread-bg, rgba(59, 130, 246, 0.12));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.2);
+}
+
 /* Loading shimmer effect */
 .session-status-pill--loading {
   background: linear-gradient(

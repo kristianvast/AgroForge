@@ -24,6 +24,7 @@ interface MessagePartProps {
   const isReasoningExpanded = () => isItemExpanded(reasoningId())
   const isAssistantMessage = () => props.messageType === "assistant"
   const textContainerClass = () => (isAssistantMessage() ? "message-text message-text-assistant" : "message-text")
+  const shouldHideSyntheticText = () => props.part?.type === "text" && props.part.synthetic && isAssistantMessage()
 
   const plainTextContent = () => {
     const part = props.part
@@ -94,7 +95,7 @@ interface MessagePartProps {
   return (
     <Switch>
       <Match when={partType() === "text"}>
-        <Show when={!(props.part.type === "text" && props.part.synthetic) && partHasRenderableText(props.part)}>
+        <Show when={!shouldHideSyntheticText() && partHasRenderableText(props.part)}>
           <div class={textContainerClass()}>
             <Show
                when={isAssistantMessage()}

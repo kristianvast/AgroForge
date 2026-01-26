@@ -407,6 +407,11 @@ session-sidebar-controls .selector-trigger-primary {
   --session-status-dot: var(--session-status-permission-fg);
 }
 
+.status-indicator.session-status.session-unread {
+  color: var(--session-status-unread-fg);
+  --session-status-dot: var(--session-status-unread-fg);
+}
+
 .status-indicator.session-status .status-dot {
   background-color: var(--session-status-dot);
 }
@@ -558,11 +563,22 @@ session-sidebar-controls .selector-trigger-primary {
     width: 100% !important;
     max-width: 100% !important;
     border-radius: 0 !important;
+    /* Use dynamic viewport height for mobile browser UI compatibility */
+    height: 100vh !important;
+    height: 100dvh !important;
+    height: var(--visual-viewport-height, 100vh) !important;
   }
   
   /* Session sidebar on mobile */
   .session-sidebar {
     padding-top: env(safe-area-inset-top);
+    /* Ensure full height on mobile */
+    height: 100%;
+    max-height: 100vh;
+    max-height: 100dvh;
+    max-height: var(--visual-viewport-height, 100vh);
+    display: flex;
+    flex-direction: column;
   }
   
   .session-sidebar-container {
@@ -575,6 +591,7 @@ session-sidebar-controls .selector-trigger-primary {
     top: 0;
     z-index: 10;
     background: var(--surface-secondary);
+    flex-shrink: 0;
   }
   
   /* Context usage panel compact */

@@ -312,37 +312,68 @@ export default function MessageBlock(props: MessageBlockProps) {
       pendingParts = []
     }
 
-    orderedParts.forEach((part, partIndex) => {
-      if (part.type === "tool") {
-        flushContent()
-        const partVersion = typeof (part as any).revision === "number" ? (part as any).revision : 0
-        const messageVersion = current.revision
-        const key = `${current.id}:${part.id ?? partIndex}`
-        let toolItem = sessionCache.toolItems.get(key)
-        if (!toolItem) {
-          toolItem = {
-            type: "tool",
-            key,
-            toolPart: part as ToolCallPart,
+    if (orderedParts.length === 0) {
+      if (current.status === "streaming" || current.status === "sending") {
+        const segmentKey = `${current.id}:segment:${segmentIndex}`
+        const shouldShowAgentMeta = current.role === "assistant" && !agentMetaAttached
+        let cached = sessionCache.messageItems.get(segmentKey)
+        if (!cached) {
+          cached = {
+            type: "content",
+            key: segmentKey,
+            record: current,
+            parts: [],
             messageInfo: info,
-            messageId: current.id,
-            messageVersion,
-            partVersion,
+            isQueued,
+            showAgentMeta: shouldShowAgentMeta,
           }
-          sessionCache.toolItems.set(key, toolItem)
+          sessionCache.messageItems.set(segmentKey, cached)
         } else {
-          toolItem.key = key
-          toolItem.toolPart = part as ToolCallPart
-          toolItem.messageInfo = info
-          toolItem.messageId = current.id
-          toolItem.messageVersion = messageVersion
-          toolItem.partVersion = partVersion
+          cached.record = current
+          cached.parts = []
+          cached.messageInfo = info
+          cached.isQueued = isQueued
+          cached.showAgentMeta = shouldShowAgentMeta
         }
-        items.push(toolItem)
-        blockToolKeys.push(key)
-        lastAccentColor = TOOL_BORDER_COLOR
-        return
+        if (shouldShowAgentMeta) {
+          agentMetaAttached = true
+        }
+        items.push(cached)
+        blockContentKeys.push(segmentKey)
+        lastAccentColor = defaultAccentColor
       }
+    } else {
+      orderedParts.forEach((part, partIndex) => {
+        if (part.type === "tool") {
+          flushContent()
+          const partVersion = typeof (part as any).revision === "number" ? (part as any).revision : 0
+          const messageVersion = current.revision
+          const key = `${current.id}:${part.id ?? partIndex}`
+          let toolItem = sessionCache.toolItems.get(key)
+          if (!toolItem) {
+            toolItem = {
+              type: "tool",
+              key,
+              toolPart: part as ToolCallPart,
+              messageInfo: info,
+              messageId: current.id,
+              messageVersion,
+              partVersion,
+            }
+            sessionCache.toolItems.set(key, toolItem)
+          } else {
+            toolItem.key = key
+            toolItem.toolPart = part as ToolCallPart
+            toolItem.messageInfo = info
+            toolItem.messageId = current.id
+            toolItem.messageVersion = messageVersion
+            toolItem.partVersion = partVersion
+          }
+          items.push(toolItem)
+          blockToolKeys.push(key)
+          lastAccentColor = TOOL_BORDER_COLOR
+          return
+        }
 
       if (part.type === "compaction") {
         flushContent()
@@ -396,10 +427,11 @@ export default function MessageBlock(props: MessageBlockProps) {
         return
       }
 
-      pendingParts.push(part)
-    })
+        pendingParts.push(part)
+      })
 
-    flushContent()
+      flushContent()
+    }
 
     const resultBlock: MessageDisplayBlock = { record: current, items }
     sessionCache.messageBlocks.set(current.id, {

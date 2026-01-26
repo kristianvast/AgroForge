@@ -7,6 +7,7 @@ import { agents } from "../stores/sessions"
 import { getSessionStatus } from "../stores/session-status"
 import { MessageSquare, Search, X, Clock, Plus, Zap } from "lucide-solid"
 import { getLogger } from "../lib/logger"
+import { cleanSessionTitle } from "../lib/session-title"
 const log = getLogger("session")
 
 
@@ -224,7 +225,7 @@ const SessionPicker: Component<SessionPickerProps> = (props) => {
                               {/* Content */}
                               <div class="session-picker-card-content">
                                 <span class="session-card-title">
-                                  {session.title || "Untitled"}
+                                  {cleanSessionTitle(session.title)}
                                 </span>
                                 <div class="session-card-meta">
                                   {/* Status pill */}

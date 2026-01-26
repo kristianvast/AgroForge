@@ -7,6 +7,7 @@ import KeyboardHint from "./keyboard-hint"
 import SessionRenameDialog from "./session-rename-dialog"
 import { keyboardRegistry } from "../lib/keyboard-registry"
 import { showToastNotification } from "../lib/notifications"
+import { cleanSessionTitle } from "../lib/session-title"
 import {
   deleteSession,
   ensureSessionParentExpanded,
@@ -18,6 +19,7 @@ import {
   setActiveSessionFromList,
   toggleSessionParentExpanded,
 } from "../stores/sessions"
+import { isSessionUnread } from "../stores/session-state"
 import { getLogger } from "../lib/logger"
 import { copyToClipboard } from "../lib/clipboard"
 const log = getLogger("session")
@@ -227,12 +229,15 @@ const SessionList: Component<SessionListProps> = (props) => {
     const status = filterStatus()
     
     return props.threads.filter(thread => {
-      // Check if parent or any child matches search
-      const parentTitle = thread.parent.title?.toLowerCase() || ""
-      const parentMatches = parentTitle.includes(query)
-      const childMatches = thread.children.some(child => 
-        (child.title?.toLowerCase() || "").includes(query)
-      )
+      // Check if parent or any child matches search (search both raw and cleaned titles)
+      const parentRawTitle = thread.parent.title?.toLowerCase() || ""
+      const parentCleanTitle = cleanSessionTitle(thread.parent.title).toLowerCase()
+      const parentMatches = parentRawTitle.includes(query) || parentCleanTitle.includes(query)
+      const childMatches = thread.children.some(child => {
+        const childRawTitle = child.title?.toLowerCase() || ""
+        const childCleanTitle = cleanSessionTitle(child.title).toLowerCase()
+        return childRawTitle.includes(query) || childCleanTitle.includes(query)
+      })
       const searchMatches = !query || parentMatches || childMatches
       
       if (!searchMatches) return false
@@ -413,14 +418,15 @@ const SessionList: Component<SessionListProps> = (props) => {
       return <></>
     }
     const isActive = () => props.activeSessionId === rowProps.sessionId
-    const title = () => session()?.title || "Untitled"
+    const title = () => cleanSessionTitle(session()?.title)
     const status = () => getSessionStatus(props.instanceId, rowProps.sessionId)
     const statusLabel = () => formatSessionStatus(status())
     const needsPermission = () => Boolean(session()?.pendingPermission)
     const needsQuestion = () => Boolean((session() as any)?.pendingQuestion)
     const needsInput = () => needsPermission() || needsQuestion()
-    const statusClassName = () => (needsInput() ? "session-permission" : `session-${status()}`)
-    const statusText = () => (needsPermission() ? "Permission" : needsQuestion() ? "Input" : statusLabel())
+    const unread = () => isSessionUnread(props.instanceId, rowProps.sessionId)
+    const statusClassName = () => (needsInput() ? "session-permission" : unread() ? "session-unread" : `session-${status()}`)
+    const statusText = () => (needsPermission() ? "Permission" : needsQuestion() ? "Input" : unread() ? "Done" : statusLabel())
     const isSubagent = () => isSubagentSession(session()?.title)
     
     // Touch feedback handler
@@ -550,8 +556,11 @@ const SessionList: Component<SessionListProps> = (props) => {
                   <Show when={status() === "compacting" && !needsInput()}>
                     <span class="session-status-pulse session-status-pulse--slow" />
                   </Show>
-                  <Show when={status() === "idle" && !needsInput()}>
+                  <Show when={status() === "idle" && !needsInput() && !unread()}>
                     <span class="session-status-dot" />
+                  </Show>
+                  <Show when={unread() && !needsInput()}>
+                    <span class="session-status-dot session-status-dot--unread" />
                   </Show>
                   {statusText()}
                 </span>

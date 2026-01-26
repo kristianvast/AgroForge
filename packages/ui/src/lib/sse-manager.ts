@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js"
+import { createSignal, batch } from "solid-js"
 import {
   MessageUpdateEvent,
   MessageRemovedEvent,
@@ -24,6 +24,16 @@ import type {
 import { getLogger } from "./logger"
 
 const log = getLogger("sse")
+
+// Simple fixed-interval batching - most robust approach for streaming
+// 50ms = ~20 updates/sec, smooth enough for text streaming
+const BATCH_INTERVAL_MS = 50
+
+// Pending part updates to batch
+interface PendingPartUpdate {
+  instanceId: string
+  event: MessagePartUpdatedEvent
+}
 
 type InstanceEventPayload = Extract<WorkspaceEventPayload, { type: "instance.event" }>
 type InstanceStatusPayload = Extract<WorkspaceEventPayload, { type: "instance.eventStatus" }>
@@ -76,6 +86,11 @@ type ConnectionStatus = InstanceStreamStatus
 const [connectionStatus, setConnectionStatus] = createSignal<Map<string, ConnectionStatus>>(new Map())
 
 class SSEManager {
+  // Simple coalescing: Map keeps only latest update per unique part
+  private coalescedUpdates: Map<string, PendingPartUpdate> = new Map()
+  // Fixed-interval timer (more predictable than RAF for batching)
+  private flushTimer: ReturnType<typeof setTimeout> | null = null
+
   constructor() {
     serverEvents.on("instance.eventStatus", (event) => {
       const payload = event as InstanceStatusPayload
@@ -106,14 +121,18 @@ class SSEManager {
       return
     }
 
-    log.info("Received event", { type: event.type, event })
+    // Skip verbose logging for high-frequency events
+    if (event.type !== "message.part.updated") {
+      log.info("Received event", { type: event.type, event })
+    }
 
     switch (event.type) {
       case "message.updated":
         this.onMessageUpdate?.(instanceId, event as MessageUpdateEvent)
         break
       case "message.part.updated":
-        this.onMessagePartUpdated?.(instanceId, event as MessagePartUpdatedEvent)
+        // Batch part updates to reduce state churn during streaming
+        this.queuePartUpdate(instanceId, event as MessagePartUpdatedEvent)
         break
       case "message.removed":
         this.onMessageRemoved?.(instanceId, event as MessageRemovedEvent)
@@ -165,6 +184,42 @@ class SSEManager {
       default:
         log.warn("Unknown SSE event type", { type: event.type })
     }
+  }
+
+  private queuePartUpdate(instanceId: string, event: MessagePartUpdatedEvent): void {
+    // Extract identifiers for coalescing key
+    const part = event.properties?.part
+    const props = event.properties as { messageID?: string; part?: { id?: string; messageID?: string } } | undefined
+    const messageId = props?.messageID ?? props?.part?.messageID ?? 'unknown'
+    const partId = part?.id ?? `temp-${Date.now()}`
+    const key = `${instanceId}:${messageId}:${partId}`
+
+    // COALESCE: Keep only latest update per part (critical for smooth streaming)
+    this.coalescedUpdates.set(key, { instanceId, event })
+
+    // Schedule flush with fixed interval (simpler and more predictable than RAF)
+    if (this.flushTimer === null) {
+      this.flushTimer = setTimeout(() => this.flushPartUpdates(), BATCH_INTERVAL_MS)
+    }
+  }
+
+  private flushPartUpdates(): void {
+    this.flushTimer = null
+
+    if (this.coalescedUpdates.size === 0) {
+      return
+    }
+
+    // Collect all coalesced updates
+    const updates = Array.from(this.coalescedUpdates.values())
+    this.coalescedUpdates.clear()
+
+    // Use batch to group all state updates into a single reactive transaction
+    batch(() => {
+      for (const { instanceId, event } of updates) {
+        this.onMessagePartUpdated?.(instanceId, event)
+      }
+    })
   }
 
   private updateConnectionStatus(instanceId: string, status: ConnectionStatus): void {

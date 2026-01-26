@@ -1,4 +1,4 @@
-import { createContext, createMemo, createSignal, onMount, useContext } from "solid-js"
+import { createContext, createRoot, createMemo, createSignal, onMount, useContext } from "solid-js"
 import type { Accessor, ParentComponent } from "solid-js"
 import { storage, type ConfigData } from "../lib/storage"
 import {
@@ -82,7 +82,7 @@ const MAX_RECENT_MODELS = 5
 const MAX_USAGE_ENTRIES = 20
 
 const defaultPreferences: Preferences = {
-  showThinkingBlocks: false,
+  showThinkingBlocks: true,
   thinkingBlocksExpansion: "expanded",
   showTimelineTools: true,
   environmentVariables: {},
@@ -145,13 +145,17 @@ function normalizePreferences(pref?: Partial<Preferences> & { agentModelSelectio
 }
 
 const [internalConfig, setInternalConfig] = createSignal<ConfigData>(buildFallbackConfig())
-
-const config = createMemo<DeepReadonly<ConfigData>>(() => internalConfig())
 const [isConfigLoaded, setIsConfigLoaded] = createSignal(false)
-const preferences = createMemo<Preferences>(() => internalConfig().preferences)
-const recentFolders = createMemo<RecentFolder[]>(() => internalConfig().recentFolders ?? [])
-const opencodeBinaries = createMemo<OpenCodeBinary[]>(() => internalConfig().opencodeBinaries ?? [])
-const themePreference = createMemo<ThemePreference>(() => internalConfig().theme ?? "dark")
+
+// Wrap module-level memos in createRoot to prevent disposal warnings
+const { config, preferences, recentFolders, opencodeBinaries, themePreference } = createRoot(() => ({
+  config: createMemo<DeepReadonly<ConfigData>>(() => internalConfig()),
+  preferences: createMemo<Preferences>(() => internalConfig().preferences),
+  recentFolders: createMemo<RecentFolder[]>(() => internalConfig().recentFolders ?? []),
+  opencodeBinaries: createMemo<OpenCodeBinary[]>(() => internalConfig().opencodeBinaries ?? []),
+  themePreference: createMemo<ThemePreference>(() => internalConfig().theme ?? "dark"),
+}))
+
 let loadPromise: Promise<void> | null = null
 
 function normalizeConfig(config?: ConfigData | null): ConfigData {
@@ -173,14 +177,38 @@ function removeLegacyAgentSelections(config?: ConfigData | null): { cleaned: Con
   return { cleaned: cleanedConfig, migrated }
 }
 
+// Migration: Enable thinking blocks by default (they were previously disabled)
+// This is a one-time migration to ensure users see thinking content
+function migrateThinkingBlocksEnabled(config: ConfigData): { config: ConfigData; migrated: boolean } {
+  const prefs = config.preferences
+  
+  // If showThinkingBlocks was explicitly set to false, force it to true
+  // This ensures all users can see thinking content
+  if (prefs.showThinkingBlocks === false) {
+    return {
+      config: {
+        ...config,
+        preferences: {
+          ...prefs,
+          showThinkingBlocks: true,
+        },
+      },
+      migrated: true,
+    }
+  }
+  
+  return { config, migrated: false }
+}
+
 async function syncConfig(source?: ConfigData): Promise<void> {
   try {
     const loaded = source ?? (await storage.loadConfig())
-    const { cleaned, migrated } = removeLegacyAgentSelections(loaded)
-    applyConfig(cleaned)
-    if (migrated) {
-      void storage.updateConfig(cleaned).catch((error: unknown) => {
-        log.error("Failed to persist legacy config cleanup", error)
+    const { cleaned, migrated: legacyMigrated } = removeLegacyAgentSelections(loaded)
+    const { config: finalConfig, migrated: thinkingMigrated } = migrateThinkingBlocksEnabled(cleaned)
+    applyConfig(finalConfig)
+    if (legacyMigrated || thinkingMigrated) {
+      void storage.updateConfig(finalConfig).catch((error: unknown) => {
+        log.error("Failed to persist config migration", error)
       })
     }
   } catch (error) {
@@ -485,6 +513,23 @@ function getModelUsageScore(providerId: string, modelId: string): number {
   return entry.useCount + recencyBonus * 2
 }
 
+function getMostRecentAgentName(): string | null {
+  const usage = preferences().agentUsage ?? []
+  if (usage.length === 0) return null
+  // Sort by lastUsed descending and return the most recent
+  const sorted = [...usage].sort((a, b) => b.lastUsed - a.lastUsed)
+  return sorted[0]?.name ?? null
+}
+
+function getMostRecentModelPreference(): ModelPreference | null {
+  const usage = preferences().modelUsage ?? []
+  if (usage.length === 0) return null
+  const sorted = [...usage].sort((a, b) => b.lastUsed - a.lastUsed)
+  const recent = sorted[0]
+  if (!recent) return null
+  return { providerId: recent.providerId, modelId: recent.modelId }
+}
+
 async function setAgentModelPreference(instanceId: string, agent: string, model: ModelPreference): Promise<void> {
   if (!instanceId || !agent || !model.providerId || !model.modelId) return
   await ensureInstanceConfigLoaded(instanceId)
@@ -633,6 +678,8 @@ export {
   recordModelUsage,
   getAgentUsageScore,
   getModelUsageScore,
+  getMostRecentAgentName,
+  getMostRecentModelPreference,
   setAgentModelPreference,
   getAgentModelPreference,
   setDiffViewMode,
@@ -645,5 +692,4 @@ export {
   recordWorkspaceLaunch,
 }
  
-
 

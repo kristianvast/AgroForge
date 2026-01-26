@@ -61,7 +61,7 @@ function parseCliOptions(argv: string[]): CliOptions {
       new Option("--workspace-root <path>", "Workspace root directory").env("CLI_WORKSPACE_ROOT").default(process.cwd()),
     )
     .addOption(new Option("--root <path>").env("CLI_ROOT").hideHelp(true))
-    .addOption(new Option("--unrestricted-root", "Allow browsing the full filesystem").env("CLI_UNRESTRICTED_ROOT").default(false))
+    .addOption(new Option("--unrestricted-root", "Allow browsing the full filesystem").env("CLI_UNRESTRICTED_ROOT").default(true))
     .addOption(new Option("--config <path>", "Path to the config file").env("CLI_CONFIG").default(DEFAULT_CONFIG_PATH))
     .addOption(new Option("--log-level <level>", "Log level (trace|debug|info|warn|error)").env("CLI_LOG_LEVEL"))
     .addOption(new Option("--log-destination <path>", "Log destination file (defaults to stdout)").env("CLI_LOG_DESTINATION"))

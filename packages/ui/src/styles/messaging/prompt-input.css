@@ -439,6 +439,19 @@
     position: sticky;
     bottom: 0;
     z-index: 100;
+    /* Smooth transition when keyboard appears/disappears */
+    transition: transform var(--mobile-transition-normal, 250ms) ease-out;
+  }
+  
+  /* When keyboard is open, adjust padding (keyboard pushes content up) */
+  .mobile-keyboard-open .prompt-input-container {
+    padding-bottom: 8px; /* Remove safe area padding when keyboard is up */
+  }
+  
+  /* Expanded input should account for keyboard */
+  .mobile-keyboard-open .prompt-input.is-expanded {
+    max-height: 30vh;
+    max-height: calc(var(--visual-viewport-height, 50vh) * 0.4);
   }
 }
 

@@ -1,4 +1,4 @@
-import { createEffect, createSignal } from "solid-js"
+import { createEffect, createRoot, createSignal } from "solid-js"
 import type { SupportMeta } from "../../../server/src/api-types"
 import { getServerMeta } from "../lib/server-meta"
 import { showToastNotification, ToastHandle } from "../lib/notifications"
@@ -28,36 +28,39 @@ function ensureVisibilityEffect() {
   }
   visibilityEffectInitialized = true
 
-  createEffect(() => {
-    const support = supportInfo()
-    const shouldShow = Boolean(support && support.supported === false) && (!hasInstances() || showFolderSelection())
+  // Wrap in createRoot to prevent disposal warnings when called outside render
+  createRoot(() => {
+    createEffect(() => {
+      const support = supportInfo()
+      const shouldShow = Boolean(support && support.supported === false) && (!hasInstances() || showFolderSelection())
 
-    if (!shouldShow || !support || support.supported !== false) {
-      dismissActiveToast()
-      return
-    }
+      if (!shouldShow || !support || support.supported !== false) {
+        dismissActiveToast()
+        return
+      }
 
-    const key = `${support.minServerVersion ?? "unknown"}:${support.latestServerVersion ?? "unknown"}`
+      const key = `${support.minServerVersion ?? "unknown"}:${support.latestServerVersion ?? "unknown"}`
 
-    if (!activeToast || activeToastKey !== key) {
-      dismissActiveToast()
-      activeToast = showToastNotification({
-        title: support.message ?? "Upgrade required",
-        message: support.latestServerVersion
-          ? `Update to CodeNomad ${support.latestServerVersion} to use the latest UI.`
-          : "Update CodeNomad to use the latest UI.",
-        variant: "info",
-        duration: Number.POSITIVE_INFINITY,
-        position: "bottom-right",
-        action: support.latestServerUrl
-          ? {
-              label: "Get update",
-              href: support.latestServerUrl,
-            }
-          : undefined,
-      })
-      activeToastKey = key
-    }
+      if (!activeToast || activeToastKey !== key) {
+        dismissActiveToast()
+        activeToast = showToastNotification({
+          title: support.message ?? "Upgrade required",
+          message: support.latestServerVersion
+            ? `Update to CodeNomad ${support.latestServerVersion} to use the latest UI.`
+            : "Update CodeNomad to use the latest UI.",
+          variant: "info",
+          duration: Number.POSITIVE_INFINITY,
+          position: "bottom-right",
+          action: support.latestServerUrl
+            ? {
+                label: "Get update",
+                href: support.latestServerUrl,
+              }
+            : undefined,
+        })
+        activeToastKey = key
+      }
+    })
   })
 }
 

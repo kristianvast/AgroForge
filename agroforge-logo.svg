@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <!-- Gradient for the anvil/forge base -->
+    <linearGradient id="forgeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A5568;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2D3748;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradient for the plant/growth -->
+    <linearGradient id="agroGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#276749;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#38A169;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#68D391;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Glow effect for ember/heat -->
+    <radialGradient id="emberGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#F6AD55;stop-opacity:0.8" />
+      <stop offset="60%" style="stop-color:#ED8936;stop-opacity:0.4" />
+      <stop offset="100%" style="stop-color:#DD6B20;stop-opacity:0" />
+    </radialGradient>
+    
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  
+  <!-- Background circle (optional, can be removed for transparent) -->
+  <circle cx="200" cy="200" r="180" fill="#1A202C" filter="url(#shadow)"/>
+  
+  <!-- Anvil/Forge base -->
+  <path d="M100 280 
+           L120 240 
+           L150 240 
+           L150 220 
+           L130 220 
+           L140 200 
+           L260 200 
+           L270 220 
+           L250 220 
+           L250 240 
+           L280 240 
+           L300 280 
+           L280 290 
+           L120 290 
+           Z" 
+        fill="url(#forgeGradient)" 
+        stroke="#718096" 
+        stroke-width="2"/>
+  
+  <!-- Anvil top surface highlight -->
+  <path d="M140 200 L260 200 L255 210 L145 210 Z" 
+        fill="#718096" 
+        opacity="0.5"/>
+  
+  <!-- Ember glow behind plant -->
+  <ellipse cx="200" cy="180" rx="60" ry="40" fill="url(#emberGlow)"/>
+  
+  <!-- Main stem growing from anvil -->
+  <path d="M200 200 
+           Q200 160 195 140 
+           Q190 120 200 100" 
+        fill="none" 
+        stroke="url(#agroGradient)" 
+        stroke-width="8" 
+        stroke-linecap="round"/>
+  
+  <!-- Left leaf -->
+  <path d="M195 150 
+           Q160 140 140 110 
+           Q160 120 180 130 
+           Q175 145 195 150" 
+        fill="url(#agroGradient)"/>
+  
+  <!-- Right leaf -->
+  <path d="M200 130 
+           Q235 115 260 90 
+           Q240 110 220 125 
+           Q215 135 200 130" 
+        fill="url(#agroGradient)"/>
+  
+  <!-- Top sprouting leaves (growth symbol) -->
+  <path d="M200 100 
+           Q180 85 165 65 
+           Q185 80 200 85 
+           Q215 80 235 65 
+           Q220 85 200 100" 
+        fill="url(#agroGradient)"/>
+  
+  <!-- Small sparks/seeds -->
+  <circle cx="155" cy="170" r="3" fill="#F6AD55" opacity="0.8"/>
+  <circle cx="175" cy="185" r="2" fill="#ED8936" opacity="0.6"/>
+  <circle cx="230" cy="175" r="3" fill="#F6AD55" opacity="0.7"/>
+  <circle cx="245" cy="185" r="2" fill="#ED8936" opacity="0.5"/>
+  
+  <!-- Hammer silhouette (subtle, integrated) -->
+  <path d="M280 140 
+           L310 110 
+           L320 120 
+           L295 155 
+           L285 165 
+           L275 155 
+           Z" 
+        fill="#4A5568" 
+        opacity="0.6"/>
+  
+  <!-- Hammer head -->
+  <rect x="305" y="100" width="30" height="20" rx="3" 
+        fill="#718096" 
+        transform="rotate(-45 320 110)"
+        opacity="0.7"/>
+</svg>

@@ -20,6 +20,7 @@ interface FolderSelectionViewProps {
   onAdvancedSettingsOpen?: () => void
   onAdvancedSettingsClose?: () => void
   onOpenRemoteAccess?: () => void
+  autoOpenNative?: boolean
 }
 
 const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
@@ -28,6 +29,7 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
   const [focusMode, setFocusMode] = createSignal<"recent" | "new" | null>("recent")
   const [selectedBinary, setSelectedBinary] = createSignal(preferences().lastUsedBinary || "opencode")
   const [isFolderBrowserOpen, setIsFolderBrowserOpen] = createSignal(false)
+  const [hasAutoOpened, setHasAutoOpened] = createSignal(false)
   const nativeDialogsAvailable = supportsNativeDialogs()
   let recentListRef: HTMLDivElement | undefined
  
@@ -39,6 +41,14 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
     const lastUsed = preferences().lastUsedBinary
     if (!lastUsed) return
     setSelectedBinary((current) => (current === lastUsed ? current : lastUsed))
+  })
+
+  createEffect(() => {
+    if (!props.autoOpenNative) return
+    if (hasAutoOpened()) return
+    if (!nativeDialogsAvailable || isLoading()) return
+    setHasAutoOpened(true)
+    void handleBrowse()
   })
 
 

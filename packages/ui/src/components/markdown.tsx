@@ -7,6 +7,9 @@ import { copyToClipboard } from "../lib/clipboard"
 
 const log = getLogger("session")
 
+// Simple approach: upstream SSE batching (50ms) handles the throttling
+// We just render whenever the signal changes - no complex debounce needed
+
 function hashText(value: string): string {
   let hash = 2166136261
   for (let index = 0; index < value.length; index++) {
@@ -67,11 +70,13 @@ export function Markdown(props: MarkdownProps) {
     version: () => resolved().version,
   })
 
+  // Simple render effect - no debounce, trust upstream batching
   createEffect(async () => {
     const { part, text, themeKey, highlightEnabled, version } = resolved()
 
     latestRequestedText = text
 
+    // Check caches first
     const cacheMatches = (cache: RenderCache | undefined) => {
       if (!cache) return false
       return cache.theme === themeKey && cache.mode === version
@@ -92,41 +97,26 @@ export function Markdown(props: MarkdownProps) {
       return
     }
 
+    // Render markdown (upstream batching already throttles at 50ms)
+    const currentText = text
     const commitCacheEntry = (renderedHtml: string) => {
-      const cacheEntry: RenderCache = { text, html: renderedHtml, theme: themeKey, mode: version }
+      const cacheEntry: RenderCache = { text: currentText, html: renderedHtml, theme: themeKey, mode: version }
       setHtml(renderedHtml)
       part.renderCache = cacheEntry
       cacheHandle.set(cacheEntry)
       notifyRendered()
     }
 
-    if (!highlightEnabled) {
-      part.renderCache = undefined
-
-      try {
-        const rendered = await renderMarkdown(text, { suppressHighlight: true })
-
-        if (latestRequestedText === text) {
-          commitCacheEntry(rendered)
-        }
-      } catch (error) {
-        log.error("Failed to render markdown:", error)
-        if (latestRequestedText === text) {
-          commitCacheEntry(text)
-        }
-      }
-      return
-    }
-
     try {
-      const rendered = await renderMarkdown(text)
-      if (latestRequestedText === text) {
+      const rendered = await renderMarkdown(currentText, { suppressHighlight: !highlightEnabled })
+      // Only commit if text hasn't changed during async render
+      if (latestRequestedText === currentText) {
         commitCacheEntry(rendered)
       }
     } catch (error) {
       log.error("Failed to render markdown:", error)
-      if (latestRequestedText === text) {
-        commitCacheEntry(text)
+      if (latestRequestedText === currentText) {
+        commitCacheEntry(currentText)
       }
     }
   })

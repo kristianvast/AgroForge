@@ -119,6 +119,9 @@ export class WorkspaceManager {
     const preferences = this.options.configStore.get().preferences ?? {}
     const userEnvironment = preferences.environmentVariables ?? {}
 
+    const userOpencodeConfigDir = userEnvironment.OPENCODE_CONFIG_DIR?.trim()
+    const opencodeConfigDir = userOpencodeConfigDir ? userOpencodeConfigDir : this.opencodeConfigDir
+
     const opencodeUsername = DEFAULT_OPENCODE_USERNAME
     const opencodePassword = generateOpencodeServerPassword()
     const authorization = buildOpencodeBasicAuthHeader({ username: opencodeUsername, password: opencodePassword })
@@ -129,7 +132,7 @@ export class WorkspaceManager {
 
     const environment = {
       ...userEnvironment,
-      OPENCODE_CONFIG_DIR: this.opencodeConfigDir,
+      OPENCODE_CONFIG_DIR: opencodeConfigDir,
       CODENOMAD_INSTANCE_ID: id,
       CODENOMAD_BASE_URL: this.options.getServerBaseUrl(),
       [OPENCODE_SERVER_USERNAME_ENV]: opencodeUsername,

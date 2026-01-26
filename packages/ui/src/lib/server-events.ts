@@ -6,6 +6,9 @@ const RETRY_BASE_DELAY = 1000
 const RETRY_MAX_DELAY = 10000
 const log = getLogger("sse")
 
+// Events to skip logging (high-frequency or noise)
+const SILENT_EVENT_TYPES = new Set(["workspace.log"])
+
 function logSse(message: string, context?: Record<string, unknown>) {
   if (context) {
     log.info(message, context)
@@ -48,7 +51,10 @@ class ServerEvents {
   }
 
   private dispatch(event: WorkspaceEventPayload) {
-    logSse(`event ${event.type}`)
+    // Skip logging high-frequency events to reduce noise
+    if (!SILENT_EVENT_TYPES.has(event.type)) {
+      logSse(`event ${event.type}`)
+    }
     this.handlers.get("*")?.forEach((handler) => handler(event))
     this.handlers.get(event.type)?.forEach((handler) => handler(event))
   }

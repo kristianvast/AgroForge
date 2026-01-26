@@ -48,6 +48,10 @@ const [sessionInfoByInstance, setSessionInfoByInstance] = createSignal<Map<strin
 
 const [expandedSessionParents, setExpandedSessionParents] = createSignal<Map<string, Set<string>>>(new Map())
 
+// Track sessions that finished while user was viewing a different session
+// Key: `${instanceId}:${sessionId}`, Value: true if unread
+const [unreadSessions, setUnreadSessions] = createSignal<Set<string>>(new Set())
+
 export type InstanceSessionIndicatorStatus = "permission" | SessionStatus
 
 type InstanceIndicatorCounts = {
@@ -318,6 +322,8 @@ function setActiveSession(instanceId: string, sessionId: string): void {
     next.set(instanceId, sessionId)
     return next
   })
+  // Clear unread status when user opens the session
+  clearSessionUnread(instanceId, sessionId)
 }
 
 function setActiveParentSession(instanceId: string, parentSessionId: string): void {
@@ -345,10 +351,55 @@ function clearActiveParentSession(instanceId: string): void {
 }
 
 function setSessionStatus(instanceId: string, sessionId: string, status: SessionStatus): void {
+  let updated = false
   withSession(instanceId, sessionId, (session) => {
     if (session.status === status) return false
     session.status = status
+    updated = true
   })
+  // Sync indicator counts so instance tab shows correct status
+  if (updated) {
+    syncInstanceSessionIndicator(instanceId)
+  }
+}
+
+// Unread session tracking - for sessions that finished while user was elsewhere
+function getUnreadKey(instanceId: string, sessionId: string): string {
+  return `${instanceId}:${sessionId}`
+}
+
+function markSessionUnread(instanceId: string, sessionId: string): void {
+  const key = getUnreadKey(instanceId, sessionId)
+  setUnreadSessions((prev) => {
+    if (prev.has(key)) return prev
+    const next = new Set(prev)
+    next.add(key)
+    return next
+  })
+}
+
+function clearSessionUnread(instanceId: string, sessionId: string): void {
+  const key = getUnreadKey(instanceId, sessionId)
+  setUnreadSessions((prev) => {
+    if (!prev.has(key)) return prev
+    const next = new Set(prev)
+    next.delete(key)
+    return next
+  })
+}
+
+function isSessionUnread(instanceId: string, sessionId: string): boolean {
+  const key = getUnreadKey(instanceId, sessionId)
+  return unreadSessions().has(key)
+}
+
+function getUnreadSessionCount(instanceId: string): number {
+  const prefix = `${instanceId}:`
+  let count = 0
+  for (const key of unreadSessions()) {
+    if (key.startsWith(prefix)) count++
+  }
+  return count
 }
 
 function getActiveParentSession(instanceId: string): Session | null {
@@ -736,4 +787,9 @@ export {
   getSessionInfo,
   isBlankSession,
   cleanupBlankSessions,
+  // Unread session tracking
+  markSessionUnread,
+  clearSessionUnread,
+  isSessionUnread,
+  getUnreadSessionCount,
 }

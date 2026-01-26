@@ -1,7 +1,8 @@
-import { Component, createMemo } from "solid-js"
+import { Component, createMemo, Show } from "solid-js"
 import type { Instance } from "../types/instance"
 import { getInstanceSessionIndicatorStatus } from "../stores/session-status"
-import { FolderOpen, ShieldAlert, X } from "lucide-solid"
+import { getUnreadSessionCount } from "../stores/session-state"
+import { FolderOpen, ShieldAlert, X, CheckCircle2 } from "lucide-solid"
 
 interface InstanceTabProps {
   instance: Instance
@@ -28,11 +29,15 @@ function formatFolderName(path: string, instances: Instance[], currentInstance: 
 
 const InstanceTab: Component<InstanceTabProps> = (props) => {
   const aggregatedStatus = createMemo(() => getInstanceSessionIndicatorStatus(props.instance.id))
+  const unreadCount = createMemo(() => getUnreadSessionCount(props.instance.id))
   const statusClassName = createMemo(() => {
     const status = aggregatedStatus()
+    if (unreadCount() > 0) return "session-unread"
     return status === "permission" ? "session-permission" : `session-${status}`
   })
   const statusTitle = createMemo(() => {
+    const count = unreadCount()
+    if (count > 0) return `${count} session${count === 1 ? "" : "s"} finished`
     switch (aggregatedStatus()) {
       case "permission":
         return "Waiting on permission"
@@ -63,11 +68,15 @@ const InstanceTab: Component<InstanceTabProps> = (props) => {
           title={statusTitle()}
           aria-label={`Instance status: ${statusTitle()}`}
         >
-          {aggregatedStatus() === "permission" ? (
+          <Show when={aggregatedStatus() === "permission"}>
             <ShieldAlert class="w-3.5 h-3.5" aria-hidden="true" />
-          ) : (
+          </Show>
+          <Show when={unreadCount() > 0 && aggregatedStatus() !== "permission"}>
+            <CheckCircle2 class="w-3.5 h-3.5" aria-hidden="true" />
+          </Show>
+          <Show when={unreadCount() === 0 && aggregatedStatus() !== "permission"}>
             <span class="status-dot" />
-          )}
+          </Show>
         </span>
         <span
           class="tab-close"

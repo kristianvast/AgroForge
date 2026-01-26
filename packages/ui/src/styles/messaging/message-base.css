@@ -10,20 +10,7 @@
 }
 
 /* ═══ Entrance Animation ═══ */
-@keyframes message-slide-in {
-  0% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.message-item-base {
-  animation: message-slide-in 0.3s ease-out;
-}
+/* Removed to avoid delayed visibility during streaming */
 
 .message-item-header {
   @apply flex justify-between items-start gap-2.5;
@@ -262,6 +249,105 @@
     0 4px 12px rgba(0, 0, 0, 0.15),
     0 0 15px var(--status-error-glow),
     inset 0 0 30px var(--message-error-bg);
+}
+
+.message-thinking {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(var(--accent-secondary-rgb), 0.18);
+  background: linear-gradient(135deg, rgba(var(--accent-secondary-rgb), 0.08), rgba(255, 255, 255, 0.02));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 6px 14px rgba(0, 0, 0, 0.12);
+}
+
+.message-thinking-visual {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  background: rgba(var(--accent-secondary-rgb), 0.12);
+}
+
+.message-thinking-ring {
+  position: absolute;
+  inset: 3px;
+  border-radius: 999px;
+  border: 1px dashed rgba(var(--accent-secondary-rgb), 0.35);
+  animation: thinking-spin 8s linear infinite;
+}
+
+.message-thinking-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent-secondary);
+  box-shadow: 0 0 8px rgba(var(--accent-secondary-rgb), 0.5);
+  animation: thinking-bounce 1.4s ease-in-out infinite;
+  z-index: 1;
+}
+
+.message-thinking-dot-1 {
+  animation-delay: 0s;
+}
+
+.message-thinking-dot-2 {
+  animation-delay: 0.15s;
+}
+
+.message-thinking-dot-3 {
+  animation-delay: 0.3s;
+}
+
+.message-thinking-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.message-thinking-title {
+  font-size: 0.85rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.message-thinking-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.message-thinking-subtitle {
+  font-size: 0.72rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--accent-secondary);
+  letter-spacing: 0.01em;
+}
+
+@keyframes thinking-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes thinking-bounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 
 .message-generating {
@@ -608,6 +694,11 @@
     animation: none;
     background: none;
     -webkit-text-fill-color: var(--text-muted);
+  }
+
+  .message-thinking-ring,
+  .message-thinking-dot {
+    animation: none;
   }
   
   .message-queued-badge {

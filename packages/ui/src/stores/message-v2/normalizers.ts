@@ -35,6 +35,17 @@ export function normalizeMessagePart(part: any): any {
     throw new Error("Tool part missing id")
   }
 
+  // Normalize reasoning parts - decode HTML entities in text
+  if (part.type === "reasoning") {
+    const normalized: Record<string, any> = { ...part }
+    if (typeof normalized.text === "string") {
+      normalized.text = decodeHtmlEntities(normalized.text)
+    } else if (normalized.text && typeof normalized.text === "object") {
+      normalized.text = decodeTextSegment(normalized.text)
+    }
+    return normalized
+  }
+
   if (part.type !== "text") {
     return part
   }

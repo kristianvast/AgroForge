@@ -2,7 +2,12 @@ import { mapSdkSessionStatus, type Session, type SessionStatus } from "../types/
 import type { Message } from "../types/message"
 
 import { instances } from "./instances"
-import { preferences, setAgentModelPreference } from "./preferences"
+import {
+  preferences,
+  setAgentModelPreference,
+  getMostRecentAgentName,
+  getMostRecentModelPreference,
+} from "./preferences"
 import {
   activeSessionId,
   agents,
@@ -182,9 +187,24 @@ async function createSession(instanceId: string, agent?: string): Promise<Sessio
 
   const instanceAgents = agents().get(instanceId) || []
   const nonSubagents = instanceAgents.filter((a) => a.mode !== "subagent")
-  const selectedAgent = agent || (nonSubagents.length > 0 ? nonSubagents[0].name : "")
+  
+  // Priority: explicit agent > most recently used agent > first available agent
+  let selectedAgent = agent
+  if (!selectedAgent) {
+    const recentAgent = getMostRecentAgentName()
+    // Check if the recently used agent exists in this instance
+    if (recentAgent && nonSubagents.some(a => a.name === recentAgent)) {
+      selectedAgent = recentAgent
+    } else {
+      selectedAgent = nonSubagents.length > 0 ? nonSubagents[0].name : ""
+    }
+  }
 
-  const defaultModel = await getDefaultModel(instanceId, selectedAgent)
+  const recentModel = getMostRecentModelPreference()
+  const defaultModel =
+    recentModel && isModelValid(instanceId, recentModel)
+      ? recentModel
+      : await getDefaultModel(instanceId, selectedAgent)
 
   if (selectedAgent && isModelValid(instanceId, defaultModel)) {
     await setAgentModelPreference(instanceId, selectedAgent, defaultModel)

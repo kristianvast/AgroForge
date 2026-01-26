@@ -1,6 +1,26 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    CODENOMAD — Mobile-First CSS Foundation
    Target: iPhone 13 Pro Max (428px logical width, 926px height)
+   ═══════════════════════════════════════════════════════════════════════════
+   
+   VIEWPORT HANDLING:
+   This file works with packages/ui/src/utils/viewport.ts which sets:
+   
+   --vh: Standard viewport height unit (1% of window.innerHeight)
+   --dvh: Dynamic viewport height (1% of visualViewport.height)
+   --svh: Small viewport height (accounts for browser UI when visible)
+   --viewport-height: Full viewport height in pixels
+   --visual-viewport-height: Actual visible area in pixels
+   --keyboard-height: Virtual keyboard height when open (0 when closed)
+   
+   The viewport.ts utility also adds:
+   - data-keyboard-open="true" on <html> when keyboard is visible
+   - .mobile-keyboard-open class on <body> when keyboard is visible
+   
+   USE CASES:
+   - For full-height containers: use 100dvh with 100vh fallback
+   - For stable heights (no address bar flicker): use 100svh
+   - For keyboard-aware heights: use var(--visual-viewport-height)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -19,6 +39,11 @@
   --mobile-safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --mobile-safe-area-left: env(safe-area-inset-left, 0px);
   --mobile-safe-area-right: env(safe-area-inset-right, 0px);
+  
+  /* Dynamic viewport units - set by viewport.ts utility */
+  /* --vh, --dvh, --svh are set via JavaScript for older browser support */
+  /* --viewport-height and --visual-viewport-height for full height values */
+  /* --keyboard-height for virtual keyboard size on mobile */
   
   /* Touch targets - Apple HIG compliance */
   --mobile-touch-target: 44px;
@@ -165,9 +190,12 @@
 
 /* Viewport height utilities - handles iOS Safari toolbar */
 .mobile-full-height {
-  height: 100dvh;
   /* Fallback for older browsers */
   height: 100vh;
+  /* Dynamic viewport height for modern browsers */
+  height: 100dvh;
+  /* JS-based fallback using CSS custom property */
+  height: calc(var(--dvh, 1vh) * 100);
 }
 
 @supports (height: 100dvh) {
@@ -177,13 +205,30 @@
 }
 
 .mobile-min-height {
-  min-height: 100dvh;
+  /* Fallback for older browsers */
   min-height: 100vh;
+  /* Dynamic viewport height for modern browsers */
+  min-height: 100dvh;
+  /* JS-based fallback using CSS custom property */
+  min-height: calc(var(--dvh, 1vh) * 100);
 }
 
 @supports (min-height: 100dvh) {
   .mobile-min-height {
     min-height: 100dvh;
+  }
+}
+
+/* Small viewport height (stable - always accounts for browser UI) */
+.mobile-stable-height {
+  height: 100vh;
+  height: 100svh;
+  height: calc(var(--svh, 1vh) * 100);
+}
+
+@supports (height: 100svh) {
+  .mobile-stable-height {
+    height: 100svh;
   }
 }
 
@@ -501,6 +546,7 @@
 }
 
 /* Keyboard avoidance helper - add to body when keyboard is open */
+/* This class is automatically added/removed by viewport.ts */
 .mobile-keyboard-open {
   /* Adjust layout when keyboard is visible */
 }
@@ -511,6 +557,41 @@
 
 .mobile-keyboard-open .mobile-bottom-sheet {
   max-height: 50vh;
+  max-height: 50dvh;
+  /* Use visual viewport height when keyboard is open */
+  max-height: calc(var(--visual-viewport-height, 50vh) - var(--mobile-safe-area-bottom));
+}
+
+/* Keyboard-aware input container - stays above keyboard */
+.mobile-keyboard-aware {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  /* Transitions smoothly when keyboard appears/disappears */
+  transition: transform var(--mobile-transition-normal) ease-out;
+  padding-bottom: var(--mobile-safe-area-bottom);
+  background-color: var(--surface-base);
+  z-index: var(--mobile-z-sticky);
+}
+
+/* When keyboard is open, use the keyboard height to position */
+.mobile-keyboard-open .mobile-keyboard-aware {
+  /* The keyboard height is set by viewport.ts */
+  transform: translateY(calc(-1 * var(--keyboard-height, 0px)));
+  padding-bottom: 0;
+}
+
+/* Alternative: use visual viewport directly */
+[data-keyboard-open="true"] .mobile-bottom-fixed {
+  bottom: var(--keyboard-height, 0px);
+}
+
+/* Prevent body scroll when keyboard is open (optional) */
+.mobile-keyboard-open.mobile-prevent-scroll {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

@@ -4,8 +4,9 @@ import { Toaster } from "solid-toast"
 import { showConfirmDialog } from "./stores/alerts"
 import InstanceTabs from "./components/instance-tabs"
 import { InstanceMetadataProvider } from "./lib/contexts/instance-metadata-context"
-import { initMarkdown } from "./lib/markdown"
+import { initMarkdown, warmupHighlighter } from "./lib/markdown"
 import { initGithubStars } from "./stores/github-stars"
+import { initViewport } from "./utils/viewport"
 
 // Lazy loaded components for better initial load performance
 const AlertDialog = lazy(() => import("./components/alert-dialog"))
@@ -14,9 +15,14 @@ const InstanceDisconnectedModal = lazy(() => import("./components/instance-disco
 const InstanceShell = lazy(() => import("./components/instance/instance-shell2"))
 const RemoteAccessOverlay = lazy(() => import("./components/remote-access-overlay").then(m => ({ default: m.RemoteAccessOverlay })))
 
+// Start Shiki highlighter warmup immediately on module load (non-blocking)
+// This ensures the highlighter is ready before the first message renders
+warmupHighlighter()
+
 import { useTheme } from "./lib/theme"
 import { useCommands } from "./lib/hooks/use-commands"
 import { useAppLifecycle } from "./lib/hooks/use-app-lifecycle"
+import { useSelectionCopy } from "./lib/hooks/use-selection-copy"
 import { getLogger } from "./lib/logger"
 import { initReleaseNotifications } from "./stores/releases"
 import { runtimeEnv } from "./lib/runtime-env"
@@ -99,17 +105,17 @@ const App: Component = () => {
     setInstanceTabBarHeight(element?.offsetHeight ?? 0)
   }
 
-  // Defer markdown initialization until after first paint for smoother loading
+  // Initialize markdown renderer early - needed for message rendering
+  // Use requestAnimationFrame instead of requestIdleCallback to ensure
+  // markdown is ready before first messages render
   createEffect(() => {
-    // Use requestIdleCallback for non-critical initialization
-    const initMarkdownDeferred = () => {
+    const initMarkdownEarly = () => {
       void initMarkdown(isDark()).catch((error) => log.error("Failed to initialize markdown", error))
     }
-    if ("requestIdleCallback" in window) {
-      ;(window as any).requestIdleCallback(initMarkdownDeferred, { timeout: 2000 })
-    } else {
-      setTimeout(initMarkdownDeferred, 100)
-    }
+    // Run after first paint, but before user interaction
+    requestAnimationFrame(() => {
+      requestAnimationFrame(initMarkdownEarly)
+    })
   })
 
   // Defer release notifications check - not needed for initial render
@@ -128,6 +134,11 @@ const App: Component = () => {
   })
 
   onMount(() => {
+    // Initialize viewport detection for mobile browser UI handling
+    // Sets --vh, --dvh, --svh CSS custom properties and handles keyboard detection
+    const cleanupViewport = initViewport()
+    onCleanup(cleanupViewport)
+
     // Defer GitHub stars fetch - purely cosmetic, not needed immediately
     if ("requestIdleCallback" in window) {
       ;(window as any).requestIdleCallback(() => void initGithubStars(), { timeout: 5000 })
@@ -332,6 +343,9 @@ const App: Component = () => {
     getActiveSessionIdForInstance: activeSessionIdForInstance,
   })
 
+  // Auto-copy text selection to clipboard
+  useSelectionCopy()
+
   // Listen for Tauri menu events
   onMount(() => {
     if (runtimeEnv.host === "tauri") {
@@ -488,6 +502,7 @@ const App: Component = () => {
                   advancedSettingsOpen={isAdvancedSettingsOpen()}
                   onAdvancedSettingsOpen={() => setIsAdvancedSettingsOpen(true)}
                   onAdvancedSettingsClose={() => setIsAdvancedSettingsOpen(false)}
+                  autoOpenNative={true}
                 />
               </Suspense>
             </div>

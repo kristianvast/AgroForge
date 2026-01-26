@@ -5,12 +5,13 @@ import { getParentSessions, createSession, setActiveParentSession } from "../sto
 import { instances, stopInstance } from "../stores/instances"
 import { agents, providers } from "../stores/sessions"
 import { getSessionStatus } from "../stores/session-status"
-import { recordAgentUsage, recordModelUsage, getAgentUsageScore, getModelUsageScore } from "../stores/preferences"
+import { recordAgentUsage, recordModelUsage, getAgentUsageScore, getModelUsageScore, getMostRecentAgentName } from "../stores/preferences"
 import { 
   MessageSquare, Search, X, Clock, Plus, Zap, Bot, Cpu, 
   ChevronRight, Sparkles, Star, Crown, History, ArrowRight
 } from "lucide-solid"
 import { getLogger } from "../lib/logger"
+import { cleanSessionTitle } from "../lib/session-title"
 const log = getLogger("session")
 
 // Model tier classification
@@ -76,10 +77,19 @@ const SmartSessionPicker: Component<SmartSessionPickerProps> = (props) => {
   const agentList = () => agents().get(props.instanceId) || []
   const providerList = () => providers().get(props.instanceId) || []
 
-  // Get default agent (first non-subagent)
+  // Get default agent (most recently used, or first non-subagent)
   const defaultAgent = createMemo(() => {
     const list = agentList()
-    return list.find(a => a.mode !== "subagent") || list[0] || null
+    const nonSubagents = list.filter(a => a.mode !== "subagent")
+    
+    // Check for most recently used agent
+    const recentName = getMostRecentAgentName()
+    if (recentName) {
+      const recentAgent = nonSubagents.find(a => a.name === recentName)
+      if (recentAgent) return recentAgent
+    }
+    
+    return nonSubagents[0] || list[0] || null
   })
 
   // Get default model (first available or from agent)
@@ -169,25 +179,39 @@ const SmartSessionPicker: Component<SmartSessionPickerProps> = (props) => {
   })
 
   const recommendedModels = createMemo(() => {
-    const models: { model: Model; provider: Provider; score: number }[] = []
+    // Get best model from each provider (flagship > standard > efficient, then by usage)
+    const bestPerProvider: { model: Model; provider: Provider; tier: string; score: number }[] = []
+    
     for (const provider of providerList()) {
-      for (const model of provider.models) {
-        const score = getModelUsageScore(model.providerId, model.id)
-        models.push({ model, provider, score })
+      const providerModels = provider.models
+        .map(model => ({
+          model,
+          provider,
+          tier: getModelTier(model),
+          score: getModelUsageScore(model.providerId, model.id)
+        }))
+        .sort((a, b) => {
+          // Flagship > standard > efficient
+          const tierOrder = { flagship: 0, standard: 1, efficient: 2 }
+          const tierDiff = tierOrder[a.tier as keyof typeof tierOrder] - tierOrder[b.tier as keyof typeof tierOrder]
+          if (tierDiff !== 0) return tierDiff
+          // Then by usage score
+          return b.score - a.score
+        })
+      
+      if (providerModels.length > 0) {
+        bestPerProvider.push(providerModels[0])
       }
     }
-    // Sort by usage score, then by tier (flagship first for ties)
-    return models
+    
+    // Sort providers by their best model's tier and score
+    return bestPerProvider
       .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score
-        // For zero-usage models, prefer flagship
-        const tierA = getModelTier(a.model)
-        const tierB = getModelTier(b.model)
-        if (tierA === "flagship" && tierB !== "flagship") return -1
-        if (tierB === "flagship" && tierA !== "flagship") return 1
-        return 0
+        const tierOrder = { flagship: 0, standard: 1, efficient: 2 }
+        const tierDiff = tierOrder[a.tier as keyof typeof tierOrder] - tierOrder[b.tier as keyof typeof tierOrder]
+        if (tierDiff !== 0) return tierDiff
+        return b.score - a.score
       })
-      .slice(0, 4)
       .map(({ model, provider }) => ({ model, provider }))
   })
 
@@ -489,7 +513,7 @@ const SmartSessionPicker: Component<SmartSessionPickerProps> = (props) => {
                                 
                                 <div class="smart-picker-session-content">
                                   <span class="smart-picker-session-title">
-                                    {session.title || "Untitled"}
+                                    {cleanSessionTitle(session.title)}
                                   </span>
                                   <div class="smart-picker-session-meta">
                                     <span class={`smart-picker-session-status smart-picker-session-status--${info().statusClass}`}>
