@@ -47,7 +47,7 @@ interface CliOptions {
 }
 
 const DEFAULT_PORT = 9898
-const DEFAULT_HOST = "127.0.0.1"
+const DEFAULT_HOST = "0.0.0.0"
 const DEFAULT_CONFIG_PATH = "~/.config/codenomad/config.json"
 
 function parseCliOptions(argv: string[]): CliOptions {

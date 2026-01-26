@@ -1,8 +1,10 @@
 import { Component, createSignal, Show, For, createEffect, onMount, onCleanup, createMemo } from "solid-js"
-import { Loader2, Pencil, Trash2 } from "lucide-solid"
+import { Loader2, Pencil, Trash2, MessageSquare, Search, X, Clock, Zap, Plus } from "lucide-solid"
 
 import type { Instance } from "../types/instance"
+import type { Session } from "../types/session"
 import { getParentSessions, createSession, setActiveParentSession, deleteSession, loading, renameSession } from "../stores/sessions"
+import { getSessionStatus } from "../stores/session-status"
 import InstanceInfo from "./instance-info"
 import Kbd from "./kbd"
 import SessionRenameDialog from "./session-rename-dialog"
@@ -28,8 +30,38 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
   )
   const [renameTarget, setRenameTarget] = createSignal<{ id: string; title: string; label: string } | null>(null)
   const [isRenaming, setIsRenaming] = createSignal(false)
+  const [searchQuery, setSearchQuery] = createSignal("")
+  const [showSearch, setShowSearch] = createSignal(false)
 
   const parentSessions = () => getParentSessions(props.instance.id)
+  
+  // Filter sessions based on search query
+  const filteredSessions = createMemo(() => {
+    const query = searchQuery().toLowerCase().trim()
+    if (!query) return parentSessions()
+    
+    return parentSessions().filter(session => {
+      const title = (session.title || "Untitled").toLowerCase()
+      return title.includes(query)
+    })
+  })
+
+  // Get status info for a session
+  function getStatusInfo(session: Session) {
+    const status = getSessionStatus(props.instance.id, session.id)
+    const needsPermission = Boolean(session.pendingPermission)
+    const needsQuestion = Boolean((session as any)?.pendingQuestion)
+    const needsInput = needsPermission || needsQuestion
+    
+    return {
+      status,
+      needsInput,
+      statusClass: needsInput ? "session-permission" : `session-${status}`,
+      statusText: needsPermission ? "Permission" : needsQuestion ? "Input" : 
+                  status === "working" ? "Working" : 
+                  status === "compacting" ? "Compacting" : "Idle"
+    }
+  }
   const isFetchingSessions = createMemo(() => Boolean(loading().fetchingSessions.get(props.instance.id)))
   const isSessionDeleting = (sessionId: string) => {
     const deleting = loading().deletingSession.get(props.instance.id)
@@ -51,7 +83,7 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
       context: "global",
     }
   })
-  const newSessionShortcutString = createMemo(() => (isMac() ? "cmd+shift+n" : "ctrl+shift+n"))
+  const newSessionShortcutString = createMemo(() => (isMac() ? "cmd+shift+o" : "ctrl+shift+o"))
 
   createEffect(() => {
     const sessions = parentSessions()
@@ -107,7 +139,7 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
  
     const sessions = parentSessions()
  
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "n") {
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") {
       e.preventDefault()
       handleNewSession()
       return
@@ -322,186 +354,242 @@ const InstanceWelcomeView: Component<InstanceWelcomeViewProps> = (props) => {
               <Show
                 when={isFetchingSessions()}
                 fallback={
-                  <div class="panel panel-empty-state flex-1 flex flex-col justify-center">
-                    <div class="panel-empty-state-icon">
-                      <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                        />
-                      </svg>
+                  <div class="session-empty-state flex-1 flex flex-col justify-center">
+                    <div class="session-empty-icon">
+                      <MessageSquare class="w-6 h-6" />
                     </div>
-                    <p class="panel-empty-state-title">No Previous Sessions</p>
-                    <p class="panel-empty-state-description">Create a new session below to get started</p>
+                    <p class="session-empty-title">No Previous Sessions</p>
+                    <p class="session-empty-subtitle">Create a new session below to get started</p>
                     <Show when={!isDesktopLayout() && !showInstanceInfoOverlay()}>
-                      <button type="button" class="button-tertiary mt-4 lg:hidden" onClick={openInstanceInfoOverlay}>
+                      <button type="button" class="session-empty-action mt-4 lg:hidden" onClick={openInstanceInfoOverlay}>
                         View Instance Info
                       </button>
                     </Show>
                   </div>
                 }
               >
-                <div class="panel panel-empty-state flex-1 flex flex-col justify-center">
-                  <div class="panel-empty-state-icon">
-                    <Loader2 class="w-12 h-12 mx-auto animate-spin text-muted" />
+                <div class="session-empty-state flex-1 flex flex-col justify-center">
+                  <div class="session-empty-icon">
+                    <Loader2 class="w-6 h-6 animate-spin" />
                   </div>
-                  <p class="panel-empty-state-title">Loading Sessions</p>
-                  <p class="panel-empty-state-description">Fetching your previous sessions...</p>
+                  <p class="session-empty-title">Loading Sessions</p>
+                  <p class="session-empty-subtitle">Fetching your previous sessions...</p>
                 </div>
               </Show>
             }
           >
-            <div class="panel flex flex-col flex-1 min-h-0">
-              <div class="panel-header">
-                <div class="flex flex-row flex-wrap items-center gap-2 justify-between">
-                  <div>
-                    <h2 class="panel-title">Resume Session</h2>
-                    <p class="panel-subtitle">
-                      {parentSessions().length} {parentSessions().length === 1 ? "session" : "sessions"} available
-                    </p>
+            <div class="session-picker-section flex flex-col flex-1 min-h-0">
+              {/* Header */}
+              <div class="session-list-header-v2">
+                <div class="session-list-header-main">
+                  <div class="session-list-header-left">
+                    <h2 class="session-list-title">Resume Session</h2>
+                    <span class="session-count-badge">{parentSessions().length}</span>
                   </div>
-                  <Show when={!isDesktopLayout() && !showInstanceInfoOverlay()}>
-                    <button
-                      type="button"
-                      class="button-tertiary lg:hidden flex-shrink-0"
-                      onClick={openInstanceInfoOverlay}
-                    >
-                      View Instance Info
-                    </button>
-                  </Show>
+                  <div class="session-list-header-right">
+                    <Show when={parentSessions().length > 5}>
+                      <button
+                        type="button"
+                        class={`session-search-toggle ${showSearch() ? "session-search-toggle--active" : ""}`}
+                        onClick={() => setShowSearch(!showSearch())}
+                        aria-label="Toggle search"
+                      >
+                        <Search class="w-4 h-4" />
+                      </button>
+                    </Show>
+                    <Show when={!isDesktopLayout() && !showInstanceInfoOverlay()}>
+                      <button
+                        type="button"
+                        class="session-search-toggle lg:hidden"
+                        onClick={openInstanceInfoOverlay}
+                        title="View Instance Info"
+                      >
+                        <Zap class="w-4 h-4" />
+                      </button>
+                    </Show>
+                  </div>
+                </div>
+                
+                {/* Search bar */}
+                <div class={`session-search-bar ${showSearch() ? "session-search-bar--open" : ""}`}>
+                  <div class="session-search-bar-inner">
+                    <div class="session-search-input-wrap">
+                      <Search class="session-search-input-icon" />
+                      <input
+                        type="text"
+                        class="session-search-input"
+                        placeholder="Search sessions..."
+                        value={searchQuery()}
+                        onInput={(e) => setSearchQuery(e.currentTarget.value)}
+                        aria-label="Search sessions"
+                      />
+                      <Show when={searchQuery()}>
+                        <button
+                          class="session-search-clear"
+                          onClick={() => setSearchQuery("")}
+                          aria-label="Clear search"
+                        >
+                          <X class="w-3.5 h-3.5" />
+                        </button>
+                      </Show>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="panel-list panel-list--fill flex-1 min-h-0 overflow-auto">
-                <For each={parentSessions()}>
-                  {(session, index) => {
-                    const isFocused = () => focusMode() === "sessions" && selectedIndex() === index()
-                    return (
-                      <div
-                        class="panel-list-item"
-                        classList={{
-                          "panel-list-item-highlight": isFocused(),
-                        }}
-                      >
-                        <div class="flex items-center gap-2 w-full px-1">
-                          <button
-                            type="button"
-                            data-session-index={index()}
-                            class="panel-list-item-content group flex-1"
-                            onClick={() => handleSessionSelect(session.id)}
-                            onMouseEnter={() => {
-                              setFocusMode("sessions")
-                              setSelectedIndex(index())
-                            }}
-                          >
-                            <div class="flex items-center justify-between gap-3 w-full">
-                              <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2">
-                                  <span
-                                    class="text-sm font-medium text-primary whitespace-normal break-words transition-colors"
-                                    classList={{
-                                      "text-accent": isFocused(),
-                                    }}
-                                  >
-                                    {session.title || "Untitled Session"}
-                                  </span>
-                                </div>
-                                <div class="flex items-center gap-3 text-xs text-muted mt-0.5">
-                                  <span>{session.agent}</span>
-                                  <span>•</span>
-                                  <span>{formatRelativeTime(session.time.updated)}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                          <Show when={isFocused()}>
-                            <div class="flex items-center gap-2 flex-shrink-0">
-                              <kbd class="kbd flex-shrink-0">↵</kbd>
-                              <button
-                                type="button"
-                                class="p-1.5 rounded transition-colors text-muted hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                                title="Rename session"
-                                onClick={(event) => {
-                                  event.preventDefault()
-                                  event.stopPropagation()
-                                  openRenameDialogForSession(session.id, session.title || "")
-                                }}
-                              >
-                                <Pencil class="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                class="p-1.5 rounded transition-colors text-muted hover:text-red-500 dark:hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                                title="Delete session"
-                                disabled={isSessionDeleting(session.id)}
-                                onClick={(event) => {
-                                  event.preventDefault()
-                                  event.stopPropagation()
-                                  void handleSessionDelete(session.id)
-                                }}
-                              >
-                                <Show
-                                  when={!isSessionDeleting(session.id)}
-                                  fallback={
-                                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                                      <path
-                                        class="opacity-75"
-                                        fill="currentColor"
-                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                      />
-                                    </svg>
-                                  }
-                                >
-                                  <Trash2 class="w-4 h-4" />
+
+              {/* Session list */}
+              <Show
+                when={filteredSessions().length > 0}
+                fallback={
+                  <div class="session-empty-state session-empty-state--filtered">
+                    <div class="session-empty-icon session-empty-icon--search">
+                      <Search class="w-5 h-5" />
+                    </div>
+                    <p class="session-empty-title">No matching sessions</p>
+                    <p class="session-empty-subtitle">No sessions match "{searchQuery()}"</p>
+                    <button
+                      class="session-empty-action"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      Clear search
+                    </button>
+                  </div>
+                }
+              >
+                <div class="session-picker-list flex-1 min-h-0 overflow-auto" style="max-height: none;">
+                  <For each={filteredSessions()}>
+                    {(session, index) => {
+                      const isFocused = () => focusMode() === "sessions" && selectedIndex() === index()
+                      const info = () => getStatusInfo(session)
+                      return (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          data-session-index={index()}
+                          class={`session-picker-card ${info().needsInput ? "session-picker-card--attention" : ""} ${info().status === "working" || info().status === "compacting" ? "session-picker-card--working" : ""} ${isFocused() ? "session-card--active" : ""}`}
+                          onClick={() => handleSessionSelect(session.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              handleSessionSelect(session.id)
+                            }
+                          }}
+                          onMouseEnter={() => {
+                            setFocusMode("sessions")
+                            setSelectedIndex(index())
+                          }}
+                        >
+                          {/* Left accent bar */}
+                          <div class={`session-card-accent session-card-accent--parent ${info().needsInput ? "session-card-accent--attention" : ""} ${info().status === "working" ? "session-card-accent--working" : ""}`} />
+                          
+                          {/* Icon */}
+                          <div class="session-icon session-icon--parent">
+                            <MessageSquare class="w-4 h-4" />
+                          </div>
+                          
+                          {/* Content */}
+                          <div class="session-picker-card-content">
+                            <span class="session-card-title">
+                              {session.title || "Untitled Session"}
+                            </span>
+                            <div class="session-card-meta">
+                              {/* Status pill */}
+                              <span class={`session-status-pill session-status-pill--${info().statusClass}`}>
+                                <Show when={info().needsInput}>
+                                  <Zap class="w-3 h-3" />
                                 </Show>
-                              </button>
+                                <Show when={info().status === "working" && !info().needsInput}>
+                                  <span class="session-status-pulse" />
+                                </Show>
+                                <Show when={info().status === "compacting" && !info().needsInput}>
+                                  <span class="session-status-pulse session-status-pulse--slow" />
+                                </Show>
+                                <Show when={info().status === "idle" && !info().needsInput}>
+                                  <span class="session-status-dot" />
+                                </Show>
+                                {info().statusText}
+                              </span>
+                              
+                              {/* Time ago */}
+                              <span class="session-time">
+                                <Clock class="w-3 h-3" />
+                                {formatRelativeTime(session.time.updated)}
+                              </span>
                             </div>
-                          </Show>
+                          </div>
+
+                          {/* Actions - visible on focus/hover */}
+                          <div class="session-card-actions">
+                            <Show when={isFocused()}>
+                              <kbd class="kbd flex-shrink-0" style="font-size: 10px; padding: 2px 6px;">↵</kbd>
+                            </Show>
+                            <button
+                              type="button"
+                              class="session-action-btn"
+                              title="Rename session"
+                              onClick={(event) => {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                openRenameDialogForSession(session.id, session.title || "")
+                              }}
+                            >
+                              <Pencil class="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              class="session-action-btn session-action-btn--danger"
+                              title="Delete session"
+                              disabled={isSessionDeleting(session.id)}
+                              onClick={(event) => {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                void handleSessionDelete(session.id)
+                              }}
+                            >
+                              <Show
+                                when={!isSessionDeleting(session.id)}
+                                fallback={<Loader2 class="w-4 h-4 animate-spin" />}
+                              >
+                                <Trash2 class="w-4 h-4" />
+                              </Show>
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    )
-                  }}
-                </For>
-              </div>
+                      )
+                    }}
+                  </For>
+                </div>
+              </Show>
             </div>
           </Show>
 
-          <div class="panel flex-shrink-0">
-            <div class="panel-header">
-              <h2 class="panel-title">Start New Session</h2>
-              <p class="panel-subtitle">We’ll reuse your last agent/model automatically</p>
+          <div class="session-picker-section flex-shrink-0">
+            <div class="session-picker-section-header" style="margin-bottom: var(--space-sm);">
+              <h3 class="session-picker-section-title">Start New Session</h3>
             </div>
-            <div class="panel-body">
-              <div class="space-y-3">
-                <button
-                  type="button"
-                  class="button-primary w-full flex items-center justify-center text-sm disabled:cursor-not-allowed"
-                  onClick={handleNewSession}
-                  disabled={isCreating()}
-                >
-                  <div class="flex items-center gap-2">
-                    {isCreating() ? (
-                      <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                        <path
-                          class="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                    ) : (
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                      </svg>
-                    )}
-                    <span>Create Session</span>
-                  </div>
-                  <Kbd shortcut={newSessionShortcutString()} class="ml-2" />
-                </button>
-              </div>
-            </div>
+            <p class="session-empty-subtitle" style="margin-bottom: var(--space-md); text-align: left;">
+              We'll reuse your last agent/model automatically
+            </p>
+            <button
+              type="button"
+              class="session-picker-create-btn"
+              onClick={handleNewSession}
+              disabled={isCreating()}
+            >
+              <Show
+                when={!isCreating()}
+                fallback={
+                  <>
+                    <Loader2 class="w-4 h-4 animate-spin" />
+                    <span>Creating...</span>
+                  </>
+                }
+              >
+                <Plus class="w-4 h-4" />
+                <span>Create New Session</span>
+              </Show>
+              <kbd class="session-picker-kbd">{isMac() ? "⌘⇧O" : "Ctrl+Shift+O"}</kbd>
+            </button>
           </div>
         </div>
 

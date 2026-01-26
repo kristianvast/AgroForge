@@ -3,6 +3,7 @@
 @import "./panels/modal.css";
 @import "./panels/panel-shell.css";
 @import "./panels/session-layout.css";
+@import "./components/session-list-v2.css";
 
 
 .tab-bar-instance {

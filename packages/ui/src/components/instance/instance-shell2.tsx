@@ -12,7 +12,7 @@ import {
 } from "solid-js"
 import type { ToolState } from "@opencode-ai/sdk"
 import { Accordion } from "@kobalte/core"
-import { ChevronDown, TerminalSquare, Trash2, XOctagon } from "lucide-solid"
+import { ChevronDown, Plus, TerminalSquare, Trash2, XOctagon } from "lucide-solid"
 import AppBar from "@suid/material/AppBar"
 import Box from "@suid/material/Box"
 import Divider from "@suid/material/Divider"
@@ -849,6 +849,19 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
           </div>
         </div>
         <div class="flex items-center gap-2">
+          <button
+            class="session-new-session-btn"
+            onClick={() => {
+              const result = props.onNewSession()
+              if (result instanceof Promise) {
+                void result.catch((error) => log.error("Failed to create session:", error))
+              }
+            }}
+            aria-label="New session"
+            title="New session (⌘⇧O / Ctrl+Shift+O)"
+          >
+            <Plus class="w-4 h-4" />
+          </button>
           <IconButton
             size="small"
             color="inherit"

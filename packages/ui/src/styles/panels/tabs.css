@@ -87,6 +87,105 @@
   ring-offset-color: inherit;
 }
 
+/* Instance tab wrapper for drag-drop */
+.instance-tab-wrapper {
+  position: relative;
+  display: inline-flex;
+  cursor: grab;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.instance-tab-wrapper:active {
+  cursor: grabbing;
+}
+
+.instance-tab-wrapper.instance-tab--dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.instance-tab-wrapper.instance-tab--drop-before::before,
+.instance-tab-wrapper.instance-tab--drop-after::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background-color: var(--accent-primary);
+  border-radius: var(--radius-full);
+  animation: tab-drop-indicator-pulse 0.8s ease-in-out infinite;
+  z-index: 10;
+}
+
+.instance-tab-wrapper.instance-tab--drop-before::before {
+  left: -3px;
+}
+
+.instance-tab-wrapper.instance-tab--drop-after::after {
+  right: -3px;
+}
+
+@keyframes tab-drop-indicator-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 4px var(--accent-primary);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 8px var(--accent-primary);
+  }
+}
+
+/* Drag handle hint on hover */
+.instance-tab-wrapper:hover::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 12px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--text-muted) 0px,
+    var(--text-muted) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  opacity: 0.4;
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.instance-tab-wrapper.instance-tab--dragging::after {
+  display: none;
+}
+
+/* Touch-friendly adjustments */
+@media (pointer: coarse) {
+  .instance-tab-wrapper {
+    /* Larger touch targets */
+    min-height: 44px;
+  }
+  
+  .instance-tab-wrapper:hover::after {
+    /* Hide drag hint on touch - users discover by long press */
+    display: none;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .instance-tab-wrapper {
+    transition: none;
+  }
+  
+  .instance-tab-wrapper.instance-tab--drop-before::before,
+  .instance-tab-wrapper.instance-tab--drop-after::after {
+    animation: none;
+  }
+}
+
 .new-tab-button {
   @apply inline-flex items-center justify-center w-8 h-8 rounded-md transition-colors;
   background-color: var(--new-tab-bg);

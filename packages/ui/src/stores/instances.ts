@@ -931,6 +931,25 @@ async function acknowledgeDisconnectedInstance(): Promise<void> {
   }
 }
 
+function reorderInstances(fromIndex: number, toIndex: number): void {
+  if (fromIndex === toIndex) return
+
+  setInstances((prev) => {
+    const entries = Array.from(prev.entries())
+    if (fromIndex < 0 || fromIndex >= entries.length) return prev
+    if (toIndex < 0 || toIndex >= entries.length) return prev
+
+    const [moved] = entries.splice(fromIndex, 1)
+    entries.splice(toIndex, 0, moved)
+
+    return new Map(entries)
+  })
+}
+
+function getInstanceOrder(): string[] {
+  return Array.from(instances().keys())
+}
+
 export {
   instances,
   activeInstanceId,
@@ -972,4 +991,7 @@ export {
   disconnectedInstance,
   acknowledgeDisconnectedInstance,
   fetchLspStatus,
+  // Instance reordering
+  reorderInstances,
+  getInstanceOrder,
 }
