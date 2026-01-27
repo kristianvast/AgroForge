@@ -1,0 +1,134 @@
+
+added 252 packages, removed 88 packages, changed 3 packages, and audited 1146 packages in 8s
+
+80 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+npm warn reify invalid or damaged lockfile detected
+npm warn reify please re-try this operation once it completes
+npm warn reify so that the damage can be corrected, or perform
+npm warn reify a fresh install with no lockfile if the problem persists.
+
+added 2 packages, removed 28 packages, changed 6 packages, and audited 1090 packages in 2s
+
+145 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities

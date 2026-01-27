@@ -1,6 +1,6 @@
 import { Show, createSignal, onCleanup, onMount } from "solid-js"
 import { render } from "solid-js/web"
-import iconUrl from "../../images/CodeNomad-Icon.png"
+import iconUrl from "../../images/AgroForge-Icon.png"
 import { runtimeEnv, isTauriHost } from "../../lib/runtime-env"
 import "../../index.css"
 import "./loading.css"

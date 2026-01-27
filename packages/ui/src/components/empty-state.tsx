@@ -1,7 +1,7 @@
 import { Component } from "solid-js"
 import { Loader2 } from "lucide-solid"
 
-const agroForgeIcon = new URL("../images/CodeNomad-Icon.png", import.meta.url).href
+const agroForgeIcon = new URL("../images/AgroForge-Icon.png", import.meta.url).href
 
 interface EmptyStateProps {
   onSelectFolder: () => void

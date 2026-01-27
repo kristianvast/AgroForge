@@ -1,0 +1,16 @@
+[Unit]
+Description=AgroForge Server
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USER
+WorkingDirectory=/path/to/your/project
+ExecStart=/path/to/node /path/to/agroforge --host 0.0.0.0 --password YOUR_SECURE_PASSWORD --username YOUR_USERNAME
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

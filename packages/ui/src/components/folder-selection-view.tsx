@@ -6,11 +6,11 @@ import DirectoryBrowserDialog from "./directory-browser-dialog"
 import Kbd from "./kbd"
 import { openNativeFolderDialog, supportsNativeDialogs } from "../lib/native/native-functions"
 import VersionPill from "./version-pill"
-import { DiscordSymbolIcon, GitHubMarkIcon } from "./brand-icons"
+import { GitHubMarkIcon } from "./brand-icons"
 import { githubStars } from "../stores/github-stars"
 import { formatCompactCount } from "../lib/formatters"
 
-const agroForgeLogo = new URL("../images/CodeNomad-Icon.png", import.meta.url).href
+const agroForgeLogo = new URL("../images/AgroForge-Icon.png", import.meta.url).href
 
 
 interface FolderSelectionViewProps {
@@ -307,7 +307,7 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
             </p>
             <div class="mt-4 flex justify-center gap-3 fade-slide-in-delay-2">
               <a
-                href="https://github.com/NeuralNomadsAI/CodeNomad"
+                href="https://github.com/kristianvast/AgroForge"
                 target="_blank"
                 rel="noreferrer"
                 class="selector-button selector-button-secondary w-auto p-2.5 inline-flex items-center justify-center hover-lift glass-effect rounded-lg"
@@ -315,13 +315,13 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
                 title="AgroForge GitHub"
                 onClick={(event) => {
                   event.preventDefault()
-                  openExternalLink("https://github.com/NeuralNomadsAI/CodeNomad")
+                  openExternalLink("https://github.com/kristianvast/AgroForge")
                 }}
               >
                 <GitHubMarkIcon class="w-5 h-5" />
               </a>
               <a
-                href="https://github.com/NeuralNomadsAI/CodeNomad"
+                href="https://github.com/kristianvast/AgroForge"
                 target="_blank"
                 rel="noreferrer"
                 class="selector-button selector-button-secondary w-auto px-4 py-2 inline-flex items-center justify-center gap-2 hover-lift glass-effect rounded-lg"
@@ -329,7 +329,7 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
                 title="AgroForge GitHub Stars"
                 onClick={(event) => {
                   event.preventDefault()
-                  openExternalLink("https://github.com/NeuralNomadsAI/CodeNomad")
+                  openExternalLink("https://github.com/kristianvast/AgroForge")
                 }}
               >
                 <Star class="w-4 h-4 text-accent" />
@@ -337,22 +337,7 @@ const FolderSelectionView: Component<FolderSelectionViewProps> = (props) => {
                   <span class="text-sm font-medium">{formatCompactCount(githubStars()!)}</span>
                 </Show>
               </a>
-              <a
-                href="https://discord.com/channels/1391832426048651334/1458412028325793887/1464701235683917945"
-                target="_blank"
-                rel="noreferrer"
-                class="selector-button selector-button-secondary w-auto p-2.5 inline-flex items-center justify-center hover-lift glass-effect rounded-lg"
-                aria-label="AgroForge Discord"
-                title="AgroForge Discord"
-                onClick={(event) => {
-                  event.preventDefault()
-                  openExternalLink(
-                    "https://discord.com/channels/1391832426048651334/1458412028325793887/1464701235683917945",
-                  )
-                }}
-              >
-                <DiscordSymbolIcon class="w-5 h-5" />
-              </a>
+
             </div>
           </div>
 

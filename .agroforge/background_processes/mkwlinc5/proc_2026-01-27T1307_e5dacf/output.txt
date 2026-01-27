@@ -1,0 +1,43 @@
+
+> @agroforge/server@0.9.1 build
+> npm run build:ui && npm run prepare-ui && tsc -p tsconfig.json && node ./scripts/copy-auth-pages.mjs && npm run prepare-config
+
+
+> @agroforge/server@0.9.1 build:ui
+> npm run build --prefix ../ui
+
+
+> @agroforge/ui@0.9.1 build
+> vite build
+
+vite v7.3.1 building client environment for production...
+transforming...
+✓ 2540 modules transformed.
+[BABEL] Note: The code generator has deoptimised the styling of /home/kristianvastveit/Documents/Projects/AgroForge/packages/ui/node_modules/@suid/icons-material/index.jsx as it exceeds the max of 500KB.
+✗ Build failed in 10.74s
+error during build:
+[vite]: Rollup failed to resolve import "@suid/system/getThemeValue" from "/home/kristianvastveit/Documents/Projects/AgroForge/packages/ui/node_modules/@suid/material/Link/Link.jsx".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteLog (file:///home/kristianvastveit/Documents/Projects/AgroForge/packages/ui/node_modules/vite/dist/node/chunks/config.js:33635:57)
+    at onRollupLog (file:///home/kristianvastveit/Documents/Projects/AgroForge/packages/ui/node_modules/vite/dist/node/chunks/config.js:33665:7)
+    at onLog (file:///home/kristianvastveit/Documents/Projects/AgroForge/packages/ui/node_modules/vite/dist/node/chunks/config.js:33467:4)
+    at file:///home/kristianvastveit/Documents/Projects/AgroForge/packages/ui/node_modules/rollup/dist/es/shared/node-entry.js:20955:32
+    at Object.logger [as onLog] (file:///home/kristianvastveit/Documents/Projects/AgroForge/packages/ui/node_modules/rollup/dist/es/shared/node-entry.js:22942:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///home/kristianvastveit/Documents/Projects/AgroForge/packages/ui/node_modules/rollup/dist/es/shared/node-entry.js:21686:26)
+    at file:///home/kristianvastveit/Documents/Projects/AgroForge/packages/ui/node_modules/rollup/dist/es/shared/node-entry.js:21644:26
+npm error Lifecycle script `build:ui` failed with error:
+npm error code 1
+npm error path /home/kristianvastveit/Documents/Projects/AgroForge/packages/server
+npm error workspace @agroforge/server@0.9.1
+npm error location /home/kristianvastveit/Documents/Projects/AgroForge/packages/server
+npm error command failed
+npm error command sh -c npm run build --prefix ../ui
+npm error Lifecycle script `build` failed with error:
+npm error code 1
+npm error path /home/kristianvastveit/Documents/Projects/AgroForge/packages/server
+npm error workspace @agroforge/server@0.9.1
+npm error location /home/kristianvastveit/Documents/Projects/AgroForge/packages/server
+npm error command failed
+npm error command sh -c npm run build:ui && npm run prepare-ui && tsc -p tsconfig.json && node ./scripts/copy-auth-pages.mjs && npm run prepare-config

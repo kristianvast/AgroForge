@@ -30,7 +30,11 @@
   },
   "dependencies": {
     "7zip-bin": "^5.2.0",
-    "google-auth-library": "^10.5.0"
+    "fdir": "^6.5.0",
+    "google-auth-library": "^10.5.0",
+    "lru-cache": "^11.2.5",
+    "picomatch": "^4.0.3",
+    "yallist": "^5.0.0"
   },
   "devDependencies": {
     "baseline-browser-mapping": "^2.9.11"

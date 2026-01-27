@@ -2,7 +2,7 @@ import { fetch } from "undici"
 import type { LatestReleaseInfo } from "../api-types"
 import type { Logger } from "../logger"
 
-const RELEASES_API_URL = "https://api.github.com/repos/NeuralNomadsAI/CodeNomad/releases/latest"
+const RELEASES_API_URL = "https://api.github.com/repos/kristianvast/AgroForge/releases/latest"
 interface ReleaseMonitorOptions {
   currentVersion: string
   logger: Logger
@@ -85,7 +85,7 @@ async function fetchLatestRelease(options: ReleaseMonitorOptions): Promise<Lates
   return {
     version: normalizedVersion,
     tag: tagFromServer,
-    url: json.html_url ?? `https://github.com/NeuralNomadsAI/CodeNomad/releases/tag/${encodeURIComponent(tagFromServer)}`,
+    url: json.html_url ?? `https://github.com/kristianvast/AgroForge/releases/tag/${encodeURIComponent(tagFromServer)}`,
     channel: json.prerelease || normalizedVersion.includes("-") ? "dev" : "stable",
     publishedAt: json.published_at ?? json.created_at,
     notes: json.body,

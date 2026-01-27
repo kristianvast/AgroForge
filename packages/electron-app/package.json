@@ -10,9 +10,9 @@
   "main": "dist/main/main.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/NeuralNomadsAI/CodeNomad.git"
+    "url": "https://github.com/kristianvast/AgroForge.git"
   },
-  "homepage": "https://github.com/NeuralNomadsAI/CodeNomad",
+  "homepage": "https://github.com/kristianvast/AgroForge",
   "scripts": {
     "dev": "electron-vite dev",
     "dev:electron": "NODE_ENV=development ELECTRON_ENABLE_LOGGING=1 NODE_OPTIONS=\"--import tsx\" electron electron/main/main.ts",
