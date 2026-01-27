@@ -1,4 +1,5 @@
 import { createMemo, Show, createEffect, onCleanup } from "solid-js"
+import DOMPurify from "dompurify"
 import { DiffView, DiffModeEnum } from "@git-diff-view/solid"
 import { disableCache } from "@git-diff-view/core"
 import type { DiffHighlighterLang } from "@git-diff-view/core"
@@ -130,7 +131,7 @@ export function ToolCallDiffViewer(props: ToolCallDiffViewerProps) {
           </div>
         }
       >
-        <div innerHTML={props.cachedHtml} />
+        <div innerHTML={DOMPurify.sanitize(props.cachedHtml!)} />
       </Show>
     </div>
   )

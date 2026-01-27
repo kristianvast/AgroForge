@@ -1,26 +1,31 @@
 {
-  "name": "codenomad-workspace",
+  "name": "agroforge-workspace",
   "version": "0.9.1",
   "private": true,
-  "description": "CodeNomad monorepo workspace",
+  "description": "AgroForge monorepo workspace",
   "workspaces": {
     "packages": [
       "packages/server",
       "packages/ui",
       "packages/electron-app",
-      "packages/tauri-app"
+      "packages/tauri-app",
+      "packages/cloudflare",
+      "packages/opencode-config"
     ]
   },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "dev": "npm run dev --workspace @neuralnomads/codenomad-electron-app",
-    "dev:electron": "npm run dev --workspace @neuralnomads/codenomad-electron-app",
-    "dev:tauri": "npm run dev --workspace @codenomad/tauri-app",
-    "build": "npm run build --workspace @neuralnomads/codenomad-electron-app",
-    "build:tauri": "npm run build --workspace @codenomad/tauri-app",
-    "build:ui": "npm run build --workspace @codenomad/ui",
-    "build:mac-x64": "npm run build:mac-x64 --workspace @neuralnomads/codenomad-electron-app",
-    "build:binaries": "npm run build:binaries --workspace @neuralnomads/codenomad-electron-app",
-    "typecheck": "npm run typecheck --workspace @codenomad/ui && npm run typecheck --workspace @neuralnomads/codenomad-electron-app",
+    "dev": "npm run dev --workspace @agroforge/electron-app",
+    "dev:electron": "npm run dev --workspace @agroforge/electron-app",
+    "dev:tauri": "npm run dev --workspace @agroforge/tauri-app",
+    "build": "npm run build --workspace @agroforge/electron-app",
+    "build:tauri": "npm run build --workspace @agroforge/tauri-app",
+    "build:ui": "npm run build --workspace @agroforge/ui",
+    "build:mac-x64": "npm run build:mac-x64 --workspace @agroforge/electron-app",
+    "build:binaries": "npm run build:binaries --workspace @agroforge/electron-app",
+    "typecheck": "npm run typecheck --workspace @agroforge/ui && npm run typecheck --workspace @agroforge/electron-app",
     "bumpVersion": "npm version --workspaces --include-workspace-root --no-git-tag-version"
   },
   "dependencies": {
@@ -29,5 +34,21 @@
   },
   "devDependencies": {
     "baseline-browser-mapping": "^2.9.11"
+  },
+  "overrides": {
+    "tar": "^7.5.4"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Kristian Vastveit",
+    "url": "https://github.com/kristianvast"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kristianvast/AgroForge.git"
+  },
+  "homepage": "https://github.com/kristianvast/AgroForge",
+  "bugs": {
+    "url": "https://github.com/kristianvast/AgroForge/issues"
   }
 }

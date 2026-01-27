@@ -1,4 +1,5 @@
 import { createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
+import DOMPurify from "dompurify"
 import { renderMarkdown, onLanguagesLoaded, decodeHtmlEntities } from "../lib/markdown"
 import { useGlobalCache } from "../lib/hooks/use-global-cache"
 import type { TextPart, RenderCache } from "../types/message"
@@ -185,5 +186,5 @@ export function Markdown(props: MarkdownProps) {
 
   const proseClass = () => "markdown-body"
 
-  return <div ref={containerRef} class={proseClass()} innerHTML={html()} />
+  return <div ref={containerRef} class={proseClass()} innerHTML={DOMPurify.sanitize(html())} />
 }

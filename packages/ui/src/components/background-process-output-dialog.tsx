@@ -1,5 +1,6 @@
 import { Dialog } from "@kobalte/core/dialog"
 import { Show, createEffect, createSignal, onCleanup } from "solid-js"
+import DOMPurify from "dompurify"
 import type { BackgroundProcess } from "../../../server/src/api-types"
 import { buildBackgroundProcessStreamUrl, serverApi } from "../lib/api-client"
 import { createAnsiStreamRenderer, hasAnsi } from "../lib/ansi"
@@ -154,7 +155,7 @@ export function BackgroundProcessOutputDialog(props: BackgroundProcessOutputDial
                 >
                   <pre
                     class="text-xs whitespace-pre-wrap break-all text-primary bg-surface-secondary border border-base rounded-md p-4 font-mono"
-                    innerHTML={outputHtml()}
+                    innerHTML={DOMPurify.sanitize(outputHtml())}
                   />
                 </Show>
               </Show>

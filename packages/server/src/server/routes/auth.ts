@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify"
+import rateLimit from "@fastify/rate-limit"
 import fs from "fs"
 import { z } from "zod"
 import type { AuthManager } from "../../auth/manager"
@@ -50,7 +51,22 @@ function getTokenHtml(): string {
   return cachedTokenTemplate
 }
 
-export function registerAuthRoutes(app: FastifyInstance, deps: RouteDeps) {
+/** Rate limit config for brute-force sensitive endpoints */
+const AUTH_RATE_LIMIT = {
+  max: 10,
+  timeWindow: "1 minute",
+  errorResponseBuilder: () => ({
+    error: "Too many requests",
+    message: "Rate limit exceeded. Please try again later.",
+  }),
+}
+
+export async function registerAuthRoutes(app: FastifyInstance, deps: RouteDeps) {
+  // Register rate limiting plugin scoped to this plugin instance
+  await app.register(rateLimit, {
+    global: false, // Don't apply globally, only to routes with config
+  })
+
   app.get("/login", async (_request, reply) => {
     const status = deps.authManager.getStatus()
     reply.type("text/html").send(getLoginHtml(status.username))
@@ -79,7 +95,8 @@ export function registerAuthRoutes(app: FastifyInstance, deps: RouteDeps) {
     reply.send({ authenticated: true, ...deps.authManager.getStatus() })
   })
 
-  app.post("/api/auth/login", async (request, reply) => {
+  // Rate-limited: brute-force target
+  app.post("/api/auth/login", { config: { rateLimit: AUTH_RATE_LIMIT } }, async (request, reply) => {
     const body = LoginSchema.parse(request.body ?? {})
     const ok = deps.authManager.validateLogin(body.username, body.password)
     if (!ok) {
@@ -92,7 +109,8 @@ export function registerAuthRoutes(app: FastifyInstance, deps: RouteDeps) {
     reply.send({ ok: true })
   })
 
-  app.post("/api/auth/token", async (request, reply) => {
+  // Rate-limited: brute-force target
+  app.post("/api/auth/token", { config: { rateLimit: AUTH_RATE_LIMIT } }, async (request, reply) => {
     if (!deps.authManager.isTokenBootstrapEnabled()) {
       reply.code(404).send({ error: "Not found" })
       return

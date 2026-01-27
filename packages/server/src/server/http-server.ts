@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify"
 import cors from "@fastify/cors"
+import helmet from "@fastify/helmet"
 import fastifyStatic from "@fastify/static"
 import replyFrom from "@fastify/reply-from"
 import fs from "fs"
@@ -131,6 +132,13 @@ export function createHttpServer(deps: HttpServerDeps) {
     credentials: true,
   })
 
+  // Security headers via helmet - disable CSP and COEP since this is a local dev tool
+  // that needs to load resources dynamically and use SSE
+  app.register(helmet, {
+    contentSecurityPolicy: false, // Disable CSP - this is a local app that loads dynamic content
+    crossOriginEmbedderPolicy: false, // Needed for SSE and dynamic loading
+  })
+
   app.register(replyFrom, {
     contentTypesToEncode: [],
     undici: {
@@ -147,7 +155,9 @@ export function createHttpServer(deps: HttpServerDeps) {
     logger: deps.logger.child({ component: "background-processes" }),
   })
 
-  registerAuthRoutes(app, { authManager: deps.authManager })
+  app.register(async (instance) => {
+    await registerAuthRoutes(instance, { authManager: deps.authManager })
+  })
 
   app.addHook("preHandler", (request, reply, done) => {
     const rawUrl = request.raw.url ?? request.url
@@ -291,7 +301,7 @@ export function createHttpServer(deps: HttpServerDeps) {
       deps.serverMeta.port = actualPort
       deps.serverMeta.listeningMode = deps.host === "0.0.0.0" || !isLoopbackHost(deps.host) ? "all" : "local"
       deps.logger.info({ port: actualPort, host: deps.host }, "HTTP server listening")
-      console.log(`CodeNomad Server is ready at ${serverUrl}`)
+      console.log(`AgroForge Server is ready at ${serverUrl}`)
 
       return { port: actualPort, url: serverUrl, displayHost }
     },

@@ -1,19 +1,24 @@
 {
-  "name": "@neuralnomads/codenomad",
+  "name": "@agroforge/server",
   "version": "0.9.1",
-  "description": "CodeNomad Server",
+  "description": "AgroForge Server",
   "author": {
-    "name": "Neural Nomads",
-    "email": "codenomad@neuralnomads.ai"
+    "name": "Kristian Vastveit",
+    "url": "https://github.com/kristianvast"
   },
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/NeuralNomadsAI/CodeNomad.git"
+    "url": "https://github.com/kristianvast/AgroForge.git"
+  },
+  "homepage": "https://github.com/kristianvast/AgroForge",
+  "bugs": {
+    "url": "https://github.com/kristianvast/AgroForge/issues"
   },
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "codenomad": "dist/bin.js"
+    "agroforge": "dist/bin.js"
   },
   "scripts": {
     "build": "npm run build:ui && npm run prepare-ui && tsc -p tsconfig.json && node ./scripts/copy-auth-pages.mjs && npm run prepare-config",
@@ -25,7 +30,9 @@
   },
   "dependencies": {
     "@fastify/cors": "^8.5.0",
-    "@fastify/reply-from": "^9.8.0",
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/reply-from": "^12.5.0",
     "@fastify/static": "^7.0.4",
     "commander": "^12.1.0",
     "fastify": "^4.28.1",

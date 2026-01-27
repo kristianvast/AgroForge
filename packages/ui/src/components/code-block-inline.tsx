@@ -1,4 +1,5 @@
 import { createSignal, onMount, Show, createEffect } from "solid-js"
+import DOMPurify from "dompurify"
 import type { Highlighter } from "shiki/bundle/full"
 import { useTheme } from "../lib/theme"
 import { getSharedHighlighter, escapeHtml } from "../lib/markdown"
@@ -103,7 +104,7 @@ export function CodeBlockInline(props: CodeBlockInlineProps) {
             </span>
           </button>
         </div>
-        <div innerHTML={html()} />
+        <div innerHTML={DOMPurify.sanitize(html())} />
       </div>
     </Show>
   )
