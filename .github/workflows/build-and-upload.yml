@@ -63,7 +63,7 @@ jobs:
         run: npm install @rollup/rollup-darwin-x64 --no-save
 
       - name: Build macOS binaries (Electron)
-        run: npm run build:mac --workspace @neuralnomads/codenomad-electron-app
+        run: npm run build:mac --workspace @agroforge/electron-app
 
       - name: Upload release assets
         if: ${{ inputs.upload && inputs.tag != '' }}
@@ -104,7 +104,7 @@ jobs:
         run: npm install @rollup/rollup-win32-x64-msvc --no-save
 
       - name: Build Windows binaries (Electron)
-        run: npm run build:win --workspace @neuralnomads/codenomad-electron-app
+        run: npm run build:win --workspace @agroforge/electron-app
 
       - name: Upload release assets
         if: ${{ inputs.upload && inputs.tag != '' }}
@@ -142,7 +142,7 @@ jobs:
         run: npm install @rollup/rollup-linux-x64-gnu --no-save
 
       - name: Build Linux binaries (Electron)
-        run: npm run build:linux --workspace @neuralnomads/codenomad-electron-app
+        run: npm run build:linux --workspace @agroforge/electron-app
 
       - name: Upload release assets
         if: ${{ inputs.upload && inputs.tag != '' }}
@@ -185,7 +185,7 @@ jobs:
         run: npm install @rollup/rollup-darwin-x64 --no-save
 
       - name: Prebuild (Tauri)
-        run: npm run prebuild --workspace @codenomad/tauri-app
+        run: npm run prebuild --workspace @agroforge/tauri-app
 
       - name: Ensure tauri native binary
         working-directory: packages/tauri-app
@@ -258,7 +258,7 @@ jobs:
         run: npm install @rollup/rollup-darwin-arm64 --no-save
 
       - name: Prebuild (Tauri)
-        run: npm run prebuild --workspace @codenomad/tauri-app
+        run: npm run prebuild --workspace @agroforge/tauri-app
 
       - name: Ensure tauri native binary
         working-directory: packages/tauri-app
@@ -332,7 +332,7 @@ jobs:
         run: npm install @rollup/rollup-win32-x64-msvc --no-save
 
       - name: Prebuild (Tauri)
-        run: npm run prebuild --workspace @codenomad/tauri-app
+        run: npm run prebuild --workspace @agroforge/tauri-app
 
       - name: Ensure tauri native binary
         shell: bash
@@ -422,7 +422,7 @@ jobs:
         run: npm install @rollup/rollup-linux-x64-gnu --no-save
 
       - name: Prebuild (Tauri)
-        run: npm run prebuild --workspace @codenomad/tauri-app
+        run: npm run prebuild --workspace @agroforge/tauri-app
 
       - name: Ensure tauri native binary
         working-directory: packages/tauri-app
@@ -545,7 +545,7 @@ jobs:
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
           CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
           AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
-        run: npm run build --workspace @codenomad/tauri-app
+        run: npm run build --workspace @agroforge/tauri-app
 
       - name: Package Tauri artifacts (Linux arm64)
         run: |
@@ -611,7 +611,7 @@ jobs:
         run: npm install @rollup/rollup-linux-x64-gnu --no-save
 
       - name: Build Linux RPM binaries
-        run: npm run build:linux-rpm --workspace @neuralnomads/codenomad-electron-app
+        run: npm run build:linux-rpm --workspace @agroforge/electron-app
 
       - name: Upload RPM release assets
         if: ${{ inputs.upload && inputs.tag != '' }}
