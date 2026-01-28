@@ -7,6 +7,7 @@ import { getSessionInfo } from "../stores/sessions"
 import { messageStoreBus } from "../stores/message-v2/bus"
 import { useScrollCache } from "../lib/hooks/use-scroll-cache"
 import type { InstanceMessageStore } from "../stores/message-v2/instance-store"
+import { getSessionStatus } from "../stores/session-status"
 
 const SCROLL_SCOPE = "session"
 const SCROLL_SENTINEL_MARGIN_PX = 48
@@ -97,6 +98,22 @@ export default function MessageSection(props: MessageSectionProps) {
     const lastRecord = resolvedStore.getMessage(lastId)
     if (!lastRecord) return false
     return lastRecord.status === "streaming" || lastRecord.status === "sending"
+  })
+
+  // Show pending indicator when session is working but no streaming message is visible yet
+  // This fills the gap between sending a message and receiving the first response
+  const showPendingIndicator = createMemo(() => {
+    // Don't show during initial load
+    if (props.loading) return false
+    
+    // Check session status
+    const status = getSessionStatus(props.instanceId, props.sessionId)
+    if (status !== "working") return false
+    
+    // If already streaming, the message-item will show its own indicator
+    if (isStreaming()) return false
+    
+    return true
   })
  
   const [timelineSegments, setTimelineSegments] = createSignal<TimelineSegment[]>([])
@@ -832,6 +849,7 @@ export default function MessageSection(props: MessageSectionProps) {
               onContentRendered={handleContentRendered}
               setBottomSentinel={setBottomSentinel}
               suspendMeasurements={() => !isActive() || isStreaming()}
+              showPendingIndicator={showPendingIndicator}
             />
 
 

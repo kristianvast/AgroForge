@@ -1,4 +1,4 @@
-import { Index, type Accessor } from "solid-js"
+import { Index, Show, type Accessor } from "solid-js"
 import VirtualItem from "./virtual-item"
 import MessageBlock from "./message-block"
 import type { InstanceMessageStore } from "../stores/message-v2/instance-store"
@@ -25,6 +25,7 @@ interface MessageBlockListProps {
   onContentRendered?: () => void
   setBottomSentinel: (element: HTMLDivElement | null) => void
   suspendMeasurements?: () => boolean
+  showPendingIndicator?: () => boolean
 }
 
 export default function MessageBlockList(props: MessageBlockListProps) {
@@ -60,6 +61,25 @@ export default function MessageBlockList(props: MessageBlockListProps) {
           </VirtualItem>
         )}
       </Index>
+
+      {/* Pending response indicator - shows when session is working but no streaming message yet */}
+      <Show when={props.showPendingIndicator?.()}>
+        <div class="message-pending-indicator">
+          <div class="message-thinking" role="status" aria-live="polite">
+            <div class="message-thinking-visual" aria-hidden="true">
+              <span class="message-thinking-ring" />
+              <span class="message-thinking-dot message-thinking-dot-1" />
+              <span class="message-thinking-dot message-thinking-dot-2" />
+              <span class="message-thinking-dot message-thinking-dot-3" />
+            </div>
+            <div class="message-thinking-text">
+              <span class="message-thinking-title">Agent thinking</span>
+              <span class="message-thinking-subtitle">Preparing response...</span>
+            </div>
+          </div>
+        </div>
+      </Show>
+
       <div ref={props.setBottomSentinel} aria-hidden="true" style={{ height: "1px" }} />
     </>
   )
