@@ -15,6 +15,17 @@ const child = spawn(process.execPath, ["--import", loaderArg, cliEntry, ...proce
   stdio: "inherit",
 })
 
+// Forward termination signals so the real server (index.ts) receives them and
+// can run its graceful shutdown handler — stopping all managed OpenCode instances.
+// Without this, killing bin.ts orphans the server process and every workspace it spawned.
+for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"] as const) {
+  process.on(sig, () => {
+    if (child.pid && !child.killed) {
+      child.kill(sig)
+    }
+  })
+}
+
 child.on("exit", (code, signal) => {
   if (signal) {
     process.kill(process.pid, signal)

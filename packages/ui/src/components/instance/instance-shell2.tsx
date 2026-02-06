@@ -12,7 +12,7 @@ import {
 } from "solid-js"
 import type { ToolState } from "@opencode-ai/sdk"
 import { Accordion } from "@kobalte/core"
-import { ChevronDown, Plus, TerminalSquare, Trash2, XOctagon } from "lucide-solid"
+import { ChevronDown, MoreVertical, Plus, TerminalSquare, Trash2, XOctagon } from "lucide-solid"
 import AppBar from "@suid/material/AppBar"
 import Box from "@suid/material/Box"
 import Divider from "@suid/material/Divider"
@@ -147,6 +147,7 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
   const [selectedBackgroundProcess, setSelectedBackgroundProcess] = createSignal<BackgroundProcess | null>(null)
   const [showBackgroundOutput, setShowBackgroundOutput] = createSignal(false)
   const [permissionModalOpen, setPermissionModalOpen] = createSignal(false)
+  const [phoneMenuOpen, setPhoneMenuOpen] = createSignal(false)
 
   const messageStore = createMemo(() => messageStoreBus.getOrCreate(props.instance.id))
 
@@ -914,24 +915,38 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
           {(activeSession) => (
             <>
               <ContextUsagePanel instanceId={props.instance.id} sessionId={activeSession().id} />
-              <div class="session-sidebar-controls px-4 py-4 border-t border-base">
-                <AgentModelTrigger
-                  instanceId={props.instance.id}
-                  sessionId={activeSession().id}
-                  currentAgent={activeSession().agent}
-                  currentModel={activeSession().model}
-                  onAgentChange={(agent: string) => props.handleSidebarAgentChange(activeSession().id, agent)}
-                  onModelChange={(model: { providerId: string; modelId: string }) => props.handleSidebarModelChange(activeSession().id, model)}
-                />
-                <div class="sidebar-selector-hints mt-2" aria-hidden="true">
-                  <span class="hint sidebar-selector-hint">
-                    <Kbd shortcut="cmd+shift+a" /> Agent
-                  </span>
-                  <span class="hint sidebar-selector-hint">
-                    <Kbd shortcut="cmd+shift+m" /> Model
-                  </span>
+              <Show when={!isPhoneLayout()}>
+                <div class="session-sidebar-controls px-4 py-4 border-t border-base">
+                  <AgentModelTrigger
+                    instanceId={props.instance.id}
+                    sessionId={activeSession().id}
+                    currentAgent={activeSession().agent}
+                    currentModel={activeSession().model}
+                    onAgentChange={(agent: string) => props.handleSidebarAgentChange(activeSession().id, agent)}
+                    onModelChange={(model: { providerId: string; modelId: string }) => props.handleSidebarModelChange(activeSession().id, model)}
+                  />
+                  <div class="sidebar-selector-hints mt-2" aria-hidden="true">
+                    <span class="hint sidebar-selector-hint">
+                      <Kbd shortcut="cmd+shift+a" /> Agent
+                    </span>
+                    <span class="hint sidebar-selector-hint">
+                      <Kbd shortcut="cmd+shift+m" /> Model
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </Show>
+              <Show when={isPhoneLayout()}>
+                <div class="session-sidebar-controls-phone px-4 py-3 border-t border-base">
+                  <AgentModelTrigger
+                    instanceId={props.instance.id}
+                    sessionId={activeSession().id}
+                    currentAgent={activeSession().agent}
+                    currentModel={activeSession().model}
+                    onAgentChange={(agent: string) => props.handleSidebarAgentChange(activeSession().id, agent)}
+                    onModelChange={(model: { providerId: string; modelId: string }) => props.handleSidebarModelChange(activeSession().id, model)}
+                  />
+                </div>
+              </Show>
             </>
           )}
         </Show>
@@ -1269,64 +1284,81 @@ const InstanceShell2: Component<InstanceShellProps> = (props) => {
           <Show
             when={!isPhoneLayout()}
             fallback={
-              <div class="flex flex-col w-full gap-1.5">
-                <div class="flex flex-wrap items-center justify-between gap-2 w-full">
-                  <IconButton
-                    ref={setLeftToggleButtonEl}
-                    color="inherit"
-                    onClick={handleLeftAppBarButtonClick}
-                    aria-label={leftAppBarButtonLabel()}
-                    size="small"
-                    aria-expanded={leftDrawerState() !== "floating-closed"}
-                    disabled={leftDrawerState() === "pinned"}
-                  >
-                    {leftAppBarButtonIcon()}
-                  </IconButton>
+              <div class="phone-toolbar">
+                <IconButton
+                  ref={setLeftToggleButtonEl}
+                  color="inherit"
+                  onClick={handleLeftAppBarButtonClick}
+                  aria-label={leftAppBarButtonLabel()}
+                  size="small"
+                  aria-expanded={leftDrawerState() !== "floating-closed"}
+                  disabled={leftDrawerState() === "pinned"}
+                >
+                  {leftAppBarButtonIcon()}
+                </IconButton>
 
-                  <div class="flex flex-nowrap items-center gap-2 justify-center flex-1 min-w-0">
-                    <PermissionNotificationBanner
-                      instanceId={props.instance.id}
-                      onClick={() => setPermissionModalOpen(true)}
-                    />
+                <Show when={activeSessionForInstance()}>
+                  {(activeSession) => (
                     <button
                       type="button"
-                      class="connection-status-button"
-                      onClick={handleCommandPaletteClick}
-                      aria-label="Open command palette"
+                      class="phone-toolbar-agent-model"
+                      onClick={() => {
+                        const agentBtn = leftDrawerContentEl()?.querySelector("[data-agent-selector]") as HTMLElement | null
+                        if (agentBtn) agentBtn.click()
+                        else {
+                          setLeftOpen(true)
+                        }
+                      }}
                     >
-                      <span class="connection-status-button-text">Command Palette</span>
+                      <span class="phone-toolbar-agent">{activeSession().agent || "Agent"}</span>
+                      <span class="phone-toolbar-separator">·</span>
+                      <span class="phone-toolbar-model">{activeSession().model?.modelId?.split("/").pop() || "Model"}</span>
+                      <span
+                        class={`phone-toolbar-status-dot ${connectionStatusClass()}`}
+                        aria-label={`Connection ${connectionStatus()}`}
+                      />
                     </button>
-                    <span
-                      class={`status-indicator ${connectionStatusClass()}`}
-                      aria-label={`Connection ${connectionStatus()}`}
-                    >
-                      <span class="status-dot" />
-                    </span>
-                  </div>
+                  )}
+                </Show>
+                <Show when={!activeSessionForInstance()}>
+                  <span class="phone-toolbar-no-session">No session</span>
+                </Show>
 
-                  <IconButton
-                    ref={setRightToggleButtonEl}
-                    color="inherit"
-                    onClick={handleRightAppBarButtonClick}
-                    aria-label={rightAppBarButtonLabel()}
-                    size="small"
-                    aria-expanded={rightDrawerState() !== "floating-closed"}
-                    disabled={rightDrawerState() === "pinned"}
+                <div class="phone-toolbar-actions">
+                  <PermissionNotificationBanner
+                    instanceId={props.instance.id}
+                    onClick={() => setPermissionModalOpen(true)}
+                  />
+                  <button
+                    type="button"
+                    class="phone-toolbar-menu-btn"
+                    onClick={() => setPhoneMenuOpen(!phoneMenuOpen())}
+                    aria-label="More options"
                   >
-                    {rightAppBarButtonIcon()}
-                  </IconButton>
+                    <MoreVertical class="w-5 h-5" />
+                  </button>
                 </div>
 
-                <div class="flex flex-wrap items-center justify-center gap-2 pb-1">
-                  <div class="inline-flex items-center gap-1 rounded-full border border-base px-2 py-0.5 text-xs text-primary">
-                    <span class="uppercase text-[10px] tracking-wide text-primary/70">Used</span>
-                    <span class="font-semibold text-primary">{formattedUsedTokens()}</span>
+                <Show when={phoneMenuOpen()}>
+                  <div class="phone-toolbar-menu-backdrop" onClick={() => setPhoneMenuOpen(false)} />
+                  <div class="phone-toolbar-menu">
+                    <button type="button" class="phone-toolbar-menu-item" onClick={() => { handleCommandPaletteClick(); setPhoneMenuOpen(false) }}>
+                      Command Palette
+                    </button>
+                    <button type="button" class="phone-toolbar-menu-item" onClick={() => { handleRightAppBarButtonClick(); setPhoneMenuOpen(false) }}>
+                      Status Panel
+                    </button>
+                    <Show when={!showingInfoView()}>
+                      <div class="phone-toolbar-menu-divider" />
+                      <div class="phone-toolbar-menu-tokens">
+                        <span class="phone-toolbar-menu-token-label">Used</span>
+                        <span class="phone-toolbar-menu-token-value">{formattedUsedTokens()}</span>
+                        <span class="phone-toolbar-menu-token-label">Avail</span>
+                        <span class="phone-toolbar-menu-token-value">{formattedAvailableTokens()}</span>
+                      </div>
+                    </Show>
                   </div>
-                  <div class="inline-flex items-center gap-1 rounded-full border border-base px-2 py-0.5 text-xs text-primary">
-                    <span class="uppercase text-[10px] tracking-wide text-primary/70">Avail</span>
-                    <span class="font-semibold text-primary">{formattedAvailableTokens()}</span>
-                  </div>
-                </div>
+                </Show>
               </div>
             }
           >

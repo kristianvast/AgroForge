@@ -77,13 +77,14 @@ const SmartSessionPicker: Component<SmartSessionPickerProps> = (props) => {
   const agentList = () => agents().get(props.instanceId) || []
   const providerList = () => providers().get(props.instanceId) || []
 
-  // Get default agent (most recently used, or first non-subagent)
+  // Get default agent (most recently used that exists in this workspace, or first non-subagent)
   const defaultAgent = createMemo(() => {
     const list = agentList()
     const nonSubagents = list.filter(a => a.mode !== "subagent")
     
-    // Check for most recently used agent
-    const recentName = getMostRecentAgentName()
+    // Check for most recently used agent that exists in this workspace
+    const validNames = nonSubagents.map(a => a.name)
+    const recentName = getMostRecentAgentName(validNames)
     if (recentName) {
       const recentAgent = nonSubagents.find(a => a.name === recentName)
       if (recentAgent) return recentAgent

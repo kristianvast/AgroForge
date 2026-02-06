@@ -49,13 +49,14 @@ export default function PromptInput(props: PromptInputProps) {
   const [mode, setMode] = createSignal<"normal" | "shell">("normal")
   const [expandState, setExpandState] = createSignal<"normal" | "expanded">("normal")
   const SELECTION_INSERT_MAX_LENGTH = 2000
+  const isPhone = () => typeof window !== "undefined" && window.innerWidth < 768
   let textareaRef: HTMLTextAreaElement | undefined
 
   const getPlaceholder = () => {
     if (mode() === "shell") {
       return "Run a shell command (Esc to exit)..."
     }
-    return "Type your message, @file, @agent, or paste images and text..."
+    return "Type a message, @file or @agent..."
   }
 
 
@@ -1098,7 +1099,7 @@ export default function PromptInput(props: PromptInputProps) {
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 disabled={props.disabled}
-                rows={expandState() === "expanded" ? 15 : 4}
+                rows={expandState() === "expanded" ? 15 : isPhone() ? 2 : 4}
                 spellcheck={false}
                 autocorrect="off"
                 autoCapitalize="off"
@@ -1109,7 +1110,7 @@ export default function PromptInput(props: PromptInputProps) {
                   expandState={expandState}
                   onToggleExpand={handleExpandToggle}
                 />
-                <Show when={hasHistory()}>
+                <Show when={hasHistory() && !isPhone()}>
                   <button
                     type="button"
                     class="prompt-history-button"

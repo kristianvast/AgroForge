@@ -46,8 +46,8 @@ function ensureVisibilityEffect() {
         activeToast = showToastNotification({
           title: support.message ?? "Upgrade required",
           message: support.latestServerVersion
-            ? `Update to CodeNomad ${support.latestServerVersion} to use the latest UI.`
-            : "Update CodeNomad to use the latest UI.",
+            ? `Update to AgroForge ${support.latestServerVersion} to use the latest UI.`
+            : "Update AgroForge to use the latest UI.",
           variant: "info",
           duration: Number.POSITIVE_INFINITY,
           position: "bottom-right",

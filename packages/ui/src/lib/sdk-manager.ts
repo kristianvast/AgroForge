@@ -1,5 +1,5 @@
 import { createOpencodeClient, type OpencodeClient } from "@opencode-ai/sdk/v2/client"
-import { CODENOMAD_API_BASE } from "./api-client"
+import { AGROFORGE_API_BASE } from "./api-client"
 
 class SDKManager {
   private clients = new Map<string, OpencodeClient>()
@@ -35,7 +35,7 @@ export type { OpencodeClient }
 
 function buildInstanceBaseUrl(proxyPath: string): string {
   const normalized = normalizeProxyPath(proxyPath)
-  const base = stripTrailingSlashes(CODENOMAD_API_BASE)
+  const base = stripTrailingSlashes(AGROFORGE_API_BASE)
   return `${base}${normalized}/`
 }
 

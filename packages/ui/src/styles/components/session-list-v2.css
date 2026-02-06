@@ -31,16 +31,8 @@
   to { transform: rotate(90deg); }
 }
 
-@keyframes session-card-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* session-card-enter animation removed — it fired on every reactive
+   re-render / list reorder, causing visible blink artefacts. */
 
 @keyframes session-shimmer {
   0% { background-position: -200% 0; }
@@ -721,7 +713,6 @@
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: session-card-enter 0.2s ease-out;
   text-align: left;
 }
 
@@ -1564,7 +1555,6 @@
   gap: var(--space-md);
   padding: var(--space-2xl) var(--space-lg);
   text-align: center;
-  animation: session-card-enter 0.3s ease-out;
 }
 
 .session-empty-state--filtered {
@@ -1906,10 +1896,6 @@
     animation: none;
   }
 
-  .session-card {
-    animation: none;
-  }
-  
   .session-empty-state {
     animation: none;
   }
@@ -2147,7 +2133,6 @@
     var(--glow-primary),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   overflow: hidden;
-  animation: session-card-enter 0.2s ease-out;
   position: relative;
 }
 

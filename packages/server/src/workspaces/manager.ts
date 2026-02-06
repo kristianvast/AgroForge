@@ -10,6 +10,7 @@ import { clearWorkspaceSearchCache } from "../filesystem/search-cache"
 import { WorkspaceDescriptor, WorkspaceFileResponse, FileSystemEntry } from "../api-types"
 import { WorkspaceRuntime, ProcessExitInfo } from "./runtime"
 import { Logger } from "../logger"
+import { PidTracker } from "../pid-tracker"
 import { getOpencodeConfigDir } from "../opencode-config.js"
 import {
   buildOpencodeBasicAuthHeader,
@@ -28,6 +29,7 @@ interface WorkspaceManagerOptions {
   eventBus: EventBus
   logger: Logger
   getServerBaseUrl: () => string
+  pidTracker?: PidTracker
 }
 
 interface WorkspaceRecord extends WorkspaceDescriptor {}
@@ -39,7 +41,7 @@ export class WorkspaceManager {
   private readonly opencodeAuth = new Map<string, { username: string; password: string; authorization: string }>()
 
   constructor(private readonly options: WorkspaceManagerOptions) {
-    this.runtime = new WorkspaceRuntime(this.options.eventBus, this.options.logger)
+    this.runtime = new WorkspaceRuntime(this.options.eventBus, this.options.logger, this.options.pidTracker)
     this.opencodeConfigDir = getOpencodeConfigDir()
   }
 
@@ -133,8 +135,8 @@ export class WorkspaceManager {
     const environment = {
       ...userEnvironment,
       OPENCODE_CONFIG_DIR: opencodeConfigDir,
-      CODENOMAD_INSTANCE_ID: id,
-      CODENOMAD_BASE_URL: this.options.getServerBaseUrl(),
+      AGROFORGE_INSTANCE_ID: id,
+      AGROFORGE_BASE_URL: this.options.getServerBaseUrl(),
       [OPENCODE_SERVER_USERNAME_ENV]: opencodeUsername,
       [OPENCODE_SERVER_PASSWORD_ENV]: opencodePassword,
     }

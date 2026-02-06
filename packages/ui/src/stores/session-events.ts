@@ -75,10 +75,6 @@ function applySessionStatus(instanceId: string, sessionId: string, status: Sessi
     const current = session.status ?? "idle"
     if (current === status) return false
 
-    if (current === "compacting" && status !== "compacting") {
-      return false
-    }
-
     wasWorking = current === "working" || current === "compacting"
     session.status = status
     updated = true
@@ -88,11 +84,15 @@ function applySessionStatus(instanceId: string, sessionId: string, status: Sessi
   if (updated) {
     syncInstanceSessionIndicator(instanceId)
     
-    // Mark as unread if session finished and user is viewing a different session
+    // Mark as unread if a *parent* session finished and user is viewing a different session.
+    // Subagent completions are not surfaced as unread — only the main agent matters.
     if (wasWorking && status === "idle") {
-      const currentActiveSession = activeSessionId().get(instanceId)
-      if (currentActiveSession !== sessionId) {
-        markSessionUnread(instanceId, sessionId)
+      const session = sessions().get(instanceId)?.get(sessionId)
+      if (session && session.parentId === null) {
+        const currentActiveSession = activeSessionId().get(instanceId)
+        if (currentActiveSession !== sessionId) {
+          markSessionUnread(instanceId, sessionId)
+        }
       }
     }
   }
@@ -161,6 +161,12 @@ function ensureSessionStatus(instanceId: string, sessionId: string, status: Sess
 
   const key = `${instanceId}:${sessionId}`
   if (pendingSessionFetches.has(key)) {
+    // Chain the status transition after the pending fetch completes
+    // instead of silently dropping it (fixes sub-agent compaction deadlock)
+    const pending = pendingSessionFetches.get(key)!
+    void pending.then(() => {
+      applySessionStatus(instanceId, sessionId, status)
+    })
     return
   }
 

@@ -258,7 +258,14 @@ impl CliProcessManager {
         let ready_flag = self.ready.clone();
         let token_arc = self.bootstrap_token.clone();
         thread::spawn(move || {
-            if let Err(err) = Self::spawn_cli(app.clone(), status_arc.clone(), child_arc, ready_flag, token_arc, dev) {
+            if let Err(err) = Self::spawn_cli(
+                app.clone(),
+                status_arc.clone(),
+                child_arc,
+                ready_flag,
+                token_arc,
+                dev,
+            ) {
                 log_line(&format!("cli spawn failed: {err}"));
                 let mut locked = status_arc.lock();
                 locked.state = CliState::Error;
@@ -361,7 +368,9 @@ impl CliProcessManager {
 
         if !supports_user_shell() {
             if which::which(&resolution.node_binary).is_err() {
-                return Err(anyhow::anyhow!("Node binary not found. Make sure Node.js is installed."));
+                return Err(anyhow::anyhow!(
+                    "Node binary not found. Make sure Node.js is installed."
+                ));
             }
         }
 
@@ -412,7 +421,6 @@ impl CliProcessManager {
         let token_clone = bootstrap_token.clone();
 
         thread::spawn(move || {
-
             let stdout = child_clone
                 .lock()
                 .as_mut()
@@ -425,10 +433,24 @@ impl CliProcessManager {
                 .map(BufReader::new);
 
             if let Some(reader) = stdout {
-                Self::process_stream(reader, "stdout", &app_clone, &status_clone, &ready_clone, &token_clone);
+                Self::process_stream(
+                    reader,
+                    "stdout",
+                    &app_clone,
+                    &status_clone,
+                    &ready_clone,
+                    &token_clone,
+                );
             }
             if let Some(reader) = stderr {
-                Self::process_stream(reader, "stderr", &app_clone, &status_clone, &ready_clone, &token_clone);
+                Self::process_stream(
+                    reader,
+                    "stderr",
+                    &app_clone,
+                    &status_clone,
+                    &ready_clone,
+                    &token_clone,
+                );
             }
         });
 
@@ -481,8 +503,14 @@ impl CliProcessManager {
                 if locked.error.is_none() {
                     locked.error = err_msg.clone();
                 }
-                log_line(&format!("cli process exited before ready: {:?}", locked.error));
-                let _ = app_clone.emit("cli:error", json!({"message": locked.error.clone().unwrap_or_default()}));
+                log_line(&format!(
+                    "cli process exited before ready: {:?}",
+                    locked.error
+                ));
+                let _ = app_clone.emit(
+                    "cli:error",
+                    json!({"message": locked.error.clone().unwrap_or_default()}),
+                );
             } else {
                 locked.state = CliState::Stopped;
                 log_line("cli process stopped cleanly");
@@ -503,9 +531,9 @@ impl CliProcessManager {
         bootstrap_token: &Arc<Mutex<Option<String>>>,
     ) {
         let mut buffer = String::new();
-        let port_regex = Regex::new(r"CodeNomad Server is ready at http://[^:]+:(\d+)").ok();
+        let port_regex = Regex::new(r"AgroForge Server is ready at http://[^:]+:(\d+)").ok();
         let http_regex = Regex::new(r":(\d{2,5})(?!.*:\d)").ok();
-        let token_prefix = "CODENOMAD_BOOTSTRAP_TOKEN:";
+        let token_prefix = "AGROFORGE_BOOTSTRAP_TOKEN:";
 
         loop {
             buffer.clear();
@@ -552,7 +580,13 @@ impl CliProcessManager {
 
                             if let Ok(value) = serde_json::from_str::<serde_json::Value>(line) {
                                 if let Some(port) = value.get("port").and_then(|p| p.as_u64()) {
-                                    Self::mark_ready(app, status, ready, bootstrap_token, port as u16);
+                                    Self::mark_ready(
+                                        app,
+                                        status,
+                                        ready,
+                                        bootstrap_token,
+                                        port as u16,
+                                    );
                                     continue;
                                 }
                             }
@@ -676,7 +710,7 @@ impl CliEntry {
         }
 
         Err(anyhow::anyhow!(
-            "Unable to locate CodeNomad CLI build (dist/bin.js). Please build @neuralnomads/codenomad."
+            "Unable to locate AgroForge CLI build (dist/bin.js). Please build @agroforge/server."
         ))
     }
 
@@ -718,9 +752,10 @@ fn resolve_tsx(_app: &AppHandle) -> Option<String> {
         std::env::current_dir()
             .ok()
             .map(|p| p.join("node_modules/tsx/dist/cli.js")),
-        std::env::current_exe()
-            .ok()
-            .and_then(|ex| ex.parent().map(|p| p.join("../node_modules/tsx/dist/cli.js"))),
+        std::env::current_exe().ok().and_then(|ex| {
+            ex.parent()
+                .map(|p| p.join("../node_modules/tsx/dist/cli.js"))
+        }),
     ];
 
     first_existing(candidates)
@@ -743,7 +778,8 @@ fn resolve_dist_entry(_app: &AppHandle) -> Option<String> {
     let base = workspace_root();
     let mut candidates: Vec<Option<PathBuf>> = vec![
         base.as_ref().map(|p| p.join("packages/server/dist/bin.js")),
-        base.as_ref().map(|p| p.join("packages/server/dist/index.js")),
+        base.as_ref()
+            .map(|p| p.join("packages/server/dist/index.js")),
         base.as_ref().map(|p| p.join("server/dist/bin.js")),
         base.as_ref().map(|p| p.join("server/dist/index.js")),
     ];
@@ -758,9 +794,11 @@ fn resolve_dist_entry(_app: &AppHandle) -> Option<String> {
             candidates.push(Some(resources.join("resources/server/dist/bin.js")));
             candidates.push(Some(resources.join("resources/server/dist/index.js")));
             candidates.push(Some(resources.join("resources/server/dist/server/bin.js")));
-            candidates.push(Some(resources.join("resources/server/dist/server/index.js")));
+            candidates.push(Some(
+                resources.join("resources/server/dist/server/index.js"),
+            ));
 
-            let linux_resource_roots = [dir.join("../lib/CodeNomad"), dir.join("../lib/codenomad")];
+            let linux_resource_roots = [dir.join("../lib/AgroForge"), dir.join("../lib/agroforge")];
             for root in linux_resource_roots {
                 candidates.push(Some(root.join("server/dist/bin.js")));
                 candidates.push(Some(root.join("server/dist/index.js")));
@@ -777,8 +815,10 @@ fn resolve_dist_entry(_app: &AppHandle) -> Option<String> {
     first_existing(candidates)
 }
 
-fn build_shell_command_string(entry: &CliEntry, cli_args: &[String]) -> anyhow::Result<ShellCommand> {
-
+fn build_shell_command_string(
+    entry: &CliEntry,
+    cli_args: &[String],
+) -> anyhow::Result<ShellCommand> {
     let shell = default_shell();
     let mut quoted: Vec<String> = Vec::new();
     quoted.push(shell_escape(&entry.node_binary));
@@ -809,7 +849,7 @@ fn shell_escape(input: &str) -> String {
         "''".to_string()
     } else if !input
         .chars()
-        .any(|c| matches!(c, ' ' | '"' | '\'' | '$' | '`' | '!' ))
+        .any(|c| matches!(c, ' ' | '"' | '\'' | '$' | '`' | '!'))
     {
         input.to_string()
     } else {

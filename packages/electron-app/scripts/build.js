@@ -106,7 +106,7 @@ async function build(platform) {
 
   try {
     console.log("📦 Step 1/3: Building CLI dependency...\n")
-    await run(npmCmd, ["run", "build", "--workspace", "@neuralnomads/codenomad"], {
+    await run(npmCmd, ["run", "build", "--workspace", "@agroforge/server"], {
       cwd: workspaceRoot,
       env: { NODE_PATH: workspaceNodeModulesPath },
     })
@@ -134,7 +134,7 @@ const platform = process.argv[2] || "mac"
 
 console.log(`
 ╔════════════════════════════════════════╗
-║   CodeNomad - Binary Builder          ║
+║   AgroForge - Binary Builder          ║
 ╚════════════════════════════════════════╝
 `)
 

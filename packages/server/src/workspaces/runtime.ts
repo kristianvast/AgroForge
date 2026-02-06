@@ -4,6 +4,7 @@ import path from "path"
 import { EventBus } from "../events/bus"
 import { LogLevel, WorkspaceLogEntry } from "../api-types"
 import { Logger } from "../logger"
+import type { PidTracker } from "../pid-tracker"
 
 export const WINDOWS_CMD_EXTENSIONS = new Set([".cmd", ".bat"])
 export const WINDOWS_POWERSHELL_EXTENSIONS = new Set([".ps1"])
@@ -77,7 +78,11 @@ interface ManagedProcess {
 export class WorkspaceRuntime {
   private processes = new Map<string, ManagedProcess>()
 
-  constructor(private readonly eventBus: EventBus, private readonly logger: Logger) {}
+  constructor(
+    private readonly eventBus: EventBus,
+    private readonly logger: Logger,
+    private readonly pidTracker?: PidTracker,
+  ) {}
 
   async launch(options: LaunchOptions): Promise<{ pid: number; port: number; exitPromise: Promise<ProcessExitInfo>; getLastOutput: () => string }> {
     this.validateFolder(options.folder)
@@ -134,6 +139,10 @@ export class WorkspaceRuntime {
       const managed: ManagedProcess = { child, requestedStop: false }
       this.processes.set(options.workspaceId, managed)
 
+      if (child.pid) {
+        this.pidTracker?.writeWorkspacePid(options.workspaceId, child.pid)
+      }
+
       let stdoutBuffer = ""
       let stderrBuffer = ""
       let portFound = false
@@ -164,6 +173,7 @@ export class WorkspaceRuntime {
       const handleExit = (code: number | null, signal: NodeJS.Signals | null) => {
         this.logger.info({ workspaceId: options.workspaceId, code, signal }, "OpenCode process exited")
         this.processes.delete(options.workspaceId)
+        this.pidTracker?.removeWorkspacePid(options.workspaceId)
         cleanupStreams()
         child.removeListener("error", handleError)
         child.removeListener("exit", handleExit)

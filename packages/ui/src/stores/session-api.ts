@@ -188,16 +188,12 @@ async function createSession(instanceId: string, agent?: string): Promise<Sessio
   const instanceAgents = agents().get(instanceId) || []
   const nonSubagents = instanceAgents.filter((a) => a.mode !== "subagent")
   
-  // Priority: explicit agent > most recently used agent > first available agent
+  // Priority: explicit agent > most recently used agent (that exists in this workspace) > first available agent
   let selectedAgent = agent
   if (!selectedAgent) {
-    const recentAgent = getMostRecentAgentName()
-    // Check if the recently used agent exists in this instance
-    if (recentAgent && nonSubagents.some(a => a.name === recentAgent)) {
-      selectedAgent = recentAgent
-    } else {
-      selectedAgent = nonSubagents.length > 0 ? nonSubagents[0].name : ""
-    }
+    const validNames = nonSubagents.map(a => a.name)
+    const recentAgent = getMostRecentAgentName(validNames)
+    selectedAgent = recentAgent || (nonSubagents.length > 0 ? nonSubagents[0].name : "")
   }
 
   const recentModel = getMostRecentModelPreference()

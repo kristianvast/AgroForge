@@ -13,14 +13,14 @@ const prodTemplateDirs = [
   path.resolve(__dirname, "opencode-config"),
 ].filter((dir): dir is string => Boolean(dir))
 
-const isDevBuild = Boolean(process.env.CODENOMAD_DEV ?? process.env.CLI_UI_DEV_SERVER) || existsSync(devTemplateDir)
+const isDevBuild = Boolean(process.env.AGROFORGE_DEV ?? process.env.CLI_UI_DEV_SERVER) || existsSync(devTemplateDir)
 const templateDir = isDevBuild
   ? devTemplateDir
   : prodTemplateDirs.find((dir) => existsSync(dir)) ?? prodTemplateDirs[0]
 
 export function getOpencodeConfigDir(): string {
   if (!existsSync(templateDir)) {
-    throw new Error(`CodeNomad Opencode config template missing at ${templateDir}`)
+    throw new Error(`AgroForge Opencode config template missing at ${templateDir}`)
   }
 
   if (isDevBuild) {

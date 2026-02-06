@@ -19,6 +19,7 @@ import { createLogger } from "./logger"
 import { launchInBrowser } from "./launcher"
 import { resolveUi } from "./ui/remote-ui"
 import { AuthManager, BOOTSTRAP_TOKEN_STDOUT_PREFIX, DEFAULT_AUTH_USERNAME } from "./auth/manager"
+import { PidTracker } from "./pid-tracker"
 
 const require = createRequire(import.meta.url)
 
@@ -53,7 +54,7 @@ const DEFAULT_CONFIG_PATH = "~/.config/codenomad/config.json"
 function parseCliOptions(argv: string[]): CliOptions {
   const program = new Command()
     .name("codenomad")
-    .description("CodeNomad CLI server")
+    .description("AgroForge CLI server")
     .version(packageJson.version, "-v, --version", "Show the CLI version")
     .addOption(new Option("--host <host>", "Host interface to bind").env("CLI_HOST").default(DEFAULT_HOST))
     .addOption(new Option("--port <number>", "Port for the HTTP server").env("CLI_PORT").default(DEFAULT_PORT).argParser(parsePort))
@@ -75,13 +76,13 @@ function parseCliOptions(argv: string[]): CliOptions {
     .addOption(new Option("--launch", "Launch the UI in a browser after start").env("CLI_LAUNCH").default(false))
     .addOption(
       new Option("--username <username>", "Username for server authentication")
-        .env("CODENOMAD_SERVER_USERNAME")
+        .env("AGROFORGE_SERVER_USERNAME")
         .default(DEFAULT_AUTH_USERNAME),
     )
-    .addOption(new Option("--password <password>", "Password for server authentication").env("CODENOMAD_SERVER_PASSWORD"))
+    .addOption(new Option("--password <password>", "Password for server authentication").env("AGROFORGE_SERVER_PASSWORD"))
     .addOption(
       new Option("--generate-token", "Emit a one-time bootstrap token for desktop")
-        .env("CODENOMAD_GENERATE_TOKEN")
+        .env("AGROFORGE_GENERATE_TOKEN")
         .default(false),
     )
 
@@ -172,7 +173,7 @@ async function main() {
     authPassword: options.authPassword ? "[REDACTED]" : undefined,
   }
 
-  logger.info({ options: logOptions }, "Starting CodeNomad CLI server")
+  logger.info({ options: logOptions }, "Starting AgroForge CLI server")
 
   const eventBus = new EventBus(eventLogger)
 
@@ -206,6 +207,13 @@ async function main() {
     }
   }
 
+  const pidTracker = new PidTracker(logger.child({ component: "pid-tracker" }))
+  const { reaped, cleaned } = pidTracker.reapOrphans()
+  if (reaped > 0 || cleaned > 0) {
+    logger.info({ reaped, cleaned }, "Cleaned up orphaned processes from previous run")
+  }
+  pidTracker.writeServerPid()
+
   const configStore = new ConfigStore(options.configPath, eventBus, configLogger)
   const binaryRegistry = new BinaryRegistry(configStore, eventBus, configLogger)
   const workspaceManager = new WorkspaceManager({
@@ -215,6 +223,7 @@ async function main() {
     eventBus,
     logger: workspaceLogger,
     getServerBaseUrl: () => serverMeta.httpBaseUrl,
+    pidTracker,
   })
   const fileSystemBrowser = new FileSystemBrowser({ rootDir: options.rootDir, unrestricted: options.unrestrictedRoot })
   const instanceStore = new InstanceStore()
@@ -272,7 +281,7 @@ async function main() {
 
   const startInfo = await server.start()
   logger.info({ port: startInfo.port, host: options.host }, "HTTP server listening")
-  console.log(`CodeNomad Server is ready at ${startInfo.url}`)
+  console.log(`AgroForge Server is ready at ${startInfo.url}`)
 
   if (options.launch) {
     await launchInBrowser(startInfo.url, logger.child({ component: "launcher" }))
@@ -302,7 +311,7 @@ async function main() {
       logger.error({ err: error }, "Workspace manager shutdown failed")
     }
 
-    // no-op: remote UI manifest replaces GitHub release monitor
+    pidTracker.removeServerPid()
 
     logger.info("Exiting process")
     process.exit(0)

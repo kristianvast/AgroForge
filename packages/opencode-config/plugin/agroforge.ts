@@ -1,16 +1,16 @@
 import type { PluginInput } from "@opencode-ai/plugin"
-import { createCodeNomadClient, getCodeNomadConfig } from "./lib/client"
+import { createAgroForgeClient, getAgroForgeConfig } from "./lib/client"
 import { createBackgroundProcessTools } from "./lib/background-process"
 
-export async function CodeNomadPlugin(input: PluginInput) {
-  const config = getCodeNomadConfig()
-  const client = createCodeNomadClient(config)
+export async function AgroForgePlugin(input: PluginInput) {
+  const config = getAgroForgeConfig()
+  const client = createAgroForgeClient(config)
   const backgroundProcessTools = createBackgroundProcessTools(config, { baseDir: input.directory })
 
   await client.startEvents((event) => {
-    if (event.type === "codenomad.ping") {
+    if (event.type === "agroforge.ping") {
       void client.postEvent({
-        type: "codenomad.pong",
+        type: "agroforge.pong",
         properties: {
           ts: Date.now(),
           pingTs: (event.properties as any)?.ts,

@@ -1,7 +1,7 @@
 {
-  "name": "@neuralnomads/codenomad-electron-app",
+  "name": "@agroforge/electron-app",
   "version": "0.9.1",
-  "description": "CodeNomad - AI coding assistant",
+  "description": "AgroForge - AI coding assistant",
   "author": {
     "name": "Neural Nomads",
     "email": "codenomad@neuralnomads.ai"
@@ -34,8 +34,8 @@
     "package:linux": "electron-builder --linux"
   },
   "dependencies": {
-    "@neuralnomads/codenomad": "file:../server",
-    "@codenomad/ui": "file:../ui"
+    "@agroforge/server": "file:../server",
+    "@agroforge/ui": "file:../ui"
   },
   "devDependencies": {
     "7zip-bin": "^5.2.0",
@@ -52,7 +52,7 @@
   },
   "build": {
     "appId": "ai.opencode.client",
-    "productName": "CodeNomad",
+    "productName": "AgroForge",
     "directories": {
       "output": "release",
       "buildResources": "electron/resources"
@@ -86,7 +86,7 @@
           ]
         }
       ],
-      "artifactName": "CodeNomad-${version}-${os}-${arch}.${ext}",
+      "artifactName": "AgroForge-${version}-${os}-${arch}.${ext}",
       "icon": "electron/resources/icon.icns"
     },
     "dmg": {
@@ -113,7 +113,7 @@
           ]
         }
       ],
-      "artifactName": "CodeNomad-${version}-${os}-${arch}.${ext}",
+      "artifactName": "AgroForge-${version}-${os}-${arch}.${ext}",
       "icon": "electron/resources/icon.ico"
     },
     "nsis": {
@@ -132,7 +132,7 @@
           ]
         }
       ],
-      "artifactName": "CodeNomad-${version}-${os}-${arch}.${ext}",
+      "artifactName": "AgroForge-${version}-${os}-${arch}.${ext}",
       "category": "Development",
       "icon": "electron/resources/icon.png"
     }

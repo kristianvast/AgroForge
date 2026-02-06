@@ -178,7 +178,7 @@ export function createHttpServer(deps: HttpServerDeps) {
 
     const requiresAuthForApi = pathname.startsWith("/api/") || pathname.startsWith("/workspaces/")
     if (requiresAuthForApi && !session) {
-      // Allow OpenCode plugin -> CodeNomad calls with per-instance basic auth.
+      // Allow OpenCode plugin -> AgroForge calls with per-instance basic auth.
       const pluginMatch = pathname.match(/^\/workspaces\/([^/]+)\/plugin(?:\/|$)/)
       if (pluginMatch) {
         const workspaceId = pluginMatch[1]

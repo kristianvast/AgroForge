@@ -451,6 +451,7 @@ type SessionThreadCache = {
 }
 
 const sessionThreadCache = new Map<string, SessionThreadCache>()
+const pinnedThreadOrder = new Map<string, string[]>()
 
 function getOrCreateSessionThreadCache(instanceId: string): SessionThreadCache {
   let cache = sessionThreadCache.get(instanceId)
@@ -461,10 +462,30 @@ function getOrCreateSessionThreadCache(instanceId: string): SessionThreadCache {
   return cache
 }
 
+function isThreadBusy(thread: SessionThread): boolean {
+  const parentStatus = thread.parent.status ?? "idle"
+  if (parentStatus === "working" || parentStatus === "compacting") return true
+  return thread.children.some((c) => {
+    const s = c.status ?? "idle"
+    return s === "working" || s === "compacting"
+  })
+}
+
+function sortThreadsByRecency(threads: SessionThread[]): void {
+  threads.sort((a, b) => {
+    if (b.latestUpdated !== a.latestUpdated) return b.latestUpdated - a.latestUpdated
+    const bParentUpdated = b.parent.time.updated ?? 0
+    const aParentUpdated = a.parent.time.updated ?? 0
+    if (bParentUpdated !== aParentUpdated) return bParentUpdated - aParentUpdated
+    return b.parent.id.localeCompare(a.parent.id)
+  })
+}
+
 function getSessionThreads(instanceId: string): SessionThread[] {
   const instanceSessions = sessions().get(instanceId)
   if (!instanceSessions || instanceSessions.size === 0) {
     sessionThreadCache.delete(instanceId)
+    pinnedThreadOrder.delete(instanceId)
     return []
   }
 
@@ -490,7 +511,7 @@ function getSessionThreads(instanceId: string): SessionThread[] {
     }
   }
 
-  const threads: SessionThread[] = []
+  const threadsByParentId = new Map<string, SessionThread>()
 
   for (const parent of parents) {
     seenParents.add(parent.id)
@@ -509,11 +530,11 @@ function getSessionThreads(instanceId: string): SessionThread[] {
 
     const cached = cache.byParentId.get(parent.id)
     if (cached && cached.signature === signature) {
-      threads.push(cached.thread)
+      threadsByParentId.set(parent.id, cached.thread)
     } else {
       const thread: SessionThread = { parent, children, latestUpdated }
       cache.byParentId.set(parent.id, { signature, thread })
-      threads.push(thread)
+      threadsByParentId.set(parent.id, thread)
     }
   }
 
@@ -523,15 +544,37 @@ function getSessionThreads(instanceId: string): SessionThread[] {
     }
   }
 
-  threads.sort((a, b) => {
-    if (b.latestUpdated !== a.latestUpdated) return b.latestUpdated - a.latestUpdated
-    const bParentUpdated = b.parent.time.updated ?? 0
-    const aParentUpdated = a.parent.time.updated ?? 0
-    if (bParentUpdated !== aParentUpdated) return bParentUpdated - aParentUpdated
-    return b.parent.id.localeCompare(a.parent.id)
-  })
+  const allThreads = Array.from(threadsByParentId.values())
+  const anyBusy = allThreads.some(isThreadBusy)
 
-  return threads
+  if (!anyBusy) {
+    sortThreadsByRecency(allThreads)
+    pinnedThreadOrder.set(instanceId, allThreads.map((t) => t.parent.id))
+    return allThreads
+  }
+
+  const pinned = pinnedThreadOrder.get(instanceId)
+  if (!pinned || pinned.length === 0) {
+    sortThreadsByRecency(allThreads)
+    pinnedThreadOrder.set(instanceId, allThreads.map((t) => t.parent.id))
+    return allThreads
+  }
+
+  const pinnedSet = new Set(pinned)
+  const ordered: SessionThread[] = []
+  for (const id of pinned) {
+    const thread = threadsByParentId.get(id)
+    if (thread) ordered.push(thread)
+  }
+
+  const newThreads = allThreads.filter((t) => !pinnedSet.has(t.parent.id))
+  if (newThreads.length > 0) {
+    sortThreadsByRecency(newThreads)
+    ordered.unshift(...newThreads)
+  }
+
+  pinnedThreadOrder.set(instanceId, ordered.map((t) => t.parent.id))
+  return ordered
 }
 
 function isSessionParentExpanded(instanceId: string, parentSessionId: string): boolean {

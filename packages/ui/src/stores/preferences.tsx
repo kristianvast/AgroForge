@@ -513,12 +513,26 @@ function getModelUsageScore(providerId: string, modelId: string): number {
   return entry.useCount + recencyBonus * 2
 }
 
-function getMostRecentAgentName(): string | null {
+function getMostRecentAgentName(validAgentNames?: string[]): string | null {
   const usage = preferences().agentUsage ?? []
   if (usage.length === 0) return null
-  // Sort by lastUsed descending and return the most recent
+  // Sort by lastUsed descending
   const sorted = [...usage].sort((a, b) => b.lastUsed - a.lastUsed)
-  return sorted[0]?.name ?? null
+  
+  // If no filter provided, return the most recent
+  if (!validAgentNames || validAgentNames.length === 0) {
+    return sorted[0]?.name ?? null
+  }
+  
+  // Find the most recent agent that exists in the valid list
+  const validSet = new Set(validAgentNames)
+  for (const entry of sorted) {
+    if (validSet.has(entry.name)) {
+      return entry.name
+    }
+  }
+  
+  return null
 }
 
 function getMostRecentModelPreference(): ModelPreference | null {

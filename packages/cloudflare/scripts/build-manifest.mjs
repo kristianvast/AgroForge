@@ -41,10 +41,10 @@ const releaseConfig = JSON.parse(fs.readFileSync(releaseConfigPath, "utf-8"))
 const uiPackageJson = JSON.parse(fs.readFileSync(uiPackageJsonPath, "utf-8"))
 const serverPackageJson = JSON.parse(fs.readFileSync(serverPackageJsonPath, "utf-8"))
 
-const bucket = process.env.CODENOMAD_R2_BUCKET
+const bucket = process.env.AGROFORGE_R2_BUCKET
 
 if (!bucket) {
-  console.error("Missing env var: CODENOMAD_R2_BUCKET")
+  console.error("Missing env var: AGROFORGE_R2_BUCKET")
   process.exit(1)
 }
 

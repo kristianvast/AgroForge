@@ -475,84 +475,25 @@ session-sidebar-controls .selector-trigger-primary {
 }
 
 @media (max-width: 480px) {
-  /* Main toolbar adjustments */
   .session-toolbar {
-    padding: 8px 12px;
-    min-height: 52px;
-    gap: 8px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  /* Status indicator compact */
-  .status-indicator {
-    font-size: 0;
-  }
-  
-  .status-indicator .status-dot {
-    width: 10px;
-    height: 10px;
-  }
-  
-  .status-indicator .status-text {
-    display: none;
-  }
-  
-  /* Token stats - pill style */
-  .session-toolbar .inline-flex {
     padding: 4px 8px;
-    font-size: 10px;
-    border-radius: 12px;
+    min-height: 44px;
+    gap: 4px;
+    flex-wrap: nowrap;
   }
-  
-  .session-toolbar .inline-flex .uppercase {
-    display: none;
-  }
-  
-  /* Command palette button - icon only on mobile */
-  .connection-status-button {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  
-  .connection-status-button .connection-status-button-text {
-    display: none;
-  }
-  
-  .connection-status-button::before {
-    content: "⌘";
-    font-size: 18px;
-    font-weight: 500;
-  }
-  
-  /* Hide keyboard hints on mobile */
+
   .connection-status-shortcut-hint,
   .sidebar-selector-hints {
     display: none;
   }
-  
-  /* Drawer toggle buttons */
-  .session-toolbar-left .MuiIconButton-root,
-  .session-toolbar-right .MuiIconButton-root {
-    width: 40px;
-    height: 40px;
-  }
-  
-  /* Permission banner compact */
+
   .permission-notification-banner {
-    max-width: 120px;
+    max-width: 28px;
+    min-width: 28px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    padding: 4px 8px;
-    font-size: 11px;
+    padding: 4px;
+    font-size: 0;
+    border-radius: 6px;
   }
 }
 
@@ -638,5 +579,218 @@ session-sidebar-controls .selector-trigger-primary {
   /* Show only active tab icon, others show text */
   .instance-tab:not(.instance-tab--active) .instance-tab-icon {
     display: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHONE TOOLBAR — Simplified single-row header
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.phone-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  position: relative;
+}
+
+.phone-toolbar-agent-model {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+  color: var(--text-primary);
+}
+
+.phone-toolbar-agent-model:active {
+  background: var(--surface-hover);
+}
+
+.phone-toolbar-agent {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 40%;
+}
+
+.phone-toolbar-separator {
+  color: var(--text-muted);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.phone-toolbar-model {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.phone-toolbar-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--status-error);
+}
+
+.phone-toolbar-status-dot.connected {
+  background: var(--status-success);
+}
+
+.phone-toolbar-status-dot.connecting {
+  background: var(--status-warning);
+  animation: pulse 1.5s infinite;
+}
+
+.phone-toolbar-status-dot.disconnected {
+  background: var(--status-error);
+}
+
+.phone-toolbar-no-session {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 0 8px;
+}
+
+.phone-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.phone-toolbar-menu-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.phone-toolbar-menu-btn:active {
+  background: var(--surface-hover);
+}
+
+/* Overflow menu */
+.phone-toolbar-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+.phone-toolbar-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 100;
+  min-width: 180px;
+  background: var(--surface-base);
+  border: 1px solid var(--border-base);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+  animation: mobile-scale-in 150ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform-origin: top right;
+}
+
+.phone-toolbar-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  text-align: left;
+  font-family: inherit;
+}
+
+.phone-toolbar-menu-item:active {
+  background: var(--surface-hover);
+}
+
+.phone-toolbar-menu-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 8px;
+}
+
+.phone-toolbar-menu-tokens {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.phone-toolbar-menu-token-label {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+.phone-toolbar-menu-token-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Phone left drawer - compact controls */
+.session-sidebar-controls-phone {
+  padding: 8px 12px;
+}
+
+.session-sidebar-controls-phone .agent-model-trigger {
+  gap: 6px;
+}
+
+.session-sidebar-controls-phone .agent-model-trigger-btn {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes mobile-scale-in {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }

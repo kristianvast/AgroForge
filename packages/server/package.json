@@ -25,7 +25,7 @@
     "build:ui": "npm run build --prefix ../ui",
     "prepare-ui": "node ./scripts/copy-ui-dist.mjs",
     "prepare-config": "node ./scripts/copy-opencode-config.mjs",
-    "dev": "cross-env CODENOMAD_DEV=1 CODENOMAD_SERVER_PASSWORD=codenomad-dev CLI_UI_DEV_SERVER=http://localhost:3000 tsx src/index.ts",
+    "dev": "cross-env AGROFORGE_DEV=1 AGROFORGE_SERVER_PASSWORD=agroforge-dev CLI_UI_DEV_SERVER=http://localhost:3000 tsx src/index.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

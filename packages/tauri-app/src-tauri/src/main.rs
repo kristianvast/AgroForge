@@ -198,14 +198,14 @@ fn build_menu(app: &AppHandle) -> tauri::Result<()> {
 
     // App menu (macOS only)
     if is_mac {
-        let app_menu = SubmenuBuilder::new(app, "CodeNomad")
-            .text("about", "About CodeNomad")
+        let app_menu = SubmenuBuilder::new(app, "AgroForge")
+            .text("about", "About AgroForge")
             .separator()
-            .text("hide", "Hide CodeNomad")
+            .text("hide", "Hide AgroForge")
             .text("hide_others", "Hide Others")
             .text("show_all", "Show All")
             .separator()
-            .text("quit", "Quit CodeNomad")
+            .text("quit", "Quit AgroForge")
             .build()?;
         submenus.push(app_menu);
     }
@@ -216,13 +216,16 @@ fn build_menu(app: &AppHandle) -> tauri::Result<()> {
         "new_instance",
         "New Instance",
         true,
-        Some("CmdOrCtrl+N")
+        Some("CmdOrCtrl+N"),
     )?;
-    
+
     let file_menu = SubmenuBuilder::new(app, "File")
         .item(&new_instance_item)
         .separator()
-        .text(if is_mac { "close" } else { "quit" }, if is_mac { "Close" } else { "Quit" })
+        .text(
+            if is_mac { "close" } else { "quit" },
+            if is_mac { "Close" } else { "Quit" },
+        )
         .build()?;
     submenus.push(file_menu);
 
@@ -245,7 +248,6 @@ fn build_menu(app: &AppHandle) -> tauri::Result<()> {
         .text("force_reload", "Force Reload")
         .text("toggle_devtools", "Toggle Developer Tools")
         .separator()
-
         .separator()
         .text("toggle_fullscreen", "Toggle Full Screen")
         .build()?;
@@ -259,9 +261,12 @@ fn build_menu(app: &AppHandle) -> tauri::Result<()> {
     submenus.push(window_menu);
 
     // Build the main menu with all submenus
-    let submenu_refs: Vec<&dyn tauri::menu::IsMenuItem<_>> = submenus.iter().map(|s| s as &dyn tauri::menu::IsMenuItem<_>).collect();
+    let submenu_refs: Vec<&dyn tauri::menu::IsMenuItem<_>> = submenus
+        .iter()
+        .map(|s| s as &dyn tauri::menu::IsMenuItem<_>)
+        .collect();
     let menu = MenuBuilder::new(app).items(&submenu_refs).build()?;
-    
+
     app.set_menu(menu)?;
     Ok(())
 }
